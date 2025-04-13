@@ -1,0 +1,7 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <ItemGroup>
+      <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.15" />
+    </ItemGroup>
+
+</Project>

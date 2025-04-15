@@ -5,15 +5,23 @@ namespace EntityFrameworkCore.ExecuteInsert.Abstractions;
 
 public static class BulkInsertExtensions
 {
-    public static async Task ExecuteInsert<T>(this DbSet<T> dbSet, IEnumerable<T> entities, CancellationToken cancellationToken = default) where T : class
+    public static async Task<IEnumerable<T>> ExecuteInsertAsync<T>(
+        this DbSet<T> dbSet,
+        IEnumerable<T> entities,
+        Action<BulkInsertOptions>? configure = null,
+        CancellationToken ctk = default
+        ) where T : class
     {
         var context = dbSet.GetDbContext();
         var provider = context.GetService<IBulkInsertProvider>();
 
-        await provider.BulkInsertAsync(context, entities, cancellationToken: cancellationToken);
+        var options = new BulkInsertOptions();
+        configure?.Invoke(options);
+
+        return await provider.BulkInsertAsync(context, entities, options, ctk);
     }
 
-    public static async Task ExecuteInsert<T>(this DbContext dbContext, IEnumerable<T> entities, CancellationToken cancellationToken = default) where T : class
+    public static async Task ExecuteInsertAsync<T>(this DbContext dbContext, IEnumerable<T> entities, Action<BulkInsertOptions>? configure = null, CancellationToken cancellationToken = default) where T : class
     {
         var dbSet = dbContext.Set<T>();
         if (dbSet == null)
@@ -21,7 +29,7 @@ public static class BulkInsertExtensions
             throw new InvalidOperationException($"DbSet of type {typeof(T).Name} not found in DbContext.");
         }
 
-        await dbSet.ExecuteInsert(entities, cancellationToken);
+        await dbSet.ExecuteInsertAsync(entities, configure, cancellationToken);
     }
 
     private static DbContext GetDbContext<T>(this DbSet<T> dbSet) where T : class

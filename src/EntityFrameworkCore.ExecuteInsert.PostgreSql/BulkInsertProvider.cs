@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Data;
 using System.Data.Common;
+using System.Linq.Expressions;
 using System.Reflection;
 
 using EntityFrameworkCore.ExecuteInsert.Abstractions;
@@ -17,6 +18,9 @@ public class BulkInsertProvider : IBulkInsertProvider
     private static readonly MethodInfo CastMethod = typeof(Enumerable).GetMethod("Cast")!;
     private static readonly MethodInfo BulkInsertMethod = typeof(BulkInsertProvider).GetMethod(nameof(BulkInsertAsync))!;
     private static readonly MethodInfo GetChildrenMethod = typeof(BulkInsertProvider).GetMethod(nameof(GetChildrenEntities))!;
+
+    private static readonly MethodInfo GetFieldValueMethod =
+        typeof(DbDataReader).GetMethod(nameof(DbDataReader.GetFieldValue))!;
 
     public async Task<string> CreateTableCopyAsync<T>(DbConnection connection, DbContext context,
         CancellationToken cancellationToken = default) where T : class
@@ -38,41 +42,75 @@ public class BulkInsertProvider : IBulkInsertProvider
         return tempTableName;
     }
 
-    public async Task<List<T>> CopyFromTempTableAsync<T>(DbConnection connection, DbContext context, string tempTableName, bool returnIdentity = false,
+    public async Task<List<T>> CopyFromTempTableAsync<T>(DbContext context, string tempTableName, bool moveRows = false,
         CancellationToken cancellationToken = default) where T : class
     {
-        var tableInfo = DatabaseHelper.GetTableInfo(context, typeof(T));
-        var tableName = DatabaseHelper.GetEscapedTableName(tableInfo.SchemaName, tableInfo.TableName, OpenDelimiter, CloseDelimiter);
+        var (schemaName, tableName, _) = DatabaseHelper.GetTableInfo(context, typeof(T));
+        var escapedTableName = DatabaseHelper.GetEscapedTableName(schemaName, tableName, OpenDelimiter, CloseDelimiter);
 
-        if (returnIdentity)
+        var columnAliases = DatabaseHelper.GetProperties(context, typeof(T))
+            .Select(p => $"{DatabaseHelper.GetEscapedColumnName(p.GetColumnName(), OpenDelimiter, CloseDelimiter)} AS {DatabaseHelper.GetEscapedColumnName(p.Name, OpenDelimiter, CloseDelimiter)}")
+            .ToArray();
+
+        //language=sql
+        var insertIntoSelect = moveRows ?
+            "WITH moved_rows AS (DELETE FROM {2} RETURNING {1}) INSERT INTO {0} SELECT * FROM moved_rows RETURNING {3};" :
+            "INSERT INTO {0} ({1}) SELECT {1} FROM {2} RETURNING {3};";
+
+        var columns = GetEscapedColumns(context, typeof(T));
+        var query = string.Format(insertIntoSelect, escapedTableName, string.Join(", ", columns), tempTableName, string.Join(", ", columnAliases));
+
+        return await context.Set<T>().FromSqlRaw(query).ToListAsync(cancellationToken);
+    }
+
+    public async Task<List<object>> CopyFromTempTablePrimaryKeyAsync<T>(DbContext context, string tempTableName, bool moveRows = false,
+        CancellationToken cancellationToken = default) where T : class
+    {
+        var (schemaName, tableName, primaryKey) = DatabaseHelper.GetTableInfo(context, typeof(T));
+        var escapedTableName = DatabaseHelper.GetEscapedTableName(schemaName, tableName, OpenDelimiter, CloseDelimiter);
+
+        var columnAliases = primaryKey.Properties
+            .Select(p => $"{DatabaseHelper.GetEscapedColumnName(p.GetColumnName(), OpenDelimiter, CloseDelimiter)} AS {DatabaseHelper.GetEscapedColumnName(p.Name, OpenDelimiter, CloseDelimiter)}")
+            .ToArray();
+
+        //language=sql
+        var insertIntoSelect = moveRows ?
+            "WITH moved_rows AS (DELETE FROM {2} RETURNING {1}) INSERT INTO {0} SELECT * FROM moved_rows RETURNING {3};" :
+            "INSERT INTO {0} ({1}) SELECT {1} FROM {2} RETURNING {3};";
+
+        var columns = GetEscapedColumns(context, typeof(T));
+        var query = string.Format(insertIntoSelect, escapedTableName, string.Join(", ", columns), tempTableName, string.Join(", ", columnAliases));
+
+        var command = context.Database.GetDbConnection().CreateCommand();
+        command.CommandText = query;
+
+        var result = new List<object>();
+        await context.Database.OpenConnectionAsync(cancellationToken);
+
+        try
         {
-            var columnAliases = DatabaseHelper.GetProperties(context, typeof(T))
-                .Select(p => $"{DatabaseHelper.GetEscapedColumnName(p.GetColumnName(), OpenDelimiter, CloseDelimiter)} AS {DatabaseHelper.GetEscapedColumnName(p.Name, OpenDelimiter, CloseDelimiter)}")
+            // Make generic mathods for GetFieldValue for each primary key property type
+            var getFieldValueMethods = primaryKey.Properties
+                .Select(p => GetFieldValueMethod.MakeGenericMethod(p.ClrType))
                 .ToArray();
 
-            //language=sql
-            const string insertIntoSelect = "INSERT INTO {0} ({1}) SELECT {1} FROM {2} RETURNING {3};";
-
-            var columns = GetEscapedColumns(context, typeof(T));
-            var query = string.Format(insertIntoSelect, tableName, string.Join(", ", columns), tempTableName, string.Join(", ", columnAliases));
-
-            return await context.Set<T>().FromSqlRaw(query).ToListAsync(cancellationToken);
+            using var reader = await command.ExecuteReaderAsync(cancellationToken);
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                var values = new object[primaryKey.Properties.Count];
+                for (var i = 0; i < primaryKey.Properties.Count; i++)
+                {
+                    values[i] = getFieldValueMethods[i].Invoke(reader, [i])!;
+                }
+                result.Add(values.Length == 1 ? values[0] : values);
+            }
         }
-        else
+        finally
         {
-            //language=sql
-            const string insertIntoSelect = "INSERT INTO {0} ({1}) SELECT {1} FROM {2};";
-
-            var columns = GetEscapedColumns(context, typeof(T));
-            var query = string.Format(insertIntoSelect, tableName, string.Join(", ", columns), tempTableName);
-
-            var command = connection.CreateCommand();
-            command.CommandText = query;
-
-            await command.ExecuteNonQueryAsync(cancellationToken);
-
-            return [];
+            await context.Database.CloseConnectionAsync();
         }
+
+        return result;
     }
 
     public string OpenDelimiter => "\"";
@@ -106,8 +144,8 @@ public class BulkInsertProvider : IBulkInsertProvider
                 var items = CastMethod.MakeGenericMethod(itemType).Invoke(null, [allChildren]);
 
                 // Call BulkInsertAsync
-                var method = BulkInsertMethod.MakeGenericMethod(itemType);
-                await (method.Invoke(this, [context, items, options, ctk]) as Task)!;
+                var bulkInsert = BulkInsertMethod.MakeGenericMethod(itemType);
+                await (bulkInsert.Invoke(this, [context, items, options, ctk]) as Task)!;
             }
         }
 
@@ -119,7 +157,7 @@ public class BulkInsertProvider : IBulkInsertProvider
             await connection.OpenAsync(ctk);
         }
 
-        var tempTableInsertion = !options.OnlyRootEntities || options.ReturnIdentity;
+        var tempTableInsertion = !options.OnlyRootEntities || options.ReturnIdentity || options.ReturnPrimaryKey;
 
         // Then insert the main entities
         string tableName;
@@ -154,7 +192,17 @@ public class BulkInsertProvider : IBulkInsertProvider
 
         if (tempTableInsertion)
         {
-            result = await CopyFromTempTableAsync<T>(connection, context, tableName, options.ReturnIdentity, ctk);
+            if (options.ReturnIdentity)
+            {
+                result = await CopyFromTempTableAsync<T>(context, tableName, options.MoveRows, ctk);
+            }
+            else if (options.ReturnPrimaryKey)
+            {
+                var primaryKeys = await CopyFromTempTablePrimaryKeyAsync<T>(context, tableName, options.MoveRows, ctk);
+
+                // Map primary keys to entities, using navigation information
+
+            }
         }
 
         if (wasClosed)

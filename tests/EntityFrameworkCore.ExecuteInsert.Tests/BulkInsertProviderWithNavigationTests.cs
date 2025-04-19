@@ -24,7 +24,7 @@ public class ParentEntity
     public string Name { get; set; } = string.Empty;
     public ICollection<ChildEntity> Children { get; set; } = new List<ChildEntity>();
     public GrandParentEntity GrandParent { get; set; } = null!;
-    public int? GrandParentId { get; set; }
+    public int GrandParentId { get; set; }
 }
 
 public class ChildEntity

@@ -25,7 +25,7 @@ public static class DatabaseHelper
     /// </summary>
     public static string GetEscapedTableName(DbContext context, Type entityType, string openDelimiter, string closeDelimiter)
     {
-        var (schema, tableName) = GetTableInfo(context, entityType);
+        var (schema, tableName, _) = GetTableInfo(context, entityType);
 
         return schema != null
             ? $"{openDelimiter}{schema}{closeDelimiter}.{openDelimiter}{tableName}{closeDelimiter}"
@@ -35,7 +35,7 @@ public static class DatabaseHelper
     /// <summary>
     /// Escapes a schema and table name using database-specific delimiters.
     /// </summary>
-    public static (string? SchemaName, string TableName) GetTableInfo(DbContext context, Type entityType)
+    public static (string? SchemaName, string TableName, IKey PrimaryKey) GetTableInfo(DbContext context, Type entityType)
     {
         var entityTypeInfo = context.Model.FindEntityType(entityType);
         var schema = (entityTypeInfo ?? throw new InvalidOperationException($"Could not determine entity type for type {entityType.Name}")).GetSchema();
@@ -46,7 +46,7 @@ public static class DatabaseHelper
             throw new InvalidOperationException($"Could not determine table name for type {entityType.Name}");
         }
 
-        return (schema, tableName);
+        return (schema, tableName, entityTypeInfo.FindPrimaryKey()!);
     }
 
     /// <summary>

@@ -41,7 +41,7 @@ public class BulkInsertProviderTests : BulkInsertProviderTestsBase<TestDbContext
         };
 
         // Act
-        await DbContext.ExecuteInsertAsync(entities, o => o.ReturnIdentity = true);
+        await DbContext.ExecuteInsertAsync(entities, o => o.ReturnPrimaryKey = true);
 
         // Assert
         var insertedEntities = DbContext.TestEntities.ToList();
@@ -68,7 +68,7 @@ public class BulkInsertProviderTests : BulkInsertProviderTestsBase<TestDbContext
     public async Task InsertsThousandsOfEntitiesSuccessfully()
     {
         // Arrange
-        const int count = 1_000_000;
+        const int count = 5_000_000;
         var entities = Enumerable.Range(1, count).Select(i => new TestEntity
         {
             Id = i,
@@ -76,7 +76,11 @@ public class BulkInsertProviderTests : BulkInsertProviderTestsBase<TestDbContext
         }).ToList();
 
         // Act
-        await DbContext.ExecuteInsertAsync(entities, o => o.OnlyRootEntities = true);
+        await DbContext.ExecuteInsertAsync(entities, o =>
+        {
+            o.OnlyRootEntities = true;
+            o.MoveRows = false;
+        });
 
         // Assert
         var insertedEntities = DbContext.TestEntities.ToList();

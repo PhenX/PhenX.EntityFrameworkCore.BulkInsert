@@ -94,7 +94,7 @@ public class BulkInsertProviderWithNavigationTests : BulkInsertProviderTestsBase
         };
 
         // Act
-        await DbContext.ParentEntities.ExecuteInsertAsync(parents);
+        await DbContext.ParentEntities.ExecuteInsertAsync(parents, o => o.Recursive = true);
 
         // Assert
         var insertedGrandParents = DbContext.GrandParentEntities.ToList();

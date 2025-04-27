@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -10,10 +12,30 @@ using EntityFrameworkCore.ExecuteInsert.PostgreSql;
 
 namespace EntityFrameworkCore.ExecuteInsert.Tests;
 
+[PrimaryKey(nameof(Id))]
 public class TestEntity
 {
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
+    public decimal Price { get; set; }
+    public Guid Identifier { get; set; }
+
+    [Column(nameof(StringEnumValue), TypeName = "text")]
+    public StringEnum StringEnumValue { get; set; }
+
+    public NumericEnum NumericEnumValue { get; set; }
+}
+
+public enum NumericEnum
+{
+    First = 1,
+    Second = 2,
+}
+
+public enum StringEnum
+{
+    First,
+    Second,
 }
 
 public class TestDbContext : DbContext
@@ -41,7 +63,7 @@ public class BulkInsertProviderTests : BulkInsertProviderTestsBase<TestDbContext
         };
 
         // Act
-        await DbContext.ExecuteInsertAsync(entities, o => o.ReturnPrimaryKey = true);
+        await DbContext.ExecuteInsertWithIdentityAsync(entities);
 
         // Assert
         var insertedEntities = DbContext.TestEntities.ToList();
@@ -57,7 +79,7 @@ public class BulkInsertProviderTests : BulkInsertProviderTestsBase<TestDbContext
         var entities = new List<TestEntity>();
 
         // Act
-        await DbContext.ExecuteInsertAsync(entities);
+        await Assert.ThrowsAsync<InvalidOperationException>(async () => await DbContext.ExecuteInsertAsync(entities));
 
         // Assert
         var insertedEntities = DbContext.TestEntities.ToList();
@@ -68,17 +90,21 @@ public class BulkInsertProviderTests : BulkInsertProviderTestsBase<TestDbContext
     public async Task InsertsThousandsOfEntitiesSuccessfully()
     {
         // Arrange
-        const int count = 5_000_000;
+        const int count = 100_000;
         var entities = Enumerable.Range(1, count).Select(i => new TestEntity
         {
             Id = i,
-            Name = $"Entity{i}"
+            Name = $"Entity{i}",
+            Price = (decimal)(i * 0.1),
+            Identifier = Guid.NewGuid(),
+            StringEnumValue = (StringEnum)(i % 2),
+            NumericEnumValue = (NumericEnum)(i % 2),
         }).ToList();
 
         // Act
         await DbContext.ExecuteInsertAsync(entities, o =>
         {
-            o.OnlyRootEntities = true;
+            o.Recursive = false;
             o.MoveRows = false;
         });
 

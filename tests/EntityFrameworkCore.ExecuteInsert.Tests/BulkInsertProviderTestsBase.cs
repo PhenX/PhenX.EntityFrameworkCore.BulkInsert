@@ -32,10 +32,11 @@ public abstract class BulkInsertProviderTestsBase<TDbContext> : IAsyncLifetime
     {
         await PostgresContainer.StartAsync();
 
-        var connectionString = PostgresContainer.GetConnectionString();
+        var connectionString = PostgresContainer.GetConnectionString() + ";Include Error Detail=true";
 
         DbContext = new TDbContext();
         DbContext.Database.SetConnectionString(connectionString);
+
         await DbContext.Database.EnsureCreatedAsync();
     }
 

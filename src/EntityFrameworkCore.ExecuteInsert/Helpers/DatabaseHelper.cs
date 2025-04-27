@@ -66,7 +66,7 @@ public static class DatabaseHelper
 
         return entityTypeInfo
             .GetProperties()
-            .Where(p => !p.IsShadowProperty())
+            .Where(p => !p.IsShadowProperty() && p.ValueGenerated != ValueGenerated.OnAdd)
             .ToArray();
     }
 

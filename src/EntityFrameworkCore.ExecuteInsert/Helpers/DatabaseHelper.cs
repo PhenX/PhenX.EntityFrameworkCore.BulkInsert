@@ -60,13 +60,13 @@ public static class DatabaseHelper
     /// <summary>
     /// Gets cached properties for an entity type, using reflection if not already cached.
     /// </summary>
-    public static IProperty[] GetProperties(DbContext context, Type entityType)
+    public static IProperty[] GetProperties(DbContext context, Type entityType, bool includeGenerated = true)
     {
         var entityTypeInfo = context.Model.FindEntityType(entityType) ?? throw new InvalidOperationException($"Could not determine entity type for type {entityType.Name}");
 
         return entityTypeInfo
             .GetProperties()
-            .Where(p => !p.IsShadowProperty() && p.ValueGenerated != ValueGenerated.OnAdd)
+            .Where(p => !p.IsShadowProperty() && (includeGenerated || p.ValueGenerated != ValueGenerated.OnAdd))
             .ToArray();
     }
 

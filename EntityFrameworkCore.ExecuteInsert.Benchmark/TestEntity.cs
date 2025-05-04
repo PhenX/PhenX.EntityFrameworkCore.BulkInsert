@@ -12,6 +12,9 @@ public class TestEntity
     public decimal Price { get; set; }
     public Guid Identifier { get; set; }
 
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+
     [Column(nameof(StringEnumValue), TypeName = "text")]
     public StringEnum StringEnumValue { get; set; }
 

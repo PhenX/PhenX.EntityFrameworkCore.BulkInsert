@@ -1,5 +1,3 @@
-using System.Security.Cryptography;
-
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Engines;
 
@@ -15,10 +13,10 @@ namespace EntityFrameworkCore.ExecuteInsert.Benchmark;
 
 [MinColumn, MaxColumn, BaselineColumn]
 [MemoryDiagnoser]
-[SimpleJob(RunStrategy.ColdStart, launchCount: 1, warmupCount: 0, iterationCount: 10)]
+[SimpleJob(RunStrategy.Throughput, launchCount: 1, warmupCount: 0, iterationCount: 5)]
 public class BulkInsertVsExecuteInsert
 {
-    [Params(100_000, 1_000_000/*, 10_000_000*/)]
+    [Params(100_000/*, 1_000_000/*, 10_000_000*/)]
     public int N;
 
     private IList<TestEntity> data;
@@ -62,14 +60,32 @@ public class BulkInsertVsExecuteInsert
     }
 
     [Benchmark(Baseline = true)]
-    public async Task BulkInsert()
-    {
-        await DbContext.BulkInsertAsync(data);
-    }
-
-    [Benchmark]
     public async Task ExecuteInsert()
     {
         await DbContext.ExecuteInsertAsync(data);
+    }
+
+    [Benchmark]
+    public async Task ExecuteInsertWithIdentity()
+    {
+        await DbContext.ExecuteInsertWithIdentityAsync(data);
+    }
+
+    [Benchmark]
+    public async Task ExecuteInsertWithIdentityMoveRows()
+    {
+        await DbContext.ExecuteInsertWithIdentityAsync(data, options => options.MoveRows = true);
+    }
+
+    [Benchmark]
+    public async Task BulkInsertZEf()
+    {
+        await DbContext.BulkInsertOptimizedAsync(data, options => options.IncludeGraph = false);
+    }
+
+    [Benchmark]
+    public async Task BulkInsert()
+    {
+        await DbContextBulkExtensions.BulkInsertAsync(DbContext, data);
     }
 }

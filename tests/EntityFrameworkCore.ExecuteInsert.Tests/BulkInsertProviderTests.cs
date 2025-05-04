@@ -73,6 +73,29 @@ public class BulkInsertProviderTests : BulkInsertProviderTestsBase<TestDbContext
     }
 
     [Fact]
+    public async Task InsertsEntitiesMoveRowsSuccessfully()
+    {
+        // Arrange
+        var entities = new List<TestEntity>
+        {
+            new TestEntity { Id = 1, Name = "Entity1" },
+            new TestEntity { Id = 2, Name = "Entity2" }
+        };
+
+        // Act
+        await DbContext.ExecuteInsertWithIdentityAsync(entities, o =>
+        {
+            o.MoveRows = true;
+        });
+
+        // Assert
+        var insertedEntities = DbContext.TestEntities.ToList();
+        Assert.Equal(2, insertedEntities.Count);
+        Assert.Contains(insertedEntities, e => e.Name == "Entity1");
+        Assert.Contains(insertedEntities, e => e.Name == "Entity2");
+    }
+
+    [Fact]
     public async Task DoesNothingWhenEntitiesAreEmpty()
     {
         // Arrange
@@ -90,7 +113,7 @@ public class BulkInsertProviderTests : BulkInsertProviderTestsBase<TestDbContext
     public async Task InsertsThousandsOfEntitiesSuccessfully()
     {
         // Arrange
-        const int count = 100_000;
+        const int count = 1_000_000;
         var entities = Enumerable.Range(1, count).Select(i => new TestEntity
         {
             Id = i,

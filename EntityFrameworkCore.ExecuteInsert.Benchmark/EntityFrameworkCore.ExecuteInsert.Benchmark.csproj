@@ -11,6 +11,7 @@
       <PackageReference Include="BenchmarkDotNet" Version="0.14.0" />
       <PackageReference Include="EFCore.BulkExtensions.MIT.PostgreSql" Version="8.19.0" />
       <PackageReference Include="Testcontainers.PostgreSql" Version="4.4.0" />
+      <PackageReference Include="Z.EntityFramework.Extensions.EFCore" Version="8.103.8" />
     </ItemGroup>
 
     <ItemGroup>

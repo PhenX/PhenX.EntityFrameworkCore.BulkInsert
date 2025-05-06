@@ -19,13 +19,14 @@
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Testcontainers" Version="4.3.0" />
-        <PackageReference Include="Testcontainers.PostgreSql" Version="4.3.0" />
+        <PackageReference Include="Testcontainers" Version="4.4.0" />
+        <PackageReference Include="Testcontainers.PostgreSql" Version="4.4.0" />
+        <PackageReference Include="Testcontainers.MsSql" Version="4.4.0" />
     </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\..\src\EntityFrameworkCore.ExecuteInsert.PostgreSql\EntityFrameworkCore.ExecuteInsert.PostgreSql.csproj" />
-      <ProjectReference Include="..\..\src\EntityFrameworkCore.ExecuteInsert\EntityFrameworkCore.ExecuteInsert.csproj" />
+      <ProjectReference Include="..\..\src\EntityFrameworkCore.ExecuteInsert.SqlServer\EntityFrameworkCore.ExecuteInsert.SqlServer.csproj" />
     </ItemGroup>
 
 </Project>

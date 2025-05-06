@@ -1,26 +1,20 @@
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Engines;
+
+using DotNet.Testcontainers.Containers;
 
 using EFCore.BulkExtensions;
 
 using EntityFrameworkCore.ExecuteInsert.Abstractions;
 
-using Microsoft.EntityFrameworkCore;
-
-using Testcontainers.PostgreSql;
-
 namespace EntityFrameworkCore.ExecuteInsert.Benchmark;
 
-[MinColumn, MaxColumn, BaselineColumn]
-[MemoryDiagnoser]
-[SimpleJob(RunStrategy.Throughput, launchCount: 1, warmupCount: 0, iterationCount: 5)]
-public class BulkInsertVsExecuteInsert
+public abstract class BulkInsertVsExecuteInsert
 {
     [Params(100_000/*, 1_000_000/*, 10_000_000*/)]
     public int N;
 
     private IList<TestEntity> data;
-    private TestDbContext DbContext;
+    protected TestDbContext DbContext;
 
     [GlobalSetup]
     public void GlobalSetup()
@@ -37,27 +31,19 @@ public class BulkInsertVsExecuteInsert
 
     public BulkInsertVsExecuteInsert()
     {
-        PostgresContainer = GetPostgresContainer();
-        PostgresContainer.StartAsync().GetAwaiter().GetResult();
+        DbContainer = GetDbContainer();
+        DbContainer.StartAsync().GetAwaiter().GetResult();
 
-        var connectionString = PostgresContainer.GetConnectionString() + ";Include Error Detail=true";
+        ConfigureDbContext();
 
-        DbContext = new TestDbContext();
-        DbContext.Database.SetConnectionString(connectionString);
-        DbContext.Database.EnsureDeleted();
         DbContext.Database.EnsureCreated();
     }
 
-    public PostgreSqlContainer PostgresContainer { get; }
+    protected abstract void ConfigureDbContext();
 
-    private static PostgreSqlContainer GetPostgresContainer()
-    {
-        return new PostgreSqlBuilder()
-            .WithDatabase("testdb")
-            .WithUsername("testuser")
-            .WithPassword("testpassword")
-            .Build();
-    }
+    public IDatabaseContainer DbContainer { get; }
+
+    protected abstract IDatabaseContainer GetDbContainer();
 
     [Benchmark(Baseline = true)]
     public async Task ExecuteInsert()

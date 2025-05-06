@@ -1,8 +1,8 @@
 using System.Data.Common;
 
-using EntityFrameworkCore.ExecuteInsert;
-
 using Microsoft.EntityFrameworkCore;
+
+namespace EntityFrameworkCore.ExecuteInsert.Abstractions;
 
 public interface IBulkInsertProvider
 {

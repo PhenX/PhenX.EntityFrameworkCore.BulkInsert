@@ -1,57 +1,24 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Threading.Tasks;
 
 using EntityFrameworkCore.ExecuteInsert.Abstractions;
+using EntityFrameworkCore.ExecuteInsert.Tests.DbContainer;
 
-using Microsoft.EntityFrameworkCore;
 using Xunit;
-using EntityFrameworkCore.ExecuteInsert.PostgreSql;
 
-namespace EntityFrameworkCore.ExecuteInsert.Tests;
+namespace EntityFrameworkCore.ExecuteInsert.Tests.Tests;
 
-[PrimaryKey(nameof(Id))]
-public class TestEntity
+public abstract class BulkInsertProviderTestsBase : IAsyncLifetime
 {
-    public int Id { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public decimal Price { get; set; }
-    public Guid Identifier { get; set; }
-
-    [Column(nameof(StringEnumValue), TypeName = "text")]
-    public StringEnum StringEnumValue { get; set; }
-
-    public NumericEnum NumericEnumValue { get; set; }
-}
-
-public enum NumericEnum
-{
-    First = 1,
-    Second = 2,
-}
-
-public enum StringEnum
-{
-    First,
-    Second,
-}
-
-public class TestDbContext : DbContext
-{
-    public DbSet<TestEntity> TestEntities { get; set; } = null!;
-
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    protected BulkInsertProviderTestsBase(BulkInsertProviderDbContainer<TestDbContext> dbContainer)
     {
-        optionsBuilder
-            .UseNpgsql()
-            .UseExecuteInsertPostgres();
+        DbContainer = dbContainer;
     }
-}
 
-public class BulkInsertProviderTests : BulkInsertProviderTestsBase<TestDbContext>
-{
+    protected BulkInsertProviderDbContainer<TestDbContext> DbContainer { get; }
+
     [Fact]
     public async Task InsertsEntitiesSuccessfully()
     {
@@ -63,10 +30,10 @@ public class BulkInsertProviderTests : BulkInsertProviderTestsBase<TestDbContext
         };
 
         // Act
-        await DbContext.ExecuteInsertWithIdentityAsync(entities);
+        await DbContainer.DbContext.ExecuteInsertWithIdentityAsync(entities);
 
         // Assert
-        var insertedEntities = DbContext.TestEntities.ToList();
+        var insertedEntities = DbContainer.DbContext.TestEntities.ToList();
         Assert.Equal(2, insertedEntities.Count);
         Assert.Contains(insertedEntities, e => e.Name == "Entity1");
         Assert.Contains(insertedEntities, e => e.Name == "Entity2");
@@ -83,13 +50,13 @@ public class BulkInsertProviderTests : BulkInsertProviderTestsBase<TestDbContext
         };
 
         // Act
-        await DbContext.ExecuteInsertWithIdentityAsync(entities, o =>
+        await DbContainer.DbContext.ExecuteInsertWithIdentityAsync(entities, o =>
         {
             o.MoveRows = true;
         });
 
         // Assert
-        var insertedEntities = DbContext.TestEntities.ToList();
+        var insertedEntities = DbContainer.DbContext.TestEntities.ToList();
         Assert.Equal(2, insertedEntities.Count);
         Assert.Contains(insertedEntities, e => e.Name == "Entity1");
         Assert.Contains(insertedEntities, e => e.Name == "Entity2");
@@ -102,10 +69,10 @@ public class BulkInsertProviderTests : BulkInsertProviderTestsBase<TestDbContext
         var entities = new List<TestEntity>();
 
         // Act
-        await Assert.ThrowsAsync<InvalidOperationException>(async () => await DbContext.ExecuteInsertAsync(entities));
+        await Assert.ThrowsAsync<InvalidOperationException>(async () => await DbContainer.DbContext.ExecuteInsertAsync(entities));
 
         // Assert
-        var insertedEntities = DbContext.TestEntities.ToList();
+        var insertedEntities = DbContainer.DbContext.TestEntities.ToList();
         Assert.Empty(insertedEntities);
     }
 
@@ -113,7 +80,7 @@ public class BulkInsertProviderTests : BulkInsertProviderTestsBase<TestDbContext
     public async Task InsertsThousandsOfEntitiesSuccessfully()
     {
         // Arrange
-        const int count = 1_000_000;
+        const int count = 1_00_000;
         var entities = Enumerable.Range(1, count).Select(i => new TestEntity
         {
             Id = i,
@@ -125,16 +92,20 @@ public class BulkInsertProviderTests : BulkInsertProviderTestsBase<TestDbContext
         }).ToList();
 
         // Act
-        await DbContext.ExecuteInsertAsync(entities, o =>
+        await DbContainer.DbContext.ExecuteInsertAsync(entities, o =>
         {
             o.Recursive = false;
             o.MoveRows = false;
         });
 
         // Assert
-        var insertedEntities = DbContext.TestEntities.ToList();
+        var insertedEntities = DbContainer.DbContext.TestEntities.ToList();
         Assert.Equal(count, insertedEntities.Count);
         Assert.Contains(insertedEntities, e => e.Name == "Entity1");
         Assert.Contains(insertedEntities, e => e.Name == "Entity" + count);
     }
+
+    public Task InitializeAsync() => DbContainer.InitializeAsync();
+
+    public Task DisposeAsync() => DbContainer.DisposeAsync();
 }

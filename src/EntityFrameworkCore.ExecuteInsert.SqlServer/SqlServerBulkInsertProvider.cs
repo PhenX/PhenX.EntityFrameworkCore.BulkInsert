@@ -1,71 +1,89 @@
 using System.Data;
-using EntityFrameworkCore.ExecuteInsert.Abstractions;
+using System.Data.Common;
+
 using EntityFrameworkCore.ExecuteInsert.Helpers;
+
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace EntityFrameworkCore.ExecuteInsert.SqlServer;
 
-public class SqlServerBulkInsertProvider : IBulkInsertProvider
+public class SqlServerBulkInsertProvider : BulkInsertProviderBase
 {
-    public string OpenDelimiter => "[";
-    public string CloseDelimiter => "]";
+    public override string OpenDelimiter => "[";
+    public override string CloseDelimiter => "]";
 
-    public async Task BulkInsertAsync<T>(DbContext context, IEnumerable<T> entities, CancellationToken cancellationToken = default) where T : class
+    //language=sql
+    protected override string CreateTableCopySql => "SELECT {2} INTO {0} FROM {1} WHERE 1 = 0;";
+
+    //language=sql
+    protected override string AddTableCopyBulkInsertId => "ALTER TABLE {0} ADD _bulk_insert_id INT IDENTITY PRIMARY KEY;";
+
+    protected override string GetTempTableName<T>(string tableName) where T : class
     {
-        if (entities.TryGetNonEnumeratedCount(out var count) && count == 0)
-        {
-            return;
-        }
-
-        var table = ConvertToDataTable(context, entities);
-        var tableName = DatabaseHelper.GetEscapedTableName(context, typeof(T), OpenDelimiter, CloseDelimiter);
-
-        await using var connection = (SqlConnection)context.Database.GetDbConnection();
-        var wasClosed = connection.State == ConnectionState.Closed;
-
-        if (wasClosed)
-        {
-            await connection.OpenAsync(cancellationToken);
-        }
-
-        using var bulkCopy = new SqlBulkCopy(connection);
-        bulkCopy.DestinationTableName = tableName;
-        bulkCopy.BatchSize = 1000;
-        bulkCopy.BulkCopyTimeout = 60;
-
-        foreach (DataColumn column in table.Columns)
-        {
-            bulkCopy.ColumnMappings.Add(new SqlBulkCopyColumnMapping(column.ColumnName, DatabaseHelper.GetEscapedColumnName(column.ColumnName, OpenDelimiter, CloseDelimiter)));
-        }
-
-        await bulkCopy.WriteToServerAsync(table, cancellationToken);
-
-        if (wasClosed)
-        {
-            await connection.CloseAsync();
-        }
+        return $"#_temp_bulk_insert_{tableName}";
     }
 
-    private DataTable ConvertToDataTable<T>(DbContext context, IEnumerable<T> entities)
+    protected override async Task BulkImport<T>(DbContext context, DbConnection connection, IEnumerable<T> entities, string tableName,
+        PropertyAccessor[] properties, CancellationToken ctk)
+    {
+        using var bulkCopy = new SqlBulkCopy(connection as SqlConnection);
+        bulkCopy.DestinationTableName = tableName;
+        bulkCopy.BatchSize = 10_000;
+        bulkCopy.BulkCopyTimeout = 60;
+
+        foreach (var prop in properties)
+        {
+            bulkCopy.ColumnMappings.Add(prop.Name, DatabaseHelper.GetEscapedColumnName(prop.Name, OpenDelimiter, CloseDelimiter));
+        }
+
+        await bulkCopy.WriteToServerAsync(new EnumerableDataReader<T>(entities, properties), ctk);
+    }
+
+    protected override string BuildInsertSelectQuery(string tempTableName, string targetTableName,
+        IProperty[] insertedProperties, IProperty[] properties, bool moveRows)
+    {
+        var insertedColumns = insertedProperties.Select(p => Escape(p.GetColumnName()));
+        var insertedColumnList = string.Join(", ", insertedColumns);
+        var columnList = string.Join(", ", properties.Select(p => $"INSERTED.{p.GetColumnName()}"));
+
+//         if (moveRows)
+//         {
+//             //language=sql
+//             return $"""
+//                     WITH moved_rows AS (
+//                        DELETE FROM {tempTableName}
+//                            OUTPUT {insertedColumnList}
+//                     )
+//                     INSERT INTO {targetTableName} ({insertedColumnList})
+//                     SELECT {insertedColumnList}
+//                     FROM moved_rows
+//                         RETURNING {columnList};
+//                     """;
+//         }
+
+        //language=sql
+        return $"""
+                INSERT INTO {targetTableName} ({insertedColumnList})
+                OUTPUT {columnList}
+                SELECT {insertedColumnList}
+                FROM {tempTableName};
+                """;
+    }
+
+    private DataTable ConvertToDataTable<T>(PropertyAccessor[] properties)
     {
         var dataTable = new DataTable(typeof(T).Name);
-        var properties = DatabaseHelper.GetProperties(context, typeof(T));
 
-        if (!properties.Any())
+        if (properties.Length == 0)
         {
             throw new InvalidOperationException($"No properties found for type {typeof(T).Name}");
         }
 
         foreach (var prop in properties)
         {
-            dataTable.Columns.Add(prop.Name, Nullable.GetUnderlyingType(prop.ClrType) ?? prop.ClrType);
-        }
-
-        foreach (var entity in entities)
-        {
-            var values = properties.Select(p => p.PropertyInfo!.GetValue(entity, null)).ToArray();
-            dataTable.Rows.Add(values);
+            dataTable.Columns.Add(prop.Name, prop.ProviderClrType);
         }
 
         return dataTable;

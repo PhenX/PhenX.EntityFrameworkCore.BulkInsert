@@ -7,7 +7,7 @@ public static class PostgresBulkInsertExtensions
 {
     public static DbContextOptionsBuilder UseExecuteInsertPostgres(this DbContextOptionsBuilder optionsBuilder)
     {
-        var extension = optionsBuilder.Options.FindExtension<ExecuteInsertOptionsExtension<BulkInsertProvider>>() ?? new ExecuteInsertOptionsExtension<BulkInsertProvider>();
+        var extension = optionsBuilder.Options.FindExtension<ExecuteInsertOptionsExtension<PostgreSqlBulkInsertProvider>>() ?? new ExecuteInsertOptionsExtension<PostgreSqlBulkInsertProvider>();
 
         ((IDbContextOptionsBuilderInfrastructure)optionsBuilder).AddOrUpdateExtension(extension);
 

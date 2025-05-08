@@ -5,6 +5,7 @@ using System.Reflection;
 
 using EntityFrameworkCore.ExecuteInsert.Abstractions;
 using EntityFrameworkCore.ExecuteInsert.Helpers;
+using EntityFrameworkCore.ExecuteInsert.OnConflict;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -13,6 +14,8 @@ namespace EntityFrameworkCore.ExecuteInsert;
 
 public abstract class BulkInsertProviderBase : IBulkInsertProvider
 {
+    protected const string BulkInsertId = "_bulk_insert_id";
+
     private static readonly MethodInfo CastMethod = typeof(Enumerable).GetMethod("Cast")!;
     private static readonly MethodInfo BulkInsertPkMethod = typeof(BulkInsertProviderBase).GetMethod(nameof(BulkInsertWithPrimaryKeyAsync))!;
     private static readonly MethodInfo GetChildrenMethod = typeof(BulkInsertProviderBase).GetMethod(nameof(GetChildrenEntities))!;
@@ -23,17 +26,17 @@ public abstract class BulkInsertProviderBase : IBulkInsertProvider
     private static readonly MethodInfo GetFieldValueMethod =
         typeof(DbDataReader).GetMethod(nameof(DbDataReader.GetFieldValue))!;
 
-    public async Task<string> CreateTableCopyAsync<T>(
+    protected async Task<string> CreateTableCopyAsync<T>(
         DbContext context,
         DbConnection connection,
         CancellationToken cancellationToken = default) where T : class
     {
         var tableInfo = DatabaseHelper.GetTableInfo(context, typeof(T));
-        var tableName = DatabaseHelper.GetEscapedTableName(tableInfo.SchemaName, tableInfo.TableName, OpenDelimiter, CloseDelimiter);
-        var tempTableName = DatabaseHelper.GetEscapedTableName(null, GetTempTableName<T>(tableInfo.TableName), OpenDelimiter, CloseDelimiter);
+        var tableName = EscapeTableName(tableInfo.SchemaName, tableInfo.TableName);
+        var tempTableName = EscapeTableName(null, GetTempTableName(tableInfo.TableName));
 
-        var keepedColumns = string.Join(", ", GetEscapedColumns(context, typeof(T), false));
-        var query = string.Format(CreateTableCopySql, tempTableName, tableName, keepedColumns);
+        var keptColumns = string.Join(", ", GetEscapedColumns(context, typeof(T), false));
+        var query = string.Format(CreateTableCopySql, tempTableName, tableName, keptColumns);
         await ExecuteAsync(connection, query, cancellationToken);
 
         var alterQuery = string.Format(AddTableCopyBulkInsertId, tempTableName);
@@ -42,10 +45,7 @@ public abstract class BulkInsertProviderBase : IBulkInsertProvider
         return tempTableName;
     }
 
-    protected virtual string GetTempTableName<T>(string tableName) where T : class
-    {
-        return $"_temp_bulk_insert_{tableName}";
-    }
+    protected virtual string GetTempTableName(string tableName) => $"_temp_bulk_insert_{tableName}";
 
     public abstract string OpenDelimiter { get; }
     public abstract string CloseDelimiter { get; }
@@ -58,18 +58,21 @@ public abstract class BulkInsertProviderBase : IBulkInsertProvider
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
-    public async Task<List<T>> CopyFromTempTableAsync<T>(
-        DbContext context,
+    public async Task<List<T>> CopyFromTempTableAsync<T>(DbContext context,
         DbConnection connection,
         string tempTableName,
-        bool moveRows = false,
+        bool returnData,
+        BulkInsertOptions options,
+        OnConflictOptions? onConflict = null,
         CancellationToken cancellationToken = default) where T : class
     {
         return await CopyFromTempTableWithoutKeysAsync<T, T>(
             context,
             connection,
             tempTableName,
-            moveRows,
+            returnData,
+            options,
+            onConflict,
             cancellationToken: cancellationToken);
     }
 
@@ -77,14 +80,14 @@ public abstract class BulkInsertProviderBase : IBulkInsertProvider
         DbContext context,
         DbConnection connection,
         string tempTableName,
-        bool moveRows = false,
+        BulkInsertOptions options,
         CancellationToken cancellationToken = default) where T : class
     {
         return await CopyFromTempTableWithKeysAsync<T, object[]>(
             context,
             connection,
             tempTableName,
-            moveRows,
+            options,
             cancellationToken: cancellationToken
         );
     }
@@ -93,16 +96,16 @@ public abstract class BulkInsertProviderBase : IBulkInsertProvider
         DbContext context,
         DbConnection connection,
         string tempTableName,
-        bool moveRows,
+        BulkInsertOptions options,
         CancellationToken cancellationToken = default
     )
         where T : class
         where TResult : class
     {
         var (schemaName, tableName, primaryKey) = DatabaseHelper.GetTableInfo(context, typeof(T));
-        var escapedTableName = DatabaseHelper.GetEscapedTableName(schemaName, tableName, OpenDelimiter, CloseDelimiter);
+        var escapedTableName = EscapeTableName(schemaName, tableName);
 
-        var indexColumn = Escape("_bulk_insert_id");
+        var indexColumn = Escape(BulkInsertId);
         var returnedColumns = new[] { indexColumn }
             .Concat(primaryKey.Properties.Select(p => Escape(p.GetColumnName()))).ToArray();
 
@@ -134,25 +137,36 @@ public abstract class BulkInsertProviderBase : IBulkInsertProvider
         return result;
     }
 
-    private async Task<List<TResult>> CopyFromTempTableWithoutKeysAsync<T, TResult>(
-        DbContext context,
+    private async Task<List<TResult>> CopyFromTempTableWithoutKeysAsync<T, TResult>(DbContext context,
         DbConnection connection,
         string tempTableName,
-        bool moveRows,
-        CancellationToken cancellationToken = default
-    )
+        bool returnData,
+        BulkInsertOptions options,
+        OnConflictOptions? onConflict = null,
+        CancellationToken cancellationToken = default)
         where T : class
         where TResult : class
     {
         var (schemaName, tableName, _) = DatabaseHelper.GetTableInfo(context, typeof(T));
-        var escapedTableName = DatabaseHelper.GetEscapedTableName(schemaName, tableName, OpenDelimiter, CloseDelimiter);
+        var escapedTableName = EscapeTableName(schemaName, tableName);
 
         var movedProperties = DatabaseHelper.GetProperties(context, typeof(T), false);
-        var returnedProperties = DatabaseHelper.GetProperties(context, typeof(T));
+        var returnedProperties = returnData ? DatabaseHelper.GetProperties(context, typeof(T)) : [];
 
-        var query = BuildInsertSelectQuery(tempTableName, escapedTableName, movedProperties, returnedProperties, moveRows);
+        var query = BuildInsertSelectQuery<T>(tempTableName, escapedTableName, movedProperties, returnedProperties, options, onConflict);
 
-        return await context.Set<TResult>().FromSqlRaw(query).ToListAsync(cancellationToken);
+        if (returnData)
+        {
+            // Use EF to execute the query and return the results
+            return await context
+                .Set<TResult>()
+                .FromSqlRaw(query)
+                .ToListAsync(cancellationToken);
+        }
+
+        // If not returning data, just execute the command
+        await ExecuteAsync(connection, query, cancellationToken);
+        return [];
     }
 
     protected string Escape(string columnName)
@@ -160,43 +174,18 @@ public abstract class BulkInsertProviderBase : IBulkInsertProvider
         return DatabaseHelper.GetEscapedColumnName(columnName, OpenDelimiter, CloseDelimiter);
     }
 
-    protected virtual string BuildInsertSelectQuery(string tempTableName, string targetTableName,
-        IProperty[] insertedProperties, IProperty[] properties, bool moveRows)
-    {
-        var insertedColumns = insertedProperties.Select(p => Escape(p.GetColumnName()));
-        var insertedColumnList = string.Join(", ", insertedColumns);
-
-        var returnedColumns = properties.Select(p => $"{Escape(p.GetColumnName())} AS {Escape(p.Name)}");
-        var columnList = string.Join(", ", returnedColumns);
-
-        if (moveRows)
-        {
-            //language=sql
-            return $"""
-                    WITH moved_rows AS (
-                       DELETE FROM {tempTableName}
-                           RETURNING {insertedColumnList}
-                    )
-                    INSERT INTO {targetTableName} ({insertedColumnList})
-                    SELECT {insertedColumnList}
-                    FROM moved_rows
-                        RETURNING {columnList};
-                    """;
-        }
-
-        //language=sql
-        return $"""
-                INSERT INTO {targetTableName} ({insertedColumnList})
-                SELECT {insertedColumnList}
-                FROM {tempTableName}
-                    RETURNING {columnList};
-                """;
-    }
+    protected abstract string BuildInsertSelectQuery<T>(string tableName,
+        string targetTableName,
+        IProperty[] insertedProperties,
+        IProperty[] properties,
+        BulkInsertOptions options,
+        OnConflictOptions? onConflict = null);
 
     public async Task<List<T>> BulkInsertWithIdentityAsync<T>(
         DbContext context,
         IEnumerable<T> entities,
         BulkInsertOptions options,
+        OnConflictOptions? onConflict = null,
         CancellationToken ctk = default
     ) where T : class
     {
@@ -204,7 +193,7 @@ public abstract class BulkInsertProviderBase : IBulkInsertProvider
 
         var (tableName, _) = await PerformBulkInsertAsync(context, entities, options, tempTableRequired: true, ctk: ctk);
 
-        var result = await CopyFromTempTableAsync<T>(context, connection, tableName, options.MoveRows, ctk);
+        var result = await CopyFromTempTableAsync<T>(context, connection, tableName, true, options, onConflict, cancellationToken: ctk);
 
         if (wasClosed)
         {
@@ -225,7 +214,7 @@ public abstract class BulkInsertProviderBase : IBulkInsertProvider
 
         var (tableName, _) = await PerformBulkInsertAsync(context, entities, options, tempTableRequired: true, ctk: ctk);
 
-        var result = await CopyFromTempTablePrimaryKeyAsync<T>(context, connection, tableName, options.MoveRows, ctk);
+        var result = await CopyFromTempTablePrimaryKeyAsync<T>(context, connection, tableName, options, ctk);
 
         if (wasClosed)
         {
@@ -239,10 +228,27 @@ public abstract class BulkInsertProviderBase : IBulkInsertProvider
         DbContext context,
         IEnumerable<T> entities,
         BulkInsertOptions options,
+        OnConflictOptions? onConflict = null,
         CancellationToken ctk = default
     ) where T : class
     {
-        await PerformBulkInsertAsync(context, entities, options, tempTableRequired: false, ctk: ctk);
+        if (onConflict != null)
+        {
+            var (connection, wasClosed) = await GetConnection(context, ctk);
+
+            var (tableName, _) = await PerformBulkInsertAsync(context, entities, options, tempTableRequired: true, ctk: ctk);
+
+            await CopyFromTempTableAsync<T>(context, connection, tableName, false, options, onConflict, ctk);
+
+            if (wasClosed)
+            {
+                await connection.CloseAsync();
+            }
+        }
+        else
+        {
+            await PerformBulkInsertAsync(context, entities, options, tempTableRequired: false, ctk: ctk);
+        }
     }
 
     private async Task<(string TableName, DbConnection Connection)> PerformBulkInsertAsync<T>(DbContext context,
@@ -343,6 +349,11 @@ public abstract class BulkInsertProviderBase : IBulkInsertProvider
 
             index++;
         }
+    }
+
+    protected string EscapeTableName(string? schema, string table)
+    {
+        return DatabaseHelper.GetEscapedTableName(schema, table, OpenDelimiter, CloseDelimiter);
     }
 
     protected string[] GetEscapedColumns(DbContext context, Type entityType, bool includeGenerated = true)

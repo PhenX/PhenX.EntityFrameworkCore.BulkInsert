@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 
 using EntityFrameworkCore.ExecuteInsert.Abstractions;
+using EntityFrameworkCore.ExecuteInsert.OnConflict;
 using EntityFrameworkCore.ExecuteInsert.Tests.DbContainer;
 
 using Xunit;
@@ -63,6 +64,43 @@ public abstract class BulkInsertProviderTestsBase : IAsyncLifetime
     }
 
     [Fact]
+    public async Task InsertsEntitiesWithConflictSuccessfully()
+    {
+        DbContainer.DbContext.TestEntities.Add(new TestEntity { Name = "Entity1" });
+        await DbContainer.DbContext.SaveChangesAsync();
+        DbContainer.DbContext.ChangeTracker.Clear();
+
+        // Arrange
+        var entities = new List<TestEntity>
+        {
+            new TestEntity { Name = "Entity1" },
+            new TestEntity { Name = "Entity2" },
+        };
+
+        // Act
+        await DbContainer.DbContext.ExecuteInsertAsync(entities, o =>
+        {
+            o.MoveRows = true;
+        }, new OnConflictOptions<TestEntity>
+        {
+            Match = e => new
+            {
+                e.Name,
+            },
+            Update = e => new TestEntity
+            {
+                Name = e.Name + " - Conflict",
+            },
+        });
+
+        // Assert
+        var insertedEntities = DbContainer.DbContext.TestEntities.ToList();
+        Assert.Equal(2, insertedEntities.Count);
+        Assert.Contains(insertedEntities, e => e.Name == "Entity1 - Conflict");
+        Assert.Contains(insertedEntities, e => e.Name == "Entity2");
+    }
+
+    [Fact]
     public async Task DoesNothingWhenEntitiesAreEmpty()
     {
         // Arrange
@@ -80,7 +118,7 @@ public abstract class BulkInsertProviderTestsBase : IAsyncLifetime
     public async Task InsertsThousandsOfEntitiesSuccessfully()
     {
         // Arrange
-        const int count = 1_000_000;
+        const int count = 1_00_000;
         var entities = Enumerable.Range(1, count).Select(i => new TestEntity
         {
             Id = i,

@@ -1,5 +1,7 @@
 using System.Data.Common;
 
+using EntityFrameworkCore.ExecuteInsert.OnConflict;
+
 using Microsoft.EntityFrameworkCore;
 
 namespace EntityFrameworkCore.ExecuteInsert.Abstractions;
@@ -10,6 +12,7 @@ public interface IBulkInsertProvider
         DbContext context,
         IEnumerable<T> entities,
         BulkInsertOptions options,
+        OnConflictOptions? onConflict = null,
         CancellationToken ctk = default
     ) where T : class;
 
@@ -17,12 +20,9 @@ public interface IBulkInsertProvider
         DbContext context,
         IEnumerable<T> entities,
         BulkInsertOptions options,
+        OnConflictOptions? onConflict = null,
         CancellationToken ctk = default
     ) where T : class;
-
-    Task<string> CreateTableCopyAsync<T>(DbContext context,
-        DbConnection connection,
-        CancellationToken cancellationToken = default) where T : class;
 
     string OpenDelimiter { get; }
     string CloseDelimiter { get; }

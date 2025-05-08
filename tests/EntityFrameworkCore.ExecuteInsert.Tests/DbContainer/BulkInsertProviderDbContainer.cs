@@ -12,6 +12,7 @@ namespace EntityFrameworkCore.ExecuteInsert.Tests.DbContainer;
 
 
 [PrimaryKey(nameof(Id))]
+[Index(nameof(Name), IsUnique = true)]
 public class TestEntity
 {
     public int Id { get; set; }

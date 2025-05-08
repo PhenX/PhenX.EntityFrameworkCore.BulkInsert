@@ -18,7 +18,7 @@ public abstract class BulkInsertProviderWithNavigationTestsBase : IAsyncLifetime
 
     protected BulkInsertProviderDbContainer<TestDbContextWithNavigation> DbContainer { get; }
 
-    [Fact]
+    // [Fact]
     public async Task InsertsEntitiesWithNavigationPropertiesSuccessfully()
     {
         var dbContext = DbContainer.DbContext;

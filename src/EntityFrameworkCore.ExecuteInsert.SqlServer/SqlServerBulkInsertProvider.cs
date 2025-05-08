@@ -1,5 +1,5 @@
-using System.Data;
 using System.Data.Common;
+using System.Linq.Expressions;
 using System.Text;
 
 using EntityFrameworkCore.ExecuteInsert.Helpers;
@@ -68,40 +68,62 @@ public class SqlServerBulkInsertProvider : BulkInsertProviderBase
 //                 """);
 //         }
 
-        q.AppendLine($"INSERT INTO {targetTableName} ({insertedColumnList})");
-
-        if (columnList.Length != 0)
+        // Merge handling
+        if (onConflict is OnConflictOptions<T> onConflictTyped && onConflictTyped.Match != null)
         {
-            q.AppendLine($"OUTPUT {columnList}");
+            var matchColumns = GetColumns(onConflictTyped.Match);
+            var matchOn = string.Join(" AND ",
+                matchColumns.Select(col => $"TARGET.{Escape(col)} = SOURCE.{Escape(col)}"));
+
+            var updateSet = onConflictTyped.Update != null
+                ? string.Join(", ", GetUpdates(onConflictTyped.Update))
+                : null;
+
+            q.AppendLine($"MERGE INTO {targetTableName} AS TARGET");
+            q.AppendLine(
+                $"USING (SELECT {string.Join(", ", insertedColumns)} FROM {tableName}) AS SOURCE ({insertedColumnList})");
+            q.AppendLine($"ON {matchOn}");
+
+            if (updateSet != null)
+            {
+                q.AppendLine($"WHEN MATCHED THEN UPDATE SET {updateSet}");
+            }
+
+            q.AppendLine(
+                $"WHEN NOT MATCHED THEN INSERT ({insertedColumnList}) VALUES ({string.Join(", ", insertedColumns.Select(c => $"SOURCE.{c}"))})");
+
+            if (columnList.Length != 0)
+            {
+                q.AppendLine($"OUTPUT {columnList}");
+            }
         }
 
-        q.AppendLine($"""
-            SELECT {insertedColumnList}
-            FROM {tableName}
-            """);
+        // No conflict handling
+        else
+        {
+            q.AppendLine($"INSERT INTO {targetTableName} ({insertedColumnList})");
 
-        // SQL Server ne supporte pas ON CONFLICT DO NOTHING, mais on garde la signature pour homogénéité
-        // if (options.OnConflictIgnore) { ... }
+            if (columnList.Length != 0)
+            {
+                q.AppendLine($"OUTPUT {columnList}");
+            }
+
+            q.AppendLine($"""
+                          SELECT {insertedColumnList}
+                          FROM {tableName}
+                          """);
+        }
 
         q.AppendLine(";");
 
         return q.ToString();
     }
 
-    private DataTable ConvertToDataTable<T>(PropertyAccessor[] properties)
+    protected override string GetExcludedColumnName(MemberExpression member)
     {
-        var dataTable = new DataTable(typeof(T).Name);
-
-        if (properties.Length == 0)
-        {
-            throw new InvalidOperationException($"No properties found for type {typeof(T).Name}");
-        }
-
-        foreach (var prop in properties)
-        {
-            dataTable.Columns.Add(prop.Name, prop.ProviderClrType);
-        }
-
-        return dataTable;
+        var prefix = "SOURCE";
+        return $"{prefix}.{Escape(member.Member.Name)}";
     }
+
+    protected override string ConcatOperator => "+";
 }

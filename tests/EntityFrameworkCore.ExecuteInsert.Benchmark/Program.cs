@@ -8,5 +8,6 @@ public class Program
     {
         BenchmarkRunner.Run<BulkInsertVsExecuteInsertPostgreSql>();
         BenchmarkRunner.Run<BulkInsertVsExecuteInsertSqlServer>();
+        BenchmarkRunner.Run<BulkInsertVsExecuteInsertSqlite>();
     }
 }

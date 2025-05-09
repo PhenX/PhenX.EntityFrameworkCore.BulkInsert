@@ -1,6 +1,4 @@
-﻿using EntityFrameworkCore.ExecuteInsert.OnConflict;
-
-namespace EntityFrameworkCore.ExecuteInsert;
+﻿namespace EntityFrameworkCore.ExecuteInsert;
 
 public class BulkInsertOptions
 {

@@ -3,31 +3,31 @@ using BenchmarkDotNet.Engines;
 
 using DotNet.Testcontainers.Containers;
 
-using EntityFrameworkCore.ExecuteInsert.SqlServer;
+using EntityFrameworkCore.ExecuteInsert.Sqlite;
 
 using Microsoft.EntityFrameworkCore;
-
-using Testcontainers.MsSql;
 
 namespace EntityFrameworkCore.ExecuteInsert.Benchmark;
 
 [MinColumn, MaxColumn, BaselineColumn]
 [MemoryDiagnoser]
 [SimpleJob(RunStrategy.Throughput, launchCount: 1, warmupCount: 0, iterationCount: 5)]
-public class BulkInsertVsExecuteInsertSqlServer : BulkInsertVsExecuteInsert
+public class BulkInsertVsExecuteInsertSqlite : BulkInsertVsExecuteInsert
 {
     protected override void ConfigureDbContext()
     {
-        var connectionString = DbContainer.GetConnectionString();
+        var connectionString = GetConnectionString();
 
         DbContext = new TestDbContext(p => p
-            .UseSqlServer(connectionString)
-            .UseExecuteInsertSqlServer()
+            .UseSqlite(connectionString)
+            .UseExecuteInsertSqlite()
         );
     }
 
-    protected override IDatabaseContainer GetDbContainer()
+    protected override string GetConnectionString()
     {
-        return new MsSqlBuilder().Build();
+        return $"Data Source={Guid.NewGuid()}.db";
     }
+
+    protected override IDatabaseContainer? GetDbContainer() => null;
 }

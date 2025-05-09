@@ -32,7 +32,7 @@ public abstract class BulkInsertVsExecuteInsert
     public BulkInsertVsExecuteInsert()
     {
         DbContainer = GetDbContainer();
-        DbContainer.StartAsync().GetAwaiter().GetResult();
+        DbContainer?.StartAsync().GetAwaiter().GetResult();
 
         ConfigureDbContext();
 
@@ -41,27 +41,32 @@ public abstract class BulkInsertVsExecuteInsert
 
     protected abstract void ConfigureDbContext();
 
-    public IDatabaseContainer DbContainer { get; }
+    protected virtual string GetConnectionString()
+    {
+        return DbContainer?.GetConnectionString() ?? string.Empty;
+    }
 
-    protected abstract IDatabaseContainer GetDbContainer();
+    public IDatabaseContainer? DbContainer { get; }
+
+    protected abstract IDatabaseContainer? GetDbContainer();
 
     [Benchmark(Baseline = true)]
     public async Task ExecuteInsert()
     {
         await DbContext.ExecuteInsertAsync(data);
     }
-
-    [Benchmark]
-    public async Task ExecuteInsertWithIdentity()
-    {
-        await DbContext.ExecuteInsertWithIdentityAsync(data);
-    }
-
-    [Benchmark]
-    public async Task ExecuteInsertWithIdentityMoveRows()
-    {
-        await DbContext.ExecuteInsertWithIdentityAsync(data, options => options.MoveRows = true);
-    }
+    //
+    // [Benchmark]
+    // public async Task ExecuteInsertWithIdentity()
+    // {
+    //     await DbContext.ExecuteInsertWithIdentityAsync(data);
+    // }
+    //
+    // [Benchmark]
+    // public async Task ExecuteInsertWithIdentityMoveRows()
+    // {
+    //     await DbContext.ExecuteInsertWithIdentityAsync(data, options => options.MoveRows = true);
+    // }
 
     [Benchmark]
     public async Task BulkInsertZEf()

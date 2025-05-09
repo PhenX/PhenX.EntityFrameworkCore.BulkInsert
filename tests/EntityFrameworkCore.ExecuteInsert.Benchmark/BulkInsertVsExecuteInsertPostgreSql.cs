@@ -3,9 +3,6 @@ using BenchmarkDotNet.Engines;
 
 using DotNet.Testcontainers.Containers;
 
-using EFCore.BulkExtensions;
-
-using EntityFrameworkCore.ExecuteInsert.Abstractions;
 using EntityFrameworkCore.ExecuteInsert.PostgreSql;
 
 using Microsoft.EntityFrameworkCore;
@@ -21,7 +18,7 @@ public class BulkInsertVsExecuteInsertPostgreSql : BulkInsertVsExecuteInsert
 {
     protected override void ConfigureDbContext()
     {
-        var connectionString = DbContainer.GetConnectionString() + ";Include Error Detail=true";
+        var connectionString = GetConnectionString() + ";Include Error Detail=true";
 
         DbContext = new TestDbContext(p => p
             .UseNpgsql(connectionString)
@@ -29,7 +26,7 @@ public class BulkInsertVsExecuteInsertPostgreSql : BulkInsertVsExecuteInsert
         );
     }
 
-    protected override IDatabaseContainer GetDbContainer()
+    protected override IDatabaseContainer? GetDbContainer()
     {
         return new PostgreSqlBuilder()
             .WithDatabase("testdb")

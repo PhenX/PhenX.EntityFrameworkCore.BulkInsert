@@ -15,7 +15,7 @@ namespace EntityFrameworkCore.ExecuteInsert;
 
 public abstract class BulkInsertProviderBase : IBulkInsertProvider
 {
-    protected const string BulkInsertId = "_bulk_insert_id";
+    protected virtual string BulkInsertId => "_bulk_insert_id";
 
     private static readonly MethodInfo CastMethod = typeof(Enumerable).GetMethod("Cast")!;
     private static readonly MethodInfo BulkInsertPkMethod = typeof(BulkInsertProviderBase).GetMethod(nameof(BulkInsertWithPrimaryKeyAsync))!;
@@ -40,10 +40,16 @@ public abstract class BulkInsertProviderBase : IBulkInsertProvider
         var query = string.Format(CreateTableCopySql, tempTableName, tableName, keptColumns);
         await ExecuteAsync(connection, query, cancellationToken);
 
-        var alterQuery = string.Format(AddTableCopyBulkInsertId, tempTableName);
-        await ExecuteAsync(connection, alterQuery, cancellationToken);
+        await AddBulkInsertIdColumn<T>(connection, cancellationToken, tempTableName);
 
         return tempTableName;
+    }
+
+    protected virtual async Task AddBulkInsertIdColumn<T>(DbConnection connection, CancellationToken cancellationToken,
+        string tempTableName) where T : class
+    {
+        var alterQuery = string.Format(AddTableCopyBulkInsertId, tempTableName);
+        await ExecuteAsync(connection, alterQuery, cancellationToken);
     }
 
     protected virtual string GetTempTableName(string tableName) => $"_temp_bulk_insert_{tableName}";
@@ -51,7 +57,7 @@ public abstract class BulkInsertProviderBase : IBulkInsertProvider
     public abstract string OpenDelimiter { get; }
     public abstract string CloseDelimiter { get; }
 
-    private static async Task ExecuteAsync(DbConnection connection, string query, CancellationToken cancellationToken = default)
+    protected static async Task ExecuteAsync(DbConnection connection, string query, CancellationToken cancellationToken = default)
     {
         var command = connection.CreateCommand();
         command.CommandText = query;

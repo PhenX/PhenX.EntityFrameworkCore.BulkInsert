@@ -11,7 +11,7 @@ namespace EntityFrameworkCore.ExecuteInsert.Tests.DbContainer;
 public class BulkInsertProviderDbContainerSqlServer<TDbContext> : BulkInsertProviderDbContainer<TDbContext>
     where TDbContext : BulkDbContext, new()
 {
-    protected override IDatabaseContainer GetDbContainer()
+    protected override IDatabaseContainer? GetDbContainer()
     {
         return new MsSqlBuilder().Build();
     }

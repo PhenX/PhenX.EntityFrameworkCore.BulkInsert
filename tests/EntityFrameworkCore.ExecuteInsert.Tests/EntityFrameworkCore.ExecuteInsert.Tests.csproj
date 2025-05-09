@@ -26,6 +26,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\..\src\EntityFrameworkCore.ExecuteInsert.PostgreSql\EntityFrameworkCore.ExecuteInsert.PostgreSql.csproj" />
+      <ProjectReference Include="..\..\src\EntityFrameworkCore.ExecuteInsert.Sqlite\EntityFrameworkCore.ExecuteInsert.Sqlite.csproj" />
       <ProjectReference Include="..\..\src\EntityFrameworkCore.ExecuteInsert.SqlServer\EntityFrameworkCore.ExecuteInsert.SqlServer.csproj" />
     </ItemGroup>
 

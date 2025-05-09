@@ -20,7 +20,7 @@ public static class BulkInsertExtensions
         return await provider.BulkInsertWithIdentityAsync(context, entities, options, onConflict, ctk);
     }
 
-    public static async Task ExecuteInsertWithIdentityAsync<T>(this DbContext dbContext, IEnumerable<T> entities, Action<BulkInsertOptions>? configure = null, OnConflictOptions? onConflict = null, CancellationToken cancellationToken = default) where T : class
+    public static async Task<List<T>> ExecuteInsertWithIdentityAsync<T>(this DbContext dbContext, IEnumerable<T> entities, Action<BulkInsertOptions>? configure = null, OnConflictOptions? onConflict = null, CancellationToken cancellationToken = default) where T : class
     {
         var dbSet = dbContext.Set<T>();
         if (dbSet == null)
@@ -28,7 +28,7 @@ public static class BulkInsertExtensions
             throw new InvalidOperationException($"DbSet of type {typeof(T).Name} not found in DbContext.");
         }
 
-        await dbSet.ExecuteInsertWithIdentityAsync(entities, configure, onConflict, cancellationToken);
+        return await dbSet.ExecuteInsertWithIdentityAsync(entities, configure, onConflict, cancellationToken);
     }
 
     // public static async Task<List<object>> ExecuteInsertWithPrimaryKeyAsync<T>(

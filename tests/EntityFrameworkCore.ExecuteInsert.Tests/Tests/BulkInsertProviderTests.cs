@@ -118,7 +118,7 @@ public abstract class BulkInsertProviderTestsBase : IAsyncLifetime
     public async Task InsertsThousandsOfEntitiesSuccessfully()
     {
         // Arrange
-        const int count = 1_00_000;
+        const int count = 1_000_000;
         var entities = Enumerable.Range(1, count).Select(i => new TestEntity
         {
             Id = i,

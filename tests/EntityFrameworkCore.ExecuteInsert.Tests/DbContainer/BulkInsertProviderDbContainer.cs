@@ -46,7 +46,7 @@ public class TestDbContext : BulkDbContext
 public abstract class BulkInsertProviderDbContainer<TDbContext> : IAsyncLifetime
     where TDbContext : BulkDbContext, new()
 {
-    protected readonly IDatabaseContainer DbContainer;
+    protected readonly IDatabaseContainer? DbContainer;
 
     public TDbContext DbContext { get; private set; } = null!;
 
@@ -55,21 +55,27 @@ public abstract class BulkInsertProviderDbContainer<TDbContext> : IAsyncLifetime
         DbContainer = GetDbContainer();
     }
 
-    protected abstract IDatabaseContainer GetDbContainer();
+    protected abstract IDatabaseContainer? GetDbContainer();
+
+    protected virtual string GetConnectionString()
+    {
+        return DbContainer?.GetConnectionString() ?? string.Empty;
+    }
 
     protected abstract void Configure(DbContextOptionsBuilder optionsBuilder);
 
     public async Task InitializeAsync()
     {
-        await DbContainer.StartAsync();
-
-        var connectionString = DbContainer.GetConnectionString();
+        if (DbContainer != null)
+        {
+            await DbContainer.StartAsync();
+        }
 
         DbContext = new TDbContext
         {
             ConfigureOptions = Configure
         };
-        DbContext.Database.SetConnectionString(connectionString);
+        DbContext.Database.SetConnectionString(GetConnectionString());
 
         await DbContext.Database.EnsureCreatedAsync();
     }
@@ -79,6 +85,9 @@ public abstract class BulkInsertProviderDbContainer<TDbContext> : IAsyncLifetime
         // await DbContext.Database.EnsureDeletedAsync();
         await DbContext.DisposeAsync();
 
-        await DbContainer.DisposeAsync();
+        if (DbContainer != null)
+        {
+            await DbContainer.DisposeAsync();
+        }
     }
 }

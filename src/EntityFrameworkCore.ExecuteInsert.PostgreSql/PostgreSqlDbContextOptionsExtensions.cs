@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 
 namespace EntityFrameworkCore.ExecuteInsert.PostgreSql;
 
-public static class PostgresBulkInsertExtensions
+public static class PostgreSqlDbContextOptionsExtensions
 {
     public static DbContextOptionsBuilder UseExecuteInsertPostgres(this DbContextOptionsBuilder optionsBuilder)
     {

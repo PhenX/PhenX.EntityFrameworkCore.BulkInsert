@@ -1,13 +1,13 @@
 ﻿using System.Linq.Expressions;
 using System.Text;
 
-using EntityFrameworkCore.ExecuteInsert.Helpers;
-using EntityFrameworkCore.ExecuteInsert.OnConflict;
+using EntityFrameworkCore.ExecuteInsert.Extensions;
+using EntityFrameworkCore.ExecuteInsert.Options;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 
-namespace EntityFrameworkCore.ExecuteInsert;
+namespace EntityFrameworkCore.ExecuteInsert.Dialect;
 
 public abstract class SqlDialectBuilder
 {
@@ -113,7 +113,7 @@ public abstract class SqlDialectBuilder
 
     public string[] GetEscapedColumns(DbContext context, Type entityType, bool includeGenerated = true)
     {
-        return DatabaseHelper.GetProperties(context, entityType, includeGenerated)
+        return context.GetProperties(entityType, includeGenerated)
             .Select(p => Escape(p.Name))
             .ToArray();
     }

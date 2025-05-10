@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 
 namespace EntityFrameworkCore.ExecuteInsert.Sqlite;
 
-public static class SqliteBulkInsertExtensions
+public static class SqliteDbContextOptionsExtensions
 {
     public static DbContextOptionsBuilder UseExecuteInsertSqlite(this DbContextOptionsBuilder optionsBuilder)
     {

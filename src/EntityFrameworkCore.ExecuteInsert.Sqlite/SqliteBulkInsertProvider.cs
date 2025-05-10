@@ -1,10 +1,9 @@
 using System.Data.Common;
-using System.Text;
 
-using EntityFrameworkCore.ExecuteInsert.Helpers;
-using EntityFrameworkCore.ExecuteInsert.OnConflict;
+using EntityFrameworkCore.ExecuteInsert.Extensions;
+using EntityFrameworkCore.ExecuteInsert.Options;
+
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.Data.Sqlite;
 
 namespace EntityFrameworkCore.ExecuteInsert.Sqlite;
@@ -69,11 +68,11 @@ public class SqliteBulkInsertProvider : BulkInsertProviderBase<SqliteDialectBuil
         throw new InvalidOperationException("Unknown Sqlite type for " + clrType);
     }
 
-    private DbCommand GetInsertCommand(DbContext context, DbConnection connection, Type entityType, string tableName,
+    private DbCommand GetInsertCommand(DbContext context, Type entityType, string tableName,
         int batchSize)
     {
-        var columns = DatabaseHelper.GetProperties(context, entityType, false);
-        var cmd = connection.CreateCommand();
+        var columns = context.GetProperties(entityType, false);
+        var cmd = context.Database.GetDbConnection().CreateCommand();
 
         var sqliteColumns = columns
             .Select(c => new
@@ -109,16 +108,18 @@ public class SqliteBulkInsertProvider : BulkInsertProviderBase<SqliteDialectBuil
         return cmd;
     }
 
-    protected override async Task BulkImport<T>(DbContext context, DbConnection connection, IEnumerable<T> entities,
+    protected override async Task BulkInsert<T>(DbContext context, IEnumerable<T> entities,
         string tableName, PropertyAccessor[] properties, BulkInsertOptions options, CancellationToken ctk) where T : class
     {
+        var connection = context.Database.GetDbConnection();
+
         await using var transaction = await connection.BeginTransactionAsync(ctk);
 
         const int maxParams = 1000;
         var batchSize = options.BatchSize ?? 5;
         batchSize = Math.Min(batchSize, maxParams / properties.Length);
 
-        await using var insertCommand = GetInsertCommand(context, connection, typeof(T), tableName, batchSize);
+        await using var insertCommand = GetInsertCommand(context, typeof(T), tableName, batchSize);
 
         foreach (var chunk in entities.Chunk(batchSize))
         {
@@ -132,7 +133,7 @@ public class SqliteBulkInsertProvider : BulkInsertProviderBase<SqliteDialectBuil
             // Last chunk
             else
             {
-                var partialInsertCommand = GetInsertCommand(context, connection, typeof(T), tableName, chunk.Length);
+                var partialInsertCommand = GetInsertCommand(context, typeof(T), tableName, chunk.Length);
                 FillValues(chunk, partialInsertCommand.Parameters, properties);
 
                 await partialInsertCommand.ExecuteNonQueryAsync(ctk);

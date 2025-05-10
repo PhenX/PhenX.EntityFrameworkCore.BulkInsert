@@ -1,4 +1,4 @@
-using System.Data.Common;
+using EntityFrameworkCore.ExecuteInsert.Options;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -21,26 +21,32 @@ public class PostgreSqlBulkInsertProvider : BulkInsertProviderBase<PostgreSqlDia
         return $"COPY {tableName} ({string.Join(", ", columns)}) FROM STDIN (FORMAT BINARY)";
     }
 
-    protected override async Task BulkImport<T>(DbContext context, DbConnection connection, IEnumerable<T> entities,
-        string tableName, PropertyAccessor[] properties, BulkInsertOptions options, CancellationToken ctk) where T : class
+    protected override async Task BulkInsert<T>(
+        DbContext context,
+        IEnumerable<T> entities,
+        string tableName,
+        PropertyAccessor[] properties,
+        BulkInsertOptions options,
+        CancellationToken ctk) where T : class
     {
+        var connection = (NpgsqlConnection)context.Database.GetDbConnection();
+
         var importCommand = GetBinaryImportCommand(context, typeof(T), tableName);
 
-        await using (var writer = await ((NpgsqlConnection)connection).BeginBinaryImportAsync(importCommand, ctk))
+        await using var writer = await connection.BeginBinaryImportAsync(importCommand, ctk);
+
+        foreach (var entity in entities)
         {
-            foreach (var entity in entities)
+            await writer.StartRowAsync(ctk);
+
+            foreach (var property in properties)
             {
-                await writer.StartRowAsync(ctk);
+                var value = property.GetValue(entity);
 
-                foreach (var property in properties)
-                {
-                    var value = property.GetValue(entity);
-
-                    await writer.WriteAsync(value, ctk);
-                }
+                await writer.WriteAsync(value, ctk);
             }
-
-            await writer.CompleteAsync(ctk);
         }
+
+        await writer.CompleteAsync(ctk);
     }
 }

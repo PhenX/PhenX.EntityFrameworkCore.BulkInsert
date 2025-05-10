@@ -1,10 +1,13 @@
 ﻿using System.Collections.Concurrent;
+using System.Data;
+using System.Data.Common;
+
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 
-namespace EntityFrameworkCore.ExecuteInsert.Helpers;
+namespace EntityFrameworkCore.ExecuteInsert.Extensions;
 
-public static class DatabaseHelper
+public static class DbContextExtensions
 {
     // Reflection cache to store property metadata for each entity type
     private static readonly ConcurrentDictionary<Type, IProperty[]?> PropertyCache = new();
@@ -12,7 +15,7 @@ public static class DatabaseHelper
     /// <summary>
     /// Gets cached properties for an entity type, using reflection if not already cached.
     /// </summary>
-    public static IProperty[] GetProperties(DbContext context, Type entityType, bool includeGenerated = true)
+    public static IProperty[] GetProperties(this DbContext context, Type entityType, bool includeGenerated = true)
     {
         var entityTypeInfo = context.Model.FindEntityType(entityType) ?? throw new InvalidOperationException($"Could not determine entity type for type {entityType.Name}");
 
@@ -22,7 +25,7 @@ public static class DatabaseHelper
             .ToArray();
     }
 
-    public static INavigation[] GetCollectionNavigationProperties(DbContext context, Type getType)
+    public static INavigation[] GetCollectionNavigationProperties(this DbContext context, Type getType)
     {
         var entityType = context.Model.FindEntityType(getType);
         if (entityType == null)
@@ -36,7 +39,7 @@ public static class DatabaseHelper
             .ToArray();
     }
 
-    public static INavigation[] GetNavigationProperties(DbContext context, Type getType)
+    public static INavigation[] GetNavigationProperties(this DbContext context, Type getType)
     {
         var entityType = context.Model.FindEntityType(getType);
         if (entityType == null)
@@ -48,5 +51,18 @@ public static class DatabaseHelper
             .GetNavigations()
             .Where(n => !n.IsCollection)
             .ToArray();
+    }
+
+    public static async Task<(DbConnection connection, bool wasClosed)> GetConnection(this DbContext context, CancellationToken ctk = default)
+    {
+        var connection = context.Database.GetDbConnection();
+        var wasClosed = connection.State == ConnectionState.Closed;
+
+        if (wasClosed)
+        {
+            await connection.OpenAsync(ctk);
+        }
+
+        return (connection, wasClosed);
     }
 }

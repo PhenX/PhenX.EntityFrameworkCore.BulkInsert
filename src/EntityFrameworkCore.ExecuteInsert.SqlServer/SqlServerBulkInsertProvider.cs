@@ -1,4 +1,4 @@
-using System.Data.Common;
+using EntityFrameworkCore.ExecuteInsert.Options;
 
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -15,10 +15,12 @@ public class SqlServerBulkInsertProvider : BulkInsertProviderBase<SqlServerDiale
 
     protected override string GetTempTableName(string tableName) => $"#_temp_bulk_insert_{tableName}";
 
-    protected override async Task BulkImport<T>(DbContext context, DbConnection connection, IEnumerable<T> entities,
+    protected override async Task BulkInsert<T>(DbContext context, IEnumerable<T> entities,
         string tableName,
         PropertyAccessor[] properties, BulkInsertOptions options, CancellationToken ctk)
     {
+        var connection = context.Database.GetDbConnection();
+
         await using var t = (SqlTransaction) await connection.BeginTransactionAsync(ctk); // TODO option
 
         using var bulkCopy = new SqlBulkCopy(connection as SqlConnection, SqlBulkCopyOptions.TableLock, t);

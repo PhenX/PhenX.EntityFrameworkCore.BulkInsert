@@ -1,7 +1,8 @@
 ﻿using System.Linq.Expressions;
 using System.Text;
 
-using EntityFrameworkCore.ExecuteInsert.OnConflict;
+using EntityFrameworkCore.ExecuteInsert.Dialect;
+using EntityFrameworkCore.ExecuteInsert.Options;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;

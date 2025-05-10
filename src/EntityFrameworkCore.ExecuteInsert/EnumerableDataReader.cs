@@ -1,6 +1,6 @@
 ﻿using System.Data;
 
-namespace EntityFrameworkCore.ExecuteInsert.SqlServer;
+namespace EntityFrameworkCore.ExecuteInsert;
 
 public class EnumerableDataReader<T> : IDataReader
 {

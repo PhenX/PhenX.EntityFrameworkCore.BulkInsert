@@ -1,4 +1,4 @@
-﻿namespace EntityFrameworkCore.ExecuteInsert;
+﻿namespace EntityFrameworkCore.ExecuteInsert.Dialect;
 
 public class RawSqlValue(string sql)
 {

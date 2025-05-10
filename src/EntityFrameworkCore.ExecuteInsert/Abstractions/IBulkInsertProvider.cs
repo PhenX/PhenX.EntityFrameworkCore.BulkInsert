@@ -1,4 +1,4 @@
-using EntityFrameworkCore.ExecuteInsert.OnConflict;
+using EntityFrameworkCore.ExecuteInsert.Options;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -6,7 +6,7 @@ namespace EntityFrameworkCore.ExecuteInsert.Abstractions;
 
 public interface IBulkInsertProvider
 {
-    Task<List<T>> BulkInsertWithIdentityAsync<T>(
+    internal Task<List<T>> BulkInsertWithIdentityAsync<T>(
         DbContext context,
         IEnumerable<T> entities,
         BulkInsertOptions options,
@@ -14,7 +14,7 @@ public interface IBulkInsertProvider
         CancellationToken ctk = default
     ) where T : class;
 
-    Task BulkInsertWithoutReturnAsync<T>(
+    internal Task BulkInsertWithoutReturnAsync<T>(
         DbContext context,
         IEnumerable<T> entities,
         BulkInsertOptions options,

@@ -1,11 +1,12 @@
-﻿using EntityFrameworkCore.ExecuteInsert.OnConflict;
+﻿using EntityFrameworkCore.ExecuteInsert.Abstractions;
+using EntityFrameworkCore.ExecuteInsert.Options;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 
-namespace EntityFrameworkCore.ExecuteInsert.Abstractions;
+namespace EntityFrameworkCore.ExecuteInsert.Extensions;
 
-public static class BulkInsertExtensions
+public static class DbSetExtensions
 {
     public static async Task<List<T>> ExecuteInsertWithIdentityAsync<T>(
         this DbSet<T> dbSet,

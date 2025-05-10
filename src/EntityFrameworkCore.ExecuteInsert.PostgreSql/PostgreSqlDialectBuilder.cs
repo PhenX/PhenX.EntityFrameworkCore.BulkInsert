@@ -1,4 +1,6 @@
-﻿namespace EntityFrameworkCore.ExecuteInsert.PostgreSql;
+﻿using EntityFrameworkCore.ExecuteInsert.Dialect;
+
+namespace EntityFrameworkCore.ExecuteInsert.PostgreSql;
 
 public class PostgreSqlDialectBuilder : SqlDialectBuilder
 {

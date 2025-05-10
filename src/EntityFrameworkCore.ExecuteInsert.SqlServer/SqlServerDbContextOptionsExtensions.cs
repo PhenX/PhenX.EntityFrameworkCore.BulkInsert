@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 
 namespace EntityFrameworkCore.ExecuteInsert.SqlServer;
 
-public static class SqlServerBulkInsertExtensions
+public static class SqlServerDbContextOptionsExtensions
 {
     public static DbContextOptionsBuilder UseExecuteInsertSqlServer(this DbContextOptionsBuilder optionsBuilder)
     {

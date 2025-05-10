@@ -8,17 +8,14 @@ namespace EntityFrameworkCore.ExecuteInsert;
 public class ExecuteInsertOptionsExtension<TProvider> : IDbContextOptionsExtension
     where TProvider : class, IBulkInsertProvider
 {
-    // Required: Provide metadata about the extension
     public DbContextOptionsExtensionInfo Info
         => new ExecuteInsertOptionsExtensionInfo(this);
 
-    // Register services with EF Core's internal service provider
     public void ApplyServices(IServiceCollection services)
     {
         services.AddSingleton<IBulkInsertProvider, TProvider>();
     }
 
-    // Validate configuration (throw if invalid)
     public void Validate(IDbContextOptions options)
     {
     }
@@ -38,7 +35,7 @@ public class ExecuteInsertOptionsExtension<TProvider> : IDbContextOptionsExtensi
         public override bool IsDatabaseProvider => false;
 
         /// <inheritdoc />
-        public override string LogFragment => "MyCustomExtension";
+        public override string LogFragment => "ExecuteInsertOptionsExtension";
 
         /// <inheritdoc />
         public override void PopulateDebugInfo(IDictionary<string, string> debugInfo)

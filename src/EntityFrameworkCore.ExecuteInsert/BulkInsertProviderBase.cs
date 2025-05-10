@@ -1,11 +1,11 @@
 using System.Collections;
-using System.Data;
 using System.Data.Common;
 using System.Reflection;
 
 using EntityFrameworkCore.ExecuteInsert.Abstractions;
-using EntityFrameworkCore.ExecuteInsert.Helpers;
-using EntityFrameworkCore.ExecuteInsert.OnConflict;
+using EntityFrameworkCore.ExecuteInsert.Dialect;
+using EntityFrameworkCore.ExecuteInsert.Extensions;
+using EntityFrameworkCore.ExecuteInsert.Options;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -163,8 +163,8 @@ public abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
         var (schemaName, tableName, _) = GetTableInfo(context, typeof(T));
         var escapedTableName = EscapeTableName(schemaName, tableName);
 
-        var movedProperties = DatabaseHelper.GetProperties(context, typeof(T), false);
-        var returnedProperties = returnData ? DatabaseHelper.GetProperties(context, typeof(T)) : [];
+        var movedProperties = context.GetProperties(typeof(T), false);
+        var returnedProperties = returnData ? context.GetProperties(typeof(T)) : [];
 
         var query = SqlDialect.BuildMoveDataSql<T>(tempTableName, escapedTableName, movedProperties, returnedProperties, options, onConflict);
 
@@ -190,7 +190,7 @@ public abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
         CancellationToken ctk = default
     ) where T : class
     {
-        var (connection, wasClosed) = await GetConnection(context, ctk);
+        var (connection, wasClosed) = await context.GetConnection(ctk);
 
         var (tableName, _) = await PerformBulkInsertAsync(context, entities, options, tempTableRequired: true, ctk: ctk);
 
@@ -211,7 +211,7 @@ public abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
         CancellationToken ctk = default
     ) where T : class
     {
-        var (connection, wasClosed) = await GetConnection(context, ctk);
+        var (connection, wasClosed) = await context.GetConnection(ctk);
 
         var (tableName, _) = await PerformBulkInsertAsync(context, entities, options, tempTableRequired: true, ctk: ctk);
 
@@ -235,7 +235,7 @@ public abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
     {
         if (onConflict != null)
         {
-            var (connection, wasClosed) = await GetConnection(context, ctk);
+            var (connection, wasClosed) = await context.GetConnection(ctk);
 
             var (tableName, _) = await PerformBulkInsertAsync(context, entities, options, tempTableRequired: true, ctk: ctk);
 
@@ -263,12 +263,12 @@ public abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
             throw new InvalidOperationException("No entities to insert.");
         }
 
-        var (connection, wasClosed) = await GetConnection(context, ctk);
+        var (connection, wasClosed) = await context.GetConnection(ctk);
 
         if (options.Recursive)
         {
             // Insert children first
-            var navigationProperties = DatabaseHelper.GetNavigationProperties(context, typeof(T));
+            var navigationProperties = context.GetNavigationProperties(typeof(T));
 
             foreach (var navigationProperty in navigationProperties)
             {
@@ -295,12 +295,12 @@ public abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
             : GetEscapedTableName(context, typeof(T));
 
         // Utilisation du wrapper PropertyAccessor
-        var properties = DatabaseHelper
-            .GetProperties(context, typeof(T), false)
+        var properties = context
+            .GetProperties(typeof(T), false)
             .Select(p => new PropertyAccessor(p))
             .ToArray();
 
-        await BulkImport(context, connection, entities, tableName, properties, options, ctk);
+        await BulkInsert(context, entities, tableName, properties, options, ctk);
 
         if (wasClosed)
         {
@@ -310,21 +310,8 @@ public abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
         return (tableName, connection);
     }
 
-    protected abstract Task BulkImport<T>(DbContext context, DbConnection connection, IEnumerable<T> entities,
+    protected abstract Task BulkInsert<T>(DbContext context, IEnumerable<T> entities,
         string tableName, PropertyAccessor[] properties, BulkInsertOptions options, CancellationToken ctk) where T : class;
-
-    private static async Task<(DbConnection connection, bool wasClosed)> GetConnection(DbContext context, CancellationToken ctk)
-    {
-        var connection = context.Database.GetDbConnection();
-        var wasClosed = connection.State == ConnectionState.Closed;
-
-        if (wasClosed)
-        {
-            await connection.OpenAsync(ctk);
-        }
-
-        return (connection, wasClosed);
-    }
 
     public IEnumerable<KeyValuePair<long, object>> GetChildrenEntities<T>(IEnumerable<T> entities, INavigation navigationProperty) where T : class
     {
@@ -380,7 +367,7 @@ public abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
 
     protected string[] GetEscapedColumns(DbContext context, Type entityType, bool includeGenerated = true)
     {
-        return DatabaseHelper.GetProperties(context, entityType, includeGenerated)
+        return context.GetProperties(entityType, includeGenerated)
             .Select(p => Escape(p.Name))
             .ToArray();
     }

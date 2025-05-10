@@ -1,6 +1,6 @@
 ﻿using System.Linq.Expressions;
 
-namespace EntityFrameworkCore.ExecuteInsert.OnConflict;
+namespace EntityFrameworkCore.ExecuteInsert.Options;
 
 public abstract class OnConflictOptions
 {

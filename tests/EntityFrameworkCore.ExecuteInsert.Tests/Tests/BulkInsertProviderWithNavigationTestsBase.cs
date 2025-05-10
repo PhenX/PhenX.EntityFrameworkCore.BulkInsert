@@ -2,7 +2,7 @@
 using System.Linq;
 using System.Threading.Tasks;
 
-using EntityFrameworkCore.ExecuteInsert.Abstractions;
+using EntityFrameworkCore.ExecuteInsert.Extensions;
 using EntityFrameworkCore.ExecuteInsert.Tests.DbContainer;
 
 using Xunit;

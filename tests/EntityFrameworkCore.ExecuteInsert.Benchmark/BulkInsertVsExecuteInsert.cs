@@ -4,7 +4,7 @@ using DotNet.Testcontainers.Containers;
 
 using EFCore.BulkExtensions;
 
-using EntityFrameworkCore.ExecuteInsert.Abstractions;
+using EntityFrameworkCore.ExecuteInsert.Extensions;
 
 namespace EntityFrameworkCore.ExecuteInsert.Benchmark;
 

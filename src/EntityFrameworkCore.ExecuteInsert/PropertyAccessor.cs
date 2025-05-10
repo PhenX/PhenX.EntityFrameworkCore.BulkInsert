@@ -2,15 +2,15 @@
 
 namespace EntityFrameworkCore.ExecuteInsert;
 
-public class PropertyAccessor
+public readonly struct PropertyAccessor
 {
-    private Func<object, object?> ValueGetter { get; set; }
+    private Func<object, object?> ValueGetter { get; }
 
-    public IProperty Property { get; }
+    private IProperty Property { get; }
+
+    public Type ProviderClrType { get; }
 
     public string Name => Property.Name;
-
-    public Type ProviderClrType { get; private set; }
 
     public PropertyAccessor(IProperty property)
     {
@@ -33,5 +33,5 @@ public class PropertyAccessor
         ProviderClrType = Nullable.GetUnderlyingType(propInfo.PropertyType) ?? propInfo.PropertyType;
     }
 
-    public virtual object GetValue(object entity) => ValueGetter(entity) ?? DBNull.Value;
+    public object GetValue(object entity) => ValueGetter(entity) ?? DBNull.Value;
 }

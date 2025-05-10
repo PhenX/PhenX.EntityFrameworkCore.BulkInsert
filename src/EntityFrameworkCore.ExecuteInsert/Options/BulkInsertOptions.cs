@@ -1,4 +1,4 @@
-﻿namespace EntityFrameworkCore.ExecuteInsert;
+﻿namespace EntityFrameworkCore.ExecuteInsert.Options;
 
 public class BulkInsertOptions
 {

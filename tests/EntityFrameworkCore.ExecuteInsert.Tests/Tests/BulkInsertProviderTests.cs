@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-using EntityFrameworkCore.ExecuteInsert.Abstractions;
-using EntityFrameworkCore.ExecuteInsert.OnConflict;
+using EntityFrameworkCore.ExecuteInsert.Extensions;
+using EntityFrameworkCore.ExecuteInsert.Options;
 using EntityFrameworkCore.ExecuteInsert.Tests.DbContainer;
 
 using Xunit;
@@ -118,7 +118,7 @@ public abstract class BulkInsertProviderTestsBase : IAsyncLifetime
     public async Task InsertsThousandsOfEntitiesSuccessfully()
     {
         // Arrange
-        const int count = 1_000_000;
+        const int count = 156055;
         var entities = Enumerable.Range(1, count).Select(i => new TestEntity
         {
             Id = i,

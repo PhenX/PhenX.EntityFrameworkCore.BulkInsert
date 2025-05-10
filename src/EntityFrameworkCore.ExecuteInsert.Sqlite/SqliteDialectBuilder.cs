@@ -1,4 +1,6 @@
-﻿namespace EntityFrameworkCore.ExecuteInsert.Sqlite;
+﻿using EntityFrameworkCore.ExecuteInsert.Dialect;
+
+namespace EntityFrameworkCore.ExecuteInsert.Sqlite;
 
 public class SqliteDialectBuilder : SqlDialectBuilder
 {

@@ -58,6 +58,7 @@ public class PostgreSqlBulkInsertProvider : BulkInsertProviderBase
                       INSERT INTO {targetTableName} ({insertedColumnList})
                       SELECT {insertedColumnList}
                       FROM {tableName}
+                      WHERE TRUE
                       """);
 
         if (onConflict is OnConflictOptions<T> onConflictTyped)
@@ -98,7 +99,7 @@ public class PostgreSqlBulkInsertProvider : BulkInsertProviderBase
     }
 
     protected override async Task BulkImport<T>(DbContext context, DbConnection connection, IEnumerable<T> entities,
-        string tableName, PropertyAccessor[] properties, CancellationToken ctk) where T : class
+        string tableName, PropertyAccessor[] properties, BulkInsertOptions options, CancellationToken ctk) where T : class
     {
         var importCommand = GetBinaryImportCommand(context, typeof(T), tableName);
 

@@ -24,14 +24,15 @@ public class SqlServerBulkInsertProvider : BulkInsertProviderBase
 
     protected override string GetTempTableName(string tableName) => $"#_temp_bulk_insert_{tableName}";
 
-    protected override async Task BulkImport<T>(DbContext context, DbConnection connection, IEnumerable<T> entities, string tableName,
-        PropertyAccessor[] properties, CancellationToken ctk)
+    protected override async Task BulkImport<T>(DbContext context, DbConnection connection, IEnumerable<T> entities,
+        string tableName,
+        PropertyAccessor[] properties, BulkInsertOptions options, CancellationToken ctk)
     {
         await using var t = (SqlTransaction) await connection.BeginTransactionAsync(ctk); // TODO option
 
         using var bulkCopy = new SqlBulkCopy(connection as SqlConnection, SqlBulkCopyOptions.TableLock, t);
         bulkCopy.DestinationTableName = tableName;
-        bulkCopy.BatchSize = 50_000; // TODO option
+        bulkCopy.BatchSize = options.BatchSize ?? 50_000;
         bulkCopy.BulkCopyTimeout = 60;
 
         foreach (var prop in properties)

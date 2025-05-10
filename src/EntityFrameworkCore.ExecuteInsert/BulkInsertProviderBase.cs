@@ -306,7 +306,7 @@ public abstract class BulkInsertProviderBase : IBulkInsertProvider
             .Select(p => new PropertyAccessor(p))
             .ToArray();
 
-        await BulkImport(context, connection, entities, tableName, properties, ctk);
+        await BulkImport(context, connection, entities, tableName, properties, options, ctk);
 
         if (wasClosed)
         {
@@ -317,7 +317,7 @@ public abstract class BulkInsertProviderBase : IBulkInsertProvider
     }
 
     protected abstract Task BulkImport<T>(DbContext context, DbConnection connection, IEnumerable<T> entities,
-        string tableName, PropertyAccessor[] properties, CancellationToken ctk) where T : class;
+        string tableName, PropertyAccessor[] properties, BulkInsertOptions options, CancellationToken ctk) where T : class;
 
     private static async Task<(DbConnection connection, bool wasClosed)> GetConnection(DbContext context, CancellationToken ctk)
     {

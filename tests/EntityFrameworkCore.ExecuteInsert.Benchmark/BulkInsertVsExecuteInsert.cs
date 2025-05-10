@@ -77,6 +77,10 @@ public abstract class BulkInsertVsExecuteInsert
     [Benchmark]
     public async Task BulkInsert()
     {
-        await DbContextBulkExtensions.BulkInsertAsync(DbContext, data);
+        await DbContext.BulkInsertAsync(data, options =>
+        {
+            options.IncludeGraph = false;
+            options.PreserveInsertOrder = false;
+        });
     }
 }

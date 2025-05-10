@@ -1,5 +1,3 @@
-using System.Data.Common;
-
 using EntityFrameworkCore.ExecuteInsert.OnConflict;
 
 using Microsoft.EntityFrameworkCore;
@@ -23,7 +21,4 @@ public interface IBulkInsertProvider
         OnConflictOptions? onConflict = null,
         CancellationToken ctk = default
     ) where T : class;
-
-    string OpenDelimiter { get; }
-    string CloseDelimiter { get; }
 }

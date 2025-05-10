@@ -9,14 +9,14 @@ using Microsoft.Data.Sqlite;
 
 namespace EntityFrameworkCore.ExecuteInsert.Sqlite;
 
-public class SqliteBulkInsertProvider : BulkInsertProviderBase
+public class SqliteBulkInsertProvider : BulkInsertProviderBase<SqliteDialectBuilder>
 {
-    public override string OpenDelimiter => "\"";
-    public override string CloseDelimiter => "\"";
-
     protected override string BulkInsertId => "rowid";
 
+    //language=sql
     protected override string CreateTableCopySql => "CREATE TEMP TABLE {0} AS SELECT * FROM {1} WHERE 0;";
+
+    //language=sql
     protected override string AddTableCopyBulkInsertId => "--"; // No need to add an ID column in SQLite
 
     protected override Task AddBulkInsertIdColumn<T>(DbConnection connection, CancellationToken cancellationToken,
@@ -107,66 +107,6 @@ public class SqliteBulkInsertProvider : BulkInsertProviderBase
         cmd.Prepare();
 
         return cmd;
-    }
-
-    protected override string BuildInsertSelectQuery<T>(string tableName,
-        string targetTableName,
-        IProperty[] insertedProperties,
-        IProperty[] properties,
-        BulkInsertOptions options, OnConflictOptions? onConflict = null)
-    {
-        var insertedColumns = insertedProperties.Select(p => Escape(p.GetColumnName()));
-        var insertedColumnList = string.Join(", ", insertedColumns);
-
-        var returnedColumns = properties.Select(p => $"{Escape(p.GetColumnName())} AS {Escape(p.Name)}");
-        var columnList = string.Join(", ", returnedColumns);
-
-        var q = new StringBuilder();
-
-        // No support for moveRows in SQLite
-
-        q.AppendLine($"""
-                      INSERT INTO {targetTableName} ({insertedColumnList})
-                      SELECT {insertedColumnList}
-                      FROM {tableName}
-                      WHERE TRUE
-                      """);
-
-        if (onConflict is OnConflictOptions<T> onConflictTyped)
-        {
-            q.Append("ON CONFLICT");
-
-            if (onConflictTyped.Update != null)
-            {
-                if (onConflictTyped.Match != null)
-                {
-                    q.AppendLine($" ({string.Join(", ", GetColumns(onConflictTyped.Match).Select(Escape))})");
-                }
-
-                if (onConflictTyped.Update != null)
-                {
-                    q.AppendLine($" DO UPDATE SET {string.Join(", ", GetUpdates(onConflictTyped.Update))}");
-                }
-
-                if (onConflictTyped.Condition != null)
-                {
-                    q.AppendLine($" WHERE {onConflictTyped.Condition}");
-                }
-            }
-            else
-            {
-                q.AppendLine(" DO NOTHING");
-            }
-        }
-
-        if (columnList.Length != 0)
-        {
-            q.AppendLine($"RETURNING {columnList}");
-        }
-
-        q.AppendLine(";");
-
-        return q.ToString();
     }
 
     protected override async Task BulkImport<T>(DbContext context, DbConnection connection, IEnumerable<T> entities,

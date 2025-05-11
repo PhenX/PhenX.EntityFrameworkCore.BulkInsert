@@ -132,7 +132,7 @@ public abstract class BasicTestsBase : IAsyncLifetime
     [SkippableFact]
     public async Task InsertsEntitiesWithConflict_Condition()
     {
-        Skip.If(DbContainer.DbContext.Database.ProviderName!.Contains("Npgsql", StringComparison.InvariantCultureIgnoreCase));
+        // Skip.If(DbContainer.DbContext.Database.ProviderName!.Contains("Npgsql", StringComparison.InvariantCultureIgnoreCase));
 
         DbContainer.DbContext.TestEntities.Add(new TestEntity { Name = "Entity1", Price = 10 });
         await DbContainer.DbContext.SaveChangesAsync();
@@ -151,7 +151,7 @@ public abstract class BasicTestsBase : IAsyncLifetime
         {
             Match = e => new { e.Name },
             Update = e => new TestEntity { Price = e.Price },
-            Condition = "EXCLUDED.Price > TestEntities.Price"
+            Condition = "EXCLUDED.some_price > test_entity.some_price"
         });
 
         var insertedEntities = DbContainer.DbContext.TestEntities.ToList();

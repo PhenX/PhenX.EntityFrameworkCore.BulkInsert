@@ -8,13 +8,17 @@ namespace EntityFrameworkCore.ExecuteInsert.Tests.DbContext;
 
 [PrimaryKey(nameof(Id))]
 [Index(nameof(Name), IsUnique = true)]
+[Table("test_entity")]
 public class TestEntity
 {
+
     public int Id { get; set; }
 
     [Column("name")]
     [MaxLength(100)]
     public string Name { get; set; } = string.Empty;
+
+    [Column("some_price")]
     public decimal Price { get; set; }
 
     [Column("the_identifier")]

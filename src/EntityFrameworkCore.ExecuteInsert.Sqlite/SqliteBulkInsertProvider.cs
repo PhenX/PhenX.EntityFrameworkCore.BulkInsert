@@ -102,7 +102,7 @@ public class SqliteBulkInsertProvider : BulkInsertProviderBase<SqliteDialectBuil
                 return $"({string.Join(",", cols)})";
             });
 
-        var sql = $"INSERT INTO {tableName} ({string.Join(",", sqliteColumns.Select(c => Escape(c.Name)))}) VALUES {string.Join(",", batches)}";
+        var sql = $"INSERT INTO {tableName} ({string.Join(",", sqliteColumns.Select(c => Quote(c.Name)))}) VALUES {string.Join(",", batches)}";
 
         cmd.CommandText = sql;
 

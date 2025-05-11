@@ -19,7 +19,7 @@ public class PostgreSqlBulkInsertProvider : BulkInsertProviderBase<PostgreSqlDia
 
     private string GetBinaryImportCommand(DbContext context, Type entityType, string tableName)
     {
-        var columns = GetEscapedColumns(context, entityType, false);
+        var columns = GetQuotedColumns(context, entityType, false);
 
         return $"COPY {tableName} ({string.Join(", ", columns)}) FROM STDIN (FORMAT BINARY)";
     }

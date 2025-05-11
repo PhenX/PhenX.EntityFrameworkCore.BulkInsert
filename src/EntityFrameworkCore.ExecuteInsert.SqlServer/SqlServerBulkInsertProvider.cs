@@ -33,7 +33,7 @@ public class SqlServerBulkInsertProvider : BulkInsertProviderBase<SqlServerDiale
 
         foreach (var prop in properties)
         {
-            bulkCopy.ColumnMappings.Add(prop.Name, SqlDialect.Escape(prop.ColumnName));
+            bulkCopy.ColumnMappings.Add(prop.Name, SqlDialect.Quote(prop.ColumnName));
         }
 
         await bulkCopy.WriteToServerAsync(new EnumerableDataReader<T>(entities, properties), ctk);

@@ -38,7 +38,7 @@ public abstract class SqlDialectBuilder
             throw new InvalidOperationException($"Property {propName} not found in entity type {typeof(TEntity).Name}.");
         }
 
-        return Escape(property.GetColumnName());
+        return Quote(property.GetColumnName());
     }
 
     /// <summary>
@@ -59,10 +59,10 @@ public abstract class SqlDialectBuilder
         IProperty[] properties,
         BulkInsertOptions options, OnConflictOptions? onConflict = null)
     {
-        var insertedColumns = insertedProperties.Select(p => Escape(p.GetColumnName()));
+        var insertedColumns = insertedProperties.Select(p => Quote(p.GetColumnName()));
         var insertedColumnList = string.Join(", ", insertedColumns);
 
-        var returnedColumns = properties.Select(p => Escape(p.GetColumnName()));
+        var returnedColumns = properties.Select(p => Quote(p.GetColumnName()));
         var columnList = string.Join(", ", returnedColumns);
 
         var q = new StringBuilder();
@@ -131,18 +131,18 @@ public abstract class SqlDialectBuilder
     }
 
     /// <summary>
-    /// Escapes a column name using database-specific delimiters.
+    /// Quotes a column name using database-specific delimiters.
     /// </summary>
-    public string Escape(string entity) => $"{OpenDelimiter}{entity}{CloseDelimiter}";
+    public string Quote(string entity) => $"{OpenDelimiter}{entity}{CloseDelimiter}";
 
     /// <summary>
-    /// Escapes a schema and table name using database-specific delimiters.
+    /// Quotes a schema and table name using database-specific delimiters.
     /// </summary>
-    public string EscapeTableName(string? schema, string tableName)
+    public string QuoteTableName(string? schema, string tableName)
     {
         return schema != null
-            ? $"{Escape(schema)}.{Escape(tableName)}"
-            : Escape(tableName);
+            ? $"{Quote(schema)}.{Quote(tableName)}"
+            : Quote(tableName);
     }
 
     /// <summary>
@@ -293,7 +293,7 @@ public abstract class SqlDialectBuilder
                 }
 
             case ParameterExpression p:
-                return Escape(p.Name ?? "param");
+                return Quote(p.Name ?? "param");
 
             default:
                 throw new NotSupportedException($"Expression not supported: {expr.NodeType}");

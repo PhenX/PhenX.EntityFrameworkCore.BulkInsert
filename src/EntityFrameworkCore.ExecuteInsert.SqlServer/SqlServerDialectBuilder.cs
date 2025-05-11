@@ -23,7 +23,7 @@ public class SqlServerDialectBuilder : SqlDialectBuilder
         IProperty[] properties,
         BulkInsertOptions options, OnConflictOptions? onConflict = null)
     {
-        var insertedColumns = insertedProperties.Select(p => Escape(p.GetColumnName())).ToArray();
+        var insertedColumns = insertedProperties.Select(p => Quote(p.GetColumnName())).ToArray();
         var insertedColumnList = string.Join(", ", insertedColumns);
 
         var returnedColumns = properties.Select(p => $"INSERTED.{p.GetColumnName()} AS {p.GetColumnName()}");

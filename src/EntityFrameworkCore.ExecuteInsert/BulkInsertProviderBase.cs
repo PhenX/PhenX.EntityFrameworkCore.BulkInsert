@@ -26,10 +26,10 @@ public abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
         CancellationToken cancellationToken = default) where T : class
     {
         var tableInfo = GetTableInfo(context, typeof(T));
-        var tableName = EscapeTableName(tableInfo.SchemaName, tableInfo.TableName);
-        var tempTableName = EscapeTableName(null, GetTempTableName(tableInfo.TableName));
+        var tableName = QuoteTableName(tableInfo.SchemaName, tableInfo.TableName);
+        var tempTableName = QuoteTableName(null, GetTempTableName(tableInfo.TableName));
 
-        var keptColumns = string.Join(", ", GetEscapedColumns(context, typeof(T), false));
+        var keptColumns = string.Join(", ", GetQuotedColumns(context, typeof(T), false));
         var query = string.Format(CreateTableCopySql, tempTableName, tableName, keptColumns);
         await ExecuteAsync(connection, query, cancellationToken);
 
@@ -47,7 +47,7 @@ public abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
 
     protected virtual string GetTempTableName(string tableName) => $"_temp_bulk_insert_{tableName}";
 
-    protected string Escape(string name) => SqlDialect.Escape(name);
+    protected string Quote(string name) => SqlDialect.Quote(name);
 
     protected static async Task ExecuteAsync(DbConnection connection, string query, CancellationToken cancellationToken = default)
     {
@@ -86,12 +86,12 @@ public abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
         where TResult : class
     {
         var (schemaName, tableName, _) = GetTableInfo(context, typeof(T));
-        var escapedTableName = EscapeTableName(schemaName, tableName);
+        var quotedTableName = QuoteTableName(schemaName, tableName);
 
         var movedProperties = context.GetProperties(typeof(T), false);
         var returnedProperties = returnData ? context.GetProperties(typeof(T)) : [];
 
-        var query = SqlDialect.BuildMoveDataSql<T>(context, tempTableName, escapedTableName, movedProperties, returnedProperties, options, onConflict);
+        var query = SqlDialect.BuildMoveDataSql<T>(context, tempTableName, quotedTableName, movedProperties, returnedProperties, options, onConflict);
 
         if (returnData)
         {
@@ -171,9 +171,8 @@ public abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
 
         var tableName = tempTableRequired
             ? await CreateTableCopyAsync<T>(context, connection, ctk)
-            : GetEscapedTableName(context, typeof(T));
+            : GetQuotedTableName(context, typeof(T));
 
-        // Utilisation du wrapper PropertyAccessor
         var properties = context
             .GetProperties(typeof(T), false)
             .Select(p => new PropertyAccessor(p))
@@ -193,7 +192,7 @@ public abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
         string tableName, PropertyAccessor[] properties, BulkInsertOptions options, CancellationToken ctk) where T : class;
 
     /// <summary>
-    /// Escapes a schema and table name using database-specific delimiters.
+    /// Get table information for the given entity type : schema name, table name and primary key.
     /// </summary>
     public static (string? SchemaName, string TableName, IKey PrimaryKey) GetTableInfo(DbContext context, Type entityType)
     {
@@ -209,19 +208,19 @@ public abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
         return (schema, tableName, entityTypeInfo.FindPrimaryKey()!);
     }
 
-    protected string GetEscapedTableName(DbContext context, Type entityType)
+    protected string GetQuotedTableName(DbContext context, Type entityType)
     {
         var (schema, tableName, _) = GetTableInfo(context, entityType);
 
-        return EscapeTableName(schema, tableName);
+        return QuoteTableName(schema, tableName);
     }
 
-    protected string EscapeTableName(string? schema, string table) => SqlDialect.EscapeTableName(schema, table);
+    protected string QuoteTableName(string? schema, string table) => SqlDialect.QuoteTableName(schema, table);
 
-    protected string[] GetEscapedColumns(DbContext context, Type entityType, bool includeGenerated = true)
+    protected string[] GetQuotedColumns(DbContext context, Type entityType, bool includeGenerated = true)
     {
         return context.GetProperties(entityType, includeGenerated)
-            .Select(p => Escape(p.GetColumnName()))
+            .Select(p => Quote(p.GetColumnName()))
             .ToArray();
     }
 }

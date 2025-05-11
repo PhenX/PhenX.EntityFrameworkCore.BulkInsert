@@ -59,8 +59,8 @@ await dbContext.ExecuteInsertWithIdentityAsync(entities, options => {});
 
 ## Roadmap
 
-- [ ] Add support for navigation properties (#2)
-- [ ] Add support for complex types (#3)
+- [ ] [Add support for navigation properties](https://github.com/PhenX/EntityFrameworkCore.ExecuteInsert/issues/2)
+- [ ] [Add support for complex types](https://github.com/PhenX/EntityFrameworkCore.ExecuteInsert/issues/3)
 - [ ] Add support for owned types
 - [ ] Add support for shadow properties
 - [ ] Add support for TPT (Table Per Type) inheritance

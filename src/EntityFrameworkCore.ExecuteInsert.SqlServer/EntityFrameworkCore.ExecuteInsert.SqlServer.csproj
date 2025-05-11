@@ -5,7 +5,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="JetBrains.Annotations" Version="2024.3.0" />
       <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.15" />
     </ItemGroup>
 

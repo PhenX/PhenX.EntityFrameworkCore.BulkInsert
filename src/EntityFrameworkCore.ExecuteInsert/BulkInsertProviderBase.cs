@@ -166,7 +166,7 @@ public abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
         var movedProperties = context.GetProperties(typeof(T), false);
         var returnedProperties = returnData ? context.GetProperties(typeof(T)) : [];
 
-        var query = SqlDialect.BuildMoveDataSql<T>(tempTableName, escapedTableName, movedProperties, returnedProperties, options, onConflict);
+        var query = SqlDialect.BuildMoveDataSql<T>(context, tempTableName, escapedTableName, movedProperties, returnedProperties, options, onConflict);
 
         if (returnData)
         {
@@ -368,7 +368,7 @@ public abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
     protected string[] GetEscapedColumns(DbContext context, Type entityType, bool includeGenerated = true)
     {
         return context.GetProperties(entityType, includeGenerated)
-            .Select(p => Escape(p.Name))
+            .Select(p => Escape(p.GetColumnName()))
             .ToArray();
     }
 }

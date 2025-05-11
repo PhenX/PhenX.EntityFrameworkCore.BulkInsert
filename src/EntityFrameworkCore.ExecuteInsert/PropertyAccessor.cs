@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore.Metadata;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace EntityFrameworkCore.ExecuteInsert;
 
@@ -11,6 +12,8 @@ public readonly struct PropertyAccessor
     public Type ProviderClrType { get; }
 
     public string Name => Property.Name;
+
+    public string ColumnName => Property.GetColumnName();
 
     public PropertyAccessor(IProperty property)
     {

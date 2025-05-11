@@ -7,6 +7,9 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EntityFrameworkCore.ExecuteInsert.SqlServer", "src\EntityFrameworkCore.ExecuteInsert.SqlServer\EntityFrameworkCore.ExecuteInsert.SqlServer.csproj", "{8098F37B-FA5E-4BDB-B64A-00FBDE2001C9}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{CBEBA2A8-79E0-412E-93C1-C88F4473D78B}"
+	ProjectSection(SolutionItems) = preProject
+		src\Directory.Build.props = src\Directory.Build.props
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{F8A83782-311C-454D-8B97-B3FB86478BF4}"
 EndProject

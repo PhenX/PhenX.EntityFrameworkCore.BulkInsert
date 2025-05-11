@@ -3,11 +3,14 @@ using System.Data.Common;
 using EntityFrameworkCore.ExecuteInsert.Extensions;
 using EntityFrameworkCore.ExecuteInsert.Options;
 
+using JetBrains.Annotations;
+
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Data.Sqlite;
 
 namespace EntityFrameworkCore.ExecuteInsert.Sqlite;
 
+[UsedImplicitly]
 public class SqliteBulkInsertProvider : BulkInsertProviderBase<SqliteDialectBuilder>
 {
     protected override string BulkInsertId => "rowid";

@@ -1,7 +1,6 @@
 ﻿using System.Linq.Expressions;
 using System.Text;
 
-using EntityFrameworkCore.ExecuteInsert.Extensions;
 using EntityFrameworkCore.ExecuteInsert.Options;
 
 using Microsoft.EntityFrameworkCore;
@@ -17,8 +16,44 @@ public abstract class SqlDialectBuilder
     protected virtual string ConcatOperator => "||";
     protected virtual bool SupportsMoveRows => true;
 
-    public virtual string BuildMoveDataSql<T>(
-        string source,
+    /// <summary>
+    /// Gets the name of the column for a property in a given entity type.
+    /// </summary>
+    /// <param name="context">The DbContext</param>
+    /// <param name="propName">The property name</param>
+    /// <typeparam name="TEntity">The entity type</typeparam>
+    /// <returns>The column name</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the entity type or property is not found.</exception>
+    protected string GetColumnName<TEntity>(DbContext context, string propName)
+    {
+        var entityType = context.Model.FindEntityType(typeof(TEntity));
+        if (entityType == null)
+        {
+            throw new InvalidOperationException($"Entity type {typeof(TEntity).Name} not found in the model.");
+        }
+
+        var property = entityType.FindProperty(propName);
+        if (property == null)
+        {
+            throw new InvalidOperationException($"Property {propName} not found in entity type {typeof(TEntity).Name}.");
+        }
+
+        return Escape(property.GetColumnName());
+    }
+
+    /// <summary>
+    /// Builds the SQL for moving data from one table to another.
+    /// </summary>
+    /// <param name="context">The DbContext</param>
+    /// <param name="source">Source table name</param>
+    /// <param name="target">Target table name</param>
+    /// <param name="insertedProperties">Properties to be copied</param>
+    /// <param name="properties">Properties to be returned</param>
+    /// <param name="options">Bulk insert options</param>
+    /// <param name="onConflict">On conflict options</param>
+    /// <typeparam name="T">Entity type</typeparam>
+    /// <returns>The SQL query</returns>
+    public virtual string BuildMoveDataSql<T>(DbContext context, string source,
         string target,
         IProperty[] insertedProperties,
         IProperty[] properties,
@@ -27,7 +62,7 @@ public abstract class SqlDialectBuilder
         var insertedColumns = insertedProperties.Select(p => Escape(p.GetColumnName()));
         var insertedColumnList = string.Join(", ", insertedColumns);
 
-        var returnedColumns = properties.Select(p => $"{Escape(p.GetColumnName())} AS {Escape(p.Name)}");
+        var returnedColumns = properties.Select(p => Escape(p.GetColumnName()));
         var columnList = string.Join(", ", returnedColumns);
 
         var q = new StringBuilder();
@@ -58,12 +93,12 @@ public abstract class SqlDialectBuilder
             {
                 if (onConflictTyped.Match != null)
                 {
-                    q.AppendLine($"({string.Join(", ", GetColumns(onConflictTyped.Match).Select(Escape))})");
+                    q.AppendLine($"({string.Join(", ", GetColumns(context, onConflictTyped.Match))})");
                 }
 
                 if (onConflictTyped.Update != null)
                 {
-                    q.AppendLine($"DO UPDATE SET {string.Join(", ", GetUpdates(onConflictTyped.Update))}");
+                    q.AppendLine($"DO UPDATE SET {string.Join(", ", GetUpdates(context, onConflictTyped.Update))}");
                 }
 
                 if (onConflictTyped.Condition != null)
@@ -87,19 +122,18 @@ public abstract class SqlDialectBuilder
         return q.ToString();
     }
 
-    protected virtual string GetExcludedColumnName(MemberExpression member)
+    /// <summary>
+    /// Get the name of the excluded column for the ON CONFLICT clause.
+    /// </summary>
+    protected virtual string GetExcludedColumnName<TEntity>(DbContext context, MemberExpression member)
     {
-        var prefix = "EXCLUDED";
-        return $"{prefix}.{Escape(member.Member.Name)}";
+        return $"EXCLUDED.{GetColumnName<TEntity>(context, member.Member.Name)}";
     }
 
     /// <summary>
     /// Escapes a column name using database-specific delimiters.
     /// </summary>
-    public string Escape(string entity)
-    {
-        return $"{OpenDelimiter}{entity}{CloseDelimiter}";
-    }
+    public string Escape(string entity) => $"{OpenDelimiter}{entity}{CloseDelimiter}";
 
     /// <summary>
     /// Escapes a schema and table name using database-specific delimiters.
@@ -111,28 +145,35 @@ public abstract class SqlDialectBuilder
             : Escape(tableName);
     }
 
-    public string[] GetEscapedColumns(DbContext context, Type entityType, bool includeGenerated = true)
-    {
-        return context.GetProperties(entityType, includeGenerated)
-            .Select(p => Escape(p.Name))
-            .ToArray();
-    }
-
-    protected string[] GetColumns<T>(Expression<Func<T, object>> columns)
+    /// <summary>
+    /// Gets column names for the insert statement, from an object initializer.
+    /// </summary>
+    protected string[] GetColumns<T>(DbContext context, Expression<Func<T, object>> columns)
     {
         return columns.Body switch
         {
             NewExpression newExpression => newExpression.Arguments.OfType<MemberExpression>()
-                .Select(m => m.Member.Name)
+                .Select(m => GetColumnName<T>(context, m.Member.Name))
                 .ToArray(),
             MemberExpression memberExpression => [
-                memberExpression.Member.Name
+                GetColumnName<T>(context, memberExpression.Member.Name)
             ],
             _ => throw new NotSupportedException("Unsupported expression type")
         };
     }
 
-    protected IEnumerable<string> GetUpdates<T>(Expression<Func<T, object>> update)
+    /// <summary>
+    /// Gets column names for the update statement, from an object initializer or a member initializer.
+    /// </summary>
+    /// <example>
+    /// <code>
+    /// var updates = GetUpdates(context, e => new Entity { Prop1 = value1, Prop2 = value2 });
+    /// </code>
+    /// <code>
+    /// var updates = GetUpdates(context, e => e.Prop1);
+    /// </code>
+    /// </example>
+    protected IEnumerable<string> GetUpdates<T>(DbContext context, Expression<Func<T, object>> update)
     {
         switch (update.Body)
         {
@@ -140,7 +181,7 @@ public abstract class SqlDialectBuilder
             {
                 foreach (var arg in newExpr.Arguments.Zip(newExpr.Members, (expr, member) => (expr, member)))
                 {
-                    yield return $"{Escape(arg.member.Name)} = {ToSqlExpression(arg.expr)}";
+                    yield return $"{GetColumnName<T>(context, arg.member.Name)} = {ToSqlExpression<T>(context, arg.expr)}";
                 }
 
                 break;
@@ -149,29 +190,37 @@ public abstract class SqlDialectBuilder
             {
                 foreach (var binding in memberInit.Bindings.OfType<MemberAssignment>())
                 {
-                    yield return $"{Escape(binding.Member.Name)} = {ToSqlExpression(binding.Expression)}";
+                    yield return $"{GetColumnName<T>(context, binding.Member.Name)} = {ToSqlExpression<T>(context, binding.Expression)}";
                 }
 
                 break;
             }
             case MemberExpression memberExpr:
-                yield return $"{Escape(memberExpr.Member.Name)} = {ToSqlExpression(memberExpr)}";
+                yield return $"{GetColumnName<T>(context, memberExpr.Member.Name)} = {ToSqlExpression<T>(context, memberExpr)}";
                 break;
             default:
                 throw new NotSupportedException("Unsupported expression type for update");
         }
     }
 
-    private string ToSqlExpression(Expression expr)
+    /// <summary>
+    /// Converts an expression to a SQL string.
+    /// </summary>
+    /// <param name="context">The DbContext</param>
+    /// <param name="expr">The expression, with simple operations</param>
+    /// <typeparam name="TEntity">Entity type</typeparam>
+    /// <returns>An SQL statement</returns>
+    /// <exception cref="NotSupportedException">Thrown when an expression could not be translated.</exception>
+    private string ToSqlExpression<TEntity>(DbContext context, Expression expr)
     {
         switch (expr)
         {
             case MemberExpression m:
-                return GetExcludedColumnName(m);
+                return GetExcludedColumnName<TEntity>(context, m);
 
             case BinaryExpression b:
-                var left = ToSqlExpression(b.Left);
-                var right = ToSqlExpression(b.Right);
+                var left = ToSqlExpression<TEntity>(context, b.Left);
+                var right = ToSqlExpression<TEntity>(context, b.Right);
                 var op = b.NodeType switch
                 {
                     ExpressionType.Add => b.Type == typeof(string) ? ConcatOperator : "+",
@@ -213,18 +262,18 @@ public abstract class SqlDialectBuilder
             case UnaryExpression u:
                 if (u.NodeType == ExpressionType.Convert)
                 {
-                    return ToSqlExpression(u.Operand);
+                    return ToSqlExpression<TEntity>(context, u.Operand);
                 }
                 if (u.NodeType == ExpressionType.Not)
                 {
-                    return $"NOT ({ToSqlExpression(u.Operand)})";
+                    return $"NOT ({ToSqlExpression<TEntity>(context, u.Operand)})";
                 }
                 throw new NotSupportedException($"Unary operator not supported: {u.NodeType}");
 
             case MethodCallExpression mce:
                 // Supporte quelques méthodes courantes (ToLower, ToUpper, Trim, etc.)
-                var objSql = mce.Object != null ? ToSqlExpression(mce.Object) : null;
-                var argsSql = mce.Arguments.Select(ToSqlExpression).ToArray();
+                var objSql = mce.Object != null ? ToSqlExpression<TEntity>(context, mce.Object) : null;
+                var argsSql = mce.Arguments.Select(expr1 => ToSqlExpression<TEntity>(context, expr1)).ToArray();
                 switch (mce.Method.Name)
                 {
                     case "ToLower":

@@ -1,10 +1,13 @@
 using EntityFrameworkCore.ExecuteInsert.Options;
 
+using JetBrains.Annotations;
+
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 namespace EntityFrameworkCore.ExecuteInsert.SqlServer;
 
+[UsedImplicitly]
 public class SqlServerBulkInsertProvider : BulkInsertProviderBase<SqlServerDialectBuilder>
 {
     //language=sql
@@ -30,7 +33,7 @@ public class SqlServerBulkInsertProvider : BulkInsertProviderBase<SqlServerDiale
 
         foreach (var prop in properties)
         {
-            bulkCopy.ColumnMappings.Add(prop.Name, SqlDialect.Escape(prop.Name));
+            bulkCopy.ColumnMappings.Add(prop.Name, SqlDialect.Escape(prop.ColumnName));
         }
 
         await bulkCopy.WriteToServerAsync(new EnumerableDataReader<T>(entities, properties), ctk);

@@ -1,11 +1,14 @@
 using EntityFrameworkCore.ExecuteInsert.Options;
 
+using JetBrains.Annotations;
+
 using Microsoft.EntityFrameworkCore;
 
 using Npgsql;
 
 namespace EntityFrameworkCore.ExecuteInsert.PostgreSql;
 
+[UsedImplicitly]
 public class PostgreSqlBulkInsertProvider : BulkInsertProviderBase<PostgreSqlDialectBuilder>
 {
     //language=sql

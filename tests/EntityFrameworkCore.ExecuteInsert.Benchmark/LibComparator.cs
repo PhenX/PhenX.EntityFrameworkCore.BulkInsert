@@ -13,7 +13,7 @@ public abstract class LibComparator
     [Params(100_000/*, 1_000_000/*, 10_000_000*/)]
     public int N;
 
-    private IList<TestEntity> data;
+    private IList<TestEntity> data = [];
     protected TestDbContext DbContext;
 
     [GlobalSetup]
@@ -29,14 +29,14 @@ public abstract class LibComparator
         }).ToList();
     }
 
-    public LibComparator()
+    protected LibComparator()
     {
         DbContainer = GetDbContainer();
         DbContainer?.StartAsync().GetAwaiter().GetResult();
 
         ConfigureDbContext();
 
-        DbContext.Database.EnsureCreated();
+        DbContext!.Database.EnsureCreated();
     }
 
     protected abstract void ConfigureDbContext();

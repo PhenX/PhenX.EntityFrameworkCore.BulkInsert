@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 using Microsoft.EntityFrameworkCore;
@@ -10,12 +11,18 @@ namespace EntityFrameworkCore.ExecuteInsert.Tests.DbContext;
 public class TestEntity
 {
     public int Id { get; set; }
+
+    [Column("name")]
+    [MaxLength(100)]
     public string Name { get; set; } = string.Empty;
     public decimal Price { get; set; }
+
+    [Column("the_identifier")]
     public Guid Identifier { get; set; }
 
-    [Column(nameof(StringEnumValue), TypeName = "text")]
+    [Column("string_enum_value", TypeName = "text")]
     public StringEnum StringEnumValue { get; set; }
 
+    [Column("num_enum_value", TypeName = "text")]
     public NumericEnum NumericEnumValue { get; set; }
 }

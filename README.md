@@ -57,6 +57,16 @@ await dbContext.ExecuteInsertAsync(entities, options =>
 await dbContext.ExecuteInsertWithIdentityAsync(entities, options => {});
 ```
 
+## Roadmap
+
+- [ ] Add support for navigation properties (#2)
+- [ ] Add support for complex types (#3)
+- [ ] Add support for owned types
+- [ ] Add support for shadow properties
+- [ ] Add support for TPT (Table Per Type) inheritance
+- [ ] Add support for TPC (Table Per Concrete Type) inheritance
+- [ ] Add support for TPH (Table Per Hierarchy) inheritance
+
 ## Benchmarks
 Benchmark projects are available in the [`tests/EntityFrameworkCore.ExecuteInsert.Benchmark`](tests/EntityFrameworkCore.ExecuteInsert.Benchmark/LibComparator.cs) directory.
 Run them to compare performance with other libraries (https://github.com/videokojot/EFCore.BulkExtensions.MIT and https://entityframework-extensions.net/bulk-extensions),

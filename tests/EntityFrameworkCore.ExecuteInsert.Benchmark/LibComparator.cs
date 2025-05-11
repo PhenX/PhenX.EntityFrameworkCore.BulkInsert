@@ -8,7 +8,7 @@ using EntityFrameworkCore.ExecuteInsert.Extensions;
 
 namespace EntityFrameworkCore.ExecuteInsert.Benchmark;
 
-public abstract class BulkInsertVsExecuteInsert
+public abstract class LibComparator
 {
     [Params(100_000/*, 1_000_000/*, 10_000_000*/)]
     public int N;
@@ -29,7 +29,7 @@ public abstract class BulkInsertVsExecuteInsert
         }).ToList();
     }
 
-    public BulkInsertVsExecuteInsert()
+    public LibComparator()
     {
         DbContainer = GetDbContainer();
         DbContainer?.StartAsync().GetAwaiter().GetResult();

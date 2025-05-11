@@ -3,13 +3,14 @@
 using DotNet.Testcontainers.Containers;
 
 using EntityFrameworkCore.ExecuteInsert.Sqlite;
+using EntityFrameworkCore.ExecuteInsert.Tests.DbContext;
 
 using Microsoft.EntityFrameworkCore;
 
 namespace EntityFrameworkCore.ExecuteInsert.Tests.DbContainer;
 
-public class BulkInsertProviderDbContainerSqlite<TDbContext> : BulkInsertProviderDbContainer<TDbContext>
-    where TDbContext : BulkDbContext, new()
+public class TestDbContainerSqlite<TDbContext> : TestDbContainer<TDbContext>
+    where TDbContext : TestDbContextBase, new()
 {
     protected override IDatabaseContainer? GetDbContainer() => null;
 

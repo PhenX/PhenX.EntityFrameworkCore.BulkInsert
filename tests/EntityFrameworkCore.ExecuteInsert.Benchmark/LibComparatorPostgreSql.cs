@@ -14,7 +14,7 @@ namespace EntityFrameworkCore.ExecuteInsert.Benchmark;
 [MinColumn, MaxColumn, BaselineColumn]
 [MemoryDiagnoser]
 [SimpleJob(RunStrategy.Throughput, launchCount: 1, warmupCount: 0, iterationCount: 5)]
-public class BulkInsertVsExecuteInsertPostgreSql : BulkInsertVsExecuteInsert
+public class LibComparatorPostgreSql : LibComparator
 {
     protected override void ConfigureDbContext()
     {

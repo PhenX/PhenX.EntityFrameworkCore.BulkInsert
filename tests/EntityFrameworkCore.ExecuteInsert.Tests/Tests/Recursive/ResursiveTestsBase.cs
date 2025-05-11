@@ -4,19 +4,20 @@ using System.Threading.Tasks;
 
 using EntityFrameworkCore.ExecuteInsert.Extensions;
 using EntityFrameworkCore.ExecuteInsert.Tests.DbContainer;
+using EntityFrameworkCore.ExecuteInsert.Tests.DbContext;
 
 using Xunit;
 
-namespace EntityFrameworkCore.ExecuteInsert.Tests.Tests;
+namespace EntityFrameworkCore.ExecuteInsert.Tests.Tests.Recursive;
 
-public abstract class BulkInsertProviderWithNavigationTestsBase : IAsyncLifetime
+public abstract class ResursiveTestsBase : IAsyncLifetime
 {
-    protected BulkInsertProviderWithNavigationTestsBase(BulkInsertProviderDbContainer<TestDbContextWithNavigation> dbContainer)
+    protected ResursiveTestsBase(TestDbContainer<TestDbContextWithNavProps> dbContainer)
     {
         DbContainer = dbContainer;
     }
 
-    protected BulkInsertProviderDbContainer<TestDbContextWithNavigation> DbContainer { get; }
+    protected TestDbContainer<TestDbContextWithNavProps> DbContainer { get; }
 
     // [Fact]
     public async Task InsertsEntitiesWithNavigationPropertiesSuccessfully()

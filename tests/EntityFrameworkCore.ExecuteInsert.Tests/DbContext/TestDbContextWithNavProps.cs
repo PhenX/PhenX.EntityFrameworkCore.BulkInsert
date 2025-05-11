@@ -4,9 +4,9 @@ using EntityFrameworkCore.ExecuteInsert.PostgreSql;
 
 using Microsoft.EntityFrameworkCore;
 
-namespace EntityFrameworkCore.ExecuteInsert.Tests;
+namespace EntityFrameworkCore.ExecuteInsert.Tests.DbContext;
 
-public class TestDbContextWithNavigation : BulkDbContext
+public class TestDbContextWithNavProps : TestDbContextBase
 {
     public DbSet<GrandParentEntity> GrandParentEntities { get; set; } = null!;
     public DbSet<ParentEntity> ParentEntities { get; set; } = null!;

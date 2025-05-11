@@ -1,6 +1,7 @@
 ﻿using DotNet.Testcontainers.Containers;
 
 using EntityFrameworkCore.ExecuteInsert.SqlServer;
+using EntityFrameworkCore.ExecuteInsert.Tests.DbContext;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -8,8 +9,8 @@ using Testcontainers.MsSql;
 
 namespace EntityFrameworkCore.ExecuteInsert.Tests.DbContainer;
 
-public class BulkInsertProviderDbContainerSqlServer<TDbContext> : BulkInsertProviderDbContainer<TDbContext>
-    where TDbContext : BulkDbContext, new()
+public class TestDbContainerSqlServer<TDbContext> : TestDbContainer<TDbContext>
+    where TDbContext : TestDbContextBase, new()
 {
     protected override IDatabaseContainer? GetDbContainer()
     {

@@ -6,19 +6,20 @@ using System.Threading.Tasks;
 using EntityFrameworkCore.ExecuteInsert.Extensions;
 using EntityFrameworkCore.ExecuteInsert.Options;
 using EntityFrameworkCore.ExecuteInsert.Tests.DbContainer;
+using EntityFrameworkCore.ExecuteInsert.Tests.DbContext;
 
 using Xunit;
 
-namespace EntityFrameworkCore.ExecuteInsert.Tests.Tests;
+namespace EntityFrameworkCore.ExecuteInsert.Tests.Tests.Basic;
 
-public abstract class BulkInsertProviderTestsBase : IAsyncLifetime
+public abstract class BasicTestsBase : IAsyncLifetime
 {
-    protected BulkInsertProviderTestsBase(BulkInsertProviderDbContainer<TestDbContext> dbContainer)
+    protected BasicTestsBase(TestDbContainer<TestDbContext> dbContainer)
     {
         DbContainer = dbContainer;
     }
 
-    protected BulkInsertProviderDbContainer<TestDbContext> DbContainer { get; }
+    protected TestDbContainer<TestDbContext> DbContainer { get; }
 
     [Fact]
     public async Task InsertsEntitiesSuccessfully()

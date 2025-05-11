@@ -2,9 +2,9 @@
 
 using Microsoft.EntityFrameworkCore;
 
-namespace EntityFrameworkCore.ExecuteInsert.Tests;
+namespace EntityFrameworkCore.ExecuteInsert.Tests.DbContext;
 
-public abstract class BulkDbContext : DbContext
+public abstract class TestDbContextBase : Microsoft.EntityFrameworkCore.DbContext
 {
     public Action<DbContextOptionsBuilder> ConfigureOptions { get; init; } = null!;
 

@@ -6,8 +6,8 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        BenchmarkRunner.Run<BulkInsertVsExecuteInsertPostgreSql>();
-        BenchmarkRunner.Run<BulkInsertVsExecuteInsertSqlServer>();
-        BenchmarkRunner.Run<BulkInsertVsExecuteInsertSqlite>();
+        BenchmarkRunner.Run<LibComparatorPostgreSql>();
+        BenchmarkRunner.Run<LibComparatorSqlServer>();
+        BenchmarkRunner.Run<LibComparatorSqlite>();
     }
 }

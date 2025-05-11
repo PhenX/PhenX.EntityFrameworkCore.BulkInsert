@@ -65,7 +65,7 @@ public abstract class BasicTestsBase : IAsyncLifetime
     }
 
     [Fact]
-    public async Task InsertsEntitiesWithConflictSuccessfully()
+    public async Task InsertsEntitiesWithConflict_SingleColumn()
     {
         DbContainer.DbContext.TestEntities.Add(new TestEntity { Name = "Entity1" });
         await DbContainer.DbContext.SaveChangesAsync();
@@ -102,6 +102,99 @@ public abstract class BasicTestsBase : IAsyncLifetime
     }
 
     [Fact]
+    public async Task InsertsEntitiesWithConflict_DoNothing()
+    {
+        DbContainer.DbContext.TestEntities.Add(new TestEntity { Name = "Entity1" });
+        await DbContainer.DbContext.SaveChangesAsync();
+        DbContainer.DbContext.ChangeTracker.Clear();
+
+        var entities = new List<TestEntity>
+        {
+            new TestEntity { Name = "Entity1" },
+            new TestEntity { Name = "Entity2" },
+        };
+
+        await DbContainer.DbContext.ExecuteInsertAsync(entities, o =>
+        {
+            o.MoveRows = true;
+        }, new OnConflictOptions<TestEntity>
+        {
+            Match = e => new { e.Name }
+            // Pas de Update => DO NOTHING
+        });
+
+        var insertedEntities = DbContainer.DbContext.TestEntities.ToList();
+        Assert.Equal(2, insertedEntities.Count);
+        Assert.Contains(insertedEntities, e => e.Name == "Entity1");
+        Assert.Contains(insertedEntities, e => e.Name == "Entity2");
+    }
+
+    [SkippableFact]
+    public async Task InsertsEntitiesWithConflict_Condition()
+    {
+        Skip.If(DbContainer.DbContext.Database.ProviderName!.Contains("Npgsql", StringComparison.InvariantCultureIgnoreCase));
+
+        DbContainer.DbContext.TestEntities.Add(new TestEntity { Name = "Entity1", Price = 10 });
+        await DbContainer.DbContext.SaveChangesAsync();
+        DbContainer.DbContext.ChangeTracker.Clear();
+
+        var entities = new List<TestEntity>
+        {
+            new TestEntity { Name = "Entity1", Price = 20 },
+            new TestEntity { Name = "Entity2", Price = 30 },
+        };
+
+        await DbContainer.DbContext.ExecuteInsertAsync(entities, o =>
+        {
+            o.MoveRows = true;
+        }, new OnConflictOptions<TestEntity>
+        {
+            Match = e => new { e.Name },
+            Update = e => new TestEntity { Price = e.Price },
+            Condition = "EXCLUDED.Price > TestEntities.Price"
+        });
+
+        var insertedEntities = DbContainer.DbContext.TestEntities.ToList();
+        Assert.Equal(2, insertedEntities.Count);
+        Assert.Contains(insertedEntities, e => e.Name == "Entity1" && e.Price == 20);
+        Assert.Contains(insertedEntities, e => e.Name == "Entity2" && e.Price == 30);
+    }
+
+    [Fact]
+    public async Task InsertsEntitiesWithConflict_MultipleColumns()
+    {
+        DbContainer.DbContext.TestEntities.Add(new TestEntity { Name = "Entity1", Price = 10 });
+        await DbContainer.DbContext.SaveChangesAsync();
+        DbContainer.DbContext.ChangeTracker.Clear();
+
+        var entities = new List<TestEntity>
+        {
+            new TestEntity { Name = "Entity1", Price = 20, Identifier = Guid.NewGuid() },
+            new TestEntity { Name = "Entity2", Price = 30, Identifier = Guid.NewGuid() },
+        };
+
+        await DbContainer.DbContext.ExecuteInsertAsync(entities, o =>
+        {
+            o.MoveRows = true;
+        }, new OnConflictOptions<TestEntity>
+        {
+            Match = e => new { e.Name },
+            Update = e => new TestEntity {
+                Name = e.Name + " - Conflict",
+                Price = 0,
+            }
+        });
+
+        var insertedEntities = DbContainer.DbContext.TestEntities.ToList();
+        Assert.Equal(2, insertedEntities.Count);
+        Assert.Equal(1, insertedEntities.Count(e => e.Name == "Entity1 - Conflict"));
+        Assert.Contains(insertedEntities, e => e.Name == "Entity2");
+
+        var entity1 = insertedEntities.First(e => e.Name == "Entity1 - Conflict");
+        Assert.Equal(0, entity1.Price);
+    }
+
+    [Fact]
     public async Task DoesNothingWhenEntitiesAreEmpty()
     {
         // Arrange
@@ -116,7 +209,7 @@ public abstract class BasicTestsBase : IAsyncLifetime
     }
 
     [Fact]
-    public async Task InsertsThousandsOfEntitiesSuccessfully()
+    public async Task InsertsEntities_Many()
     {
         // Arrange
         const int count = 156055;

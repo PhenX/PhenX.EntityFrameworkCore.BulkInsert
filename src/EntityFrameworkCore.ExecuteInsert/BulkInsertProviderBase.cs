@@ -1,6 +1,4 @@
-using System.Collections;
 using System.Data.Common;
-using System.Reflection;
 
 using EntityFrameworkCore.ExecuteInsert.Abstractions;
 using EntityFrameworkCore.ExecuteInsert.Dialect;
@@ -15,24 +13,12 @@ namespace EntityFrameworkCore.ExecuteInsert;
 public abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
     where TDialect : SqlDialectBuilder, new()
 {
-    protected readonly TDialect SqlDialect;
-
-    protected BulkInsertProviderBase()
-    {
-        SqlDialect = new TDialect();
-    }
+    protected readonly TDialect SqlDialect = new();
 
     protected virtual string BulkInsertId => "_bulk_insert_id";
 
-    private static readonly MethodInfo CastMethod = typeof(Enumerable).GetMethod("Cast")!;
-    private static readonly MethodInfo BulkInsertPkMethod = typeof(BulkInsertProviderBase<TDialect>).GetMethod(nameof(BulkInsertWithPrimaryKeyAsync))!;
-    private static readonly MethodInfo GetChildrenMethod = typeof(BulkInsertProviderBase<TDialect>).GetMethod(nameof(GetChildrenEntities))!;
-
     protected abstract string CreateTableCopySql { get; }
     protected abstract string AddTableCopyBulkInsertId { get; }
-
-    private static readonly MethodInfo GetFieldValueMethod =
-        typeof(DbDataReader).GetMethod(nameof(DbDataReader.GetFieldValue))!;
 
     protected async Task<string> CreateTableCopyAsync<T>(
         DbContext context,
@@ -89,67 +75,6 @@ public abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
             cancellationToken: cancellationToken);
     }
 
-    public async Task<List<KeyValuePair<long, object[]>>> CopyFromTempTablePrimaryKeyAsync<T>(
-        DbContext context,
-        DbConnection connection,
-        string tempTableName,
-        BulkInsertOptions options,
-        CancellationToken cancellationToken = default) where T : class
-    {
-        return await CopyFromTempTableWithKeysAsync<T, object[]>(
-            context,
-            connection,
-            tempTableName,
-            options,
-            cancellationToken: cancellationToken
-        );
-    }
-
-    private async Task<List<KeyValuePair<long, TResult>>> CopyFromTempTableWithKeysAsync<T, TResult>(
-        DbContext context,
-        DbConnection connection,
-        string tempTableName,
-        BulkInsertOptions options,
-        CancellationToken cancellationToken = default
-    )
-        where T : class
-        where TResult : class
-    {
-        var (schemaName, tableName, primaryKey) = GetTableInfo(context, typeof(T));
-        var escapedTableName = EscapeTableName(schemaName, tableName);
-
-        var indexColumn = Escape(BulkInsertId);
-        var returnedColumns = new[] { indexColumn }
-            .Concat(primaryKey.Properties.Select(p => Escape(p.GetColumnName()))).ToArray();
-
-        var query = ""; //BuildInsertSelectQuery(tempTableName, escapedTableName, returnedColumns, returnedColumns, moveRows);
-
-        var result = new List<KeyValuePair<long, TResult>>();
-
-        await using var command = connection.CreateCommand();
-        command.CommandText = query;
-
-        var getFieldValueMethods = primaryKey.Properties
-            .Select(p => GetFieldValueMethod.MakeGenericMethod(p.ClrType))
-            .ToArray();
-
-        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
-        while (await reader.ReadAsync(cancellationToken))
-        {
-            var index = (long)reader.GetValue(0);
-            var values = new object[primaryKey.Properties.Count];
-            for (var i = 0; i < primaryKey.Properties.Count; i++)
-            {
-                values[i] = getFieldValueMethods[i].Invoke(reader, new object[] { i + 1 })!;
-            }
-
-            var entity = Activator.CreateInstance(typeof(TResult), values) as TResult;
-            result.Add(new KeyValuePair<long, TResult>(index, entity!));
-        }
-
-        return result;
-    }
-
     private async Task<List<TResult>> CopyFromTempTableWithoutKeysAsync<T, TResult>(DbContext context,
         DbConnection connection,
         string tempTableName,
@@ -204,27 +129,6 @@ public abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
         return result;
     }
 
-    public async Task<List<KeyValuePair<long, object[]>>> BulkInsertWithPrimaryKeyAsync<T>(
-        DbContext context,
-        IEnumerable<T> entities,
-        BulkInsertOptions options,
-        CancellationToken ctk = default
-    ) where T : class
-    {
-        var (connection, wasClosed) = await context.GetConnection(ctk);
-
-        var (tableName, _) = await PerformBulkInsertAsync(context, entities, options, tempTableRequired: true, ctk: ctk);
-
-        var result = await CopyFromTempTablePrimaryKeyAsync<T>(context, connection, tableName, options, ctk);
-
-        if (wasClosed)
-        {
-            await connection.CloseAsync();
-        }
-
-        return result;
-    }
-
     public async Task BulkInsertWithoutReturnAsync<T>(
         DbContext context,
         IEnumerable<T> entities,
@@ -265,32 +169,7 @@ public abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
 
         var (connection, wasClosed) = await context.GetConnection(ctk);
 
-        if (options.Recursive)
-        {
-            // Insert children first
-            var navigationProperties = context.GetNavigationProperties(typeof(T));
-
-            foreach (var navigationProperty in navigationProperties)
-            {
-                var itemType = navigationProperty.ClrType;
-                var tupleType = typeof(KeyValuePair<,>).MakeGenericType(typeof(long), itemType);
-
-                // Call GetChildrenEntities with reflection because the type is not known at compile time
-                var allChildren = GetChildrenMethod.MakeGenericMethod(typeof(T)).Invoke(this, [entities, navigationProperty]) as IEnumerable<KeyValuePair<long, object>>;
-
-                // Cast the IEnumerable to the correct type
-                var items = new List<KeyValuePair<long, object>>(allChildren);
-                // var itemsCasted = CastMethod.MakeGenericMethod(tupleType).Invoke(null, [items]);
-                // var items = allChildren.Cast<KeyValuePair<long, object>>();
-
-                // Call BulkInsertWithPrimaryKeyAsync to insert elements and get their primary key values
-                var bulkInsert = BulkInsertPkMethod.MakeGenericMethod(tupleType);
-
-                var pkValues = await (bulkInsert.Invoke(this, [context, items, options, ctk]) as Task<List<KeyValuePair<long, object[]>>>)!;
-            }
-        }
-
-        var tableName = tempTableRequired || options.Recursive
+        var tableName = tempTableRequired
             ? await CreateTableCopyAsync<T>(context, connection, ctk)
             : GetEscapedTableName(context, typeof(T));
 
@@ -312,32 +191,6 @@ public abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
 
     protected abstract Task BulkInsert<T>(DbContext context, IEnumerable<T> entities,
         string tableName, PropertyAccessor[] properties, BulkInsertOptions options, CancellationToken ctk) where T : class;
-
-    public IEnumerable<KeyValuePair<long, object>> GetChildrenEntities<T>(IEnumerable<T> entities, INavigation navigationProperty) where T : class
-    {
-        var navProp = navigationProperty.PropertyInfo;
-        var isCollection = navigationProperty.IsCollection;
-        long index = 0;
-
-        foreach (var e in entities)
-        {
-            var value = navProp!.GetValue(e);
-
-            if (isCollection && value is IEnumerable enumerable)
-            {
-                foreach (var childEntity in enumerable)
-                {
-                    yield return new KeyValuePair<long, object>(index, childEntity);
-                }
-            }
-            else if (value != null)
-            {
-                yield return new KeyValuePair<long, object>(index, value);
-            }
-
-            index++;
-        }
-    }
 
     /// <summary>
     /// Escapes a schema and table name using database-specific delimiters.

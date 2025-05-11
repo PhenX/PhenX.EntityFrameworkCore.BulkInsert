@@ -1,5 +1,4 @@
-﻿using System.Collections.Concurrent;
-using System.Data;
+﻿using System.Data;
 using System.Data.Common;
 
 using Microsoft.EntityFrameworkCore;
@@ -9,9 +8,6 @@ namespace EntityFrameworkCore.ExecuteInsert.Extensions;
 
 public static class DbContextExtensions
 {
-    // Reflection cache to store property metadata for each entity type
-    private static readonly ConcurrentDictionary<Type, IProperty[]?> PropertyCache = new();
-
     /// <summary>
     /// Gets cached properties for an entity type, using reflection if not already cached.
     /// </summary>
@@ -22,34 +18,6 @@ public static class DbContextExtensions
         return entityTypeInfo
             .GetProperties()
             .Where(p => !p.IsShadowProperty() && (includeGenerated || p.ValueGenerated != ValueGenerated.OnAdd))
-            .ToArray();
-    }
-
-    public static INavigation[] GetCollectionNavigationProperties(this DbContext context, Type getType)
-    {
-        var entityType = context.Model.FindEntityType(getType);
-        if (entityType == null)
-        {
-            throw new InvalidOperationException($"Could not determine entity type for type {getType.Name}");
-        }
-
-        return entityType
-            .GetNavigations()
-            .Where(n => n.IsCollection)
-            .ToArray();
-    }
-
-    public static INavigation[] GetNavigationProperties(this DbContext context, Type getType)
-    {
-        var entityType = context.Model.FindEntityType(getType);
-        if (entityType == null)
-        {
-            throw new InvalidOperationException($"Could not determine entity type for type {getType.Name}");
-        }
-
-        return entityType
-            .GetNavigations()
-            .Where(n => !n.IsCollection)
             .ToArray();
     }
 

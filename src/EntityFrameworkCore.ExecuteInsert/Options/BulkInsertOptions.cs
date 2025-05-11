@@ -3,12 +3,6 @@
 public class BulkInsertOptions
 {
     /// <summary>
-    /// Insert entities recursively.
-    /// </summary>
-    [Obsolete("Not supported yet.")]
-    public bool Recursive { get; set; }
-
-    /// <summary>
     /// Move rows between tables instead of inserting them.
     /// Only supported for PostgreSQL.
     /// </summary>

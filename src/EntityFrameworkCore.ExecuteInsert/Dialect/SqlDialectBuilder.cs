@@ -204,7 +204,7 @@ public abstract class SqlDialectBuilder
     }
 
     /// <summary>
-    /// Converts an expression to a SQL string.
+    /// Converts an expression to an SQL string.
     /// </summary>
     /// <param name="context">The DbContext</param>
     /// <param name="expr">The expression, with simple operations</param>

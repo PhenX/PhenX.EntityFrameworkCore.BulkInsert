@@ -133,7 +133,6 @@ public abstract class BasicTestsBase : IAsyncLifetime
         // Act
         await DbContainer.DbContext.ExecuteInsertAsync(entities, o =>
         {
-            o.Recursive = false;
             o.MoveRows = false;
         });
 

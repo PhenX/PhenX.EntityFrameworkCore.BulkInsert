@@ -1,0 +1,72 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PhenX.EntityFrameworkCore.BulkInsert", "src\PhenX.EntityFrameworkCore.BulkInsert\PhenX.EntityFrameworkCore.BulkInsert.csproj", "{56CA0AE2-6EAB-4394-9E06-132558551251}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PhenX.EntityFrameworkCore.BulkInsert.PostgreSql", "src\PhenX.EntityFrameworkCore.BulkInsert.PostgreSql\PhenX.EntityFrameworkCore.BulkInsert.PostgreSql.csproj", "{F37308A8-1C3C-44D2-9440-670DF76A8C31}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PhenX.EntityFrameworkCore.BulkInsert.SqlServer", "src\PhenX.EntityFrameworkCore.BulkInsert.SqlServer\PhenX.EntityFrameworkCore.BulkInsert.SqlServer.csproj", "{8098F37B-FA5E-4BDB-B64A-00FBDE2001C9}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{CBEBA2A8-79E0-412E-93C1-C88F4473D78B}"
+	ProjectSection(SolutionItems) = preProject
+		src\Directory.Build.props = src\Directory.Build.props
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{F8A83782-311C-454D-8B97-B3FB86478BF4}"
+	ProjectSection(SolutionItems) = preProject
+		tests\Directory.Build.props = tests\Directory.Build.props
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PhenX.EntityFrameworkCore.BulkInsert.Tests", "tests\PhenX.EntityFrameworkCore.BulkInsert.Tests\PhenX.EntityFrameworkCore.BulkInsert.Tests.csproj", "{EDCCED5F-D456-45E2-81A6-1077977F042B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PhenX.EntityFrameworkCore.BulkInsert.Benchmark", "tests\PhenX.EntityFrameworkCore.BulkInsert.Benchmark\PhenX.EntityFrameworkCore.BulkInsert.Benchmark.csproj", "{E4EB1C53-575C-45F8-924A-93DC42E8ACCA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PhenX.EntityFrameworkCore.BulkInsert.Sqlite", "src\PhenX.EntityFrameworkCore.BulkInsert.Sqlite\PhenX.EntityFrameworkCore.BulkInsert.Sqlite.csproj", "{450E859C-411F-4D67-A0B4-4E02C3D30E14}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "root", "root", "{45366E91-4386-4DAC-9D09-226902EA6D9F}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+		.gitignore = .gitignore
+		LICENSE = LICENSE
+		README.md = README.md
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{56CA0AE2-6EAB-4394-9E06-132558551251}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{56CA0AE2-6EAB-4394-9E06-132558551251}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{56CA0AE2-6EAB-4394-9E06-132558551251}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{56CA0AE2-6EAB-4394-9E06-132558551251}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F37308A8-1C3C-44D2-9440-670DF76A8C31}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F37308A8-1C3C-44D2-9440-670DF76A8C31}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F37308A8-1C3C-44D2-9440-670DF76A8C31}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F37308A8-1C3C-44D2-9440-670DF76A8C31}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8098F37B-FA5E-4BDB-B64A-00FBDE2001C9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8098F37B-FA5E-4BDB-B64A-00FBDE2001C9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8098F37B-FA5E-4BDB-B64A-00FBDE2001C9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8098F37B-FA5E-4BDB-B64A-00FBDE2001C9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EDCCED5F-D456-45E2-81A6-1077977F042B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EDCCED5F-D456-45E2-81A6-1077977F042B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EDCCED5F-D456-45E2-81A6-1077977F042B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EDCCED5F-D456-45E2-81A6-1077977F042B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E4EB1C53-575C-45F8-924A-93DC42E8ACCA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E4EB1C53-575C-45F8-924A-93DC42E8ACCA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E4EB1C53-575C-45F8-924A-93DC42E8ACCA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E4EB1C53-575C-45F8-924A-93DC42E8ACCA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{450E859C-411F-4D67-A0B4-4E02C3D30E14}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{450E859C-411F-4D67-A0B4-4E02C3D30E14}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{450E859C-411F-4D67-A0B4-4E02C3D30E14}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{450E859C-411F-4D67-A0B4-4E02C3D30E14}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{56CA0AE2-6EAB-4394-9E06-132558551251} = {CBEBA2A8-79E0-412E-93C1-C88F4473D78B}
+		{F37308A8-1C3C-44D2-9440-670DF76A8C31} = {CBEBA2A8-79E0-412E-93C1-C88F4473D78B}
+		{8098F37B-FA5E-4BDB-B64A-00FBDE2001C9} = {CBEBA2A8-79E0-412E-93C1-C88F4473D78B}
+		{EDCCED5F-D456-45E2-81A6-1077977F042B} = {F8A83782-311C-454D-8B97-B3FB86478BF4}
+		{E4EB1C53-575C-45F8-924A-93DC42E8ACCA} = {F8A83782-311C-454D-8B97-B3FB86478BF4}
+		{450E859C-411F-4D67-A0B4-4E02C3D30E14} = {CBEBA2A8-79E0-412E-93C1-C88F4473D78B}
+	EndGlobalSection
+EndGlobal

@@ -1,12 +1,17 @@
-# EntityFrameworkCore.ExecuteInsert
+# PhenX.EntityFrameworkCore.BulkInsert
 
 A high-performance, provider-agnostic bulk insert extension for Entity Framework Core. Supports SQL Server, PostgreSQL, SQLite.
 
-## Features
-- Very fast bulk insert support for multiple database providers
-- Supports SQL Server, PostgreSQL, and SQLite
-- Simple and intuitive API
-- Benchmarking and test projects included
+Its main purpose is to provide a fast way to perform simple bulk inserts in Entity Framework Core applications.
+
+## Why this library?
+
+- **Performance**: It is designed to be fast and efficient, making it suitable for high-performance applications.
+- **Provider-agnostic**: It works with multiple database providers (SQL Server, PostgreSQL, and SQLite), allowing you to use it in different environments without changing your code.
+- **Simplicity**: The API is simple and easy to use, making it accessible for developers of all skill levels.
+
+For now, it does not support navigation properties, complex types, owned types, shadow properties, or inheritance,
+but they are in [the roadmap](#roadmap).
 
 ## Installation
 
@@ -14,13 +19,13 @@ Install the NuGet package for your database provider:
 
 ```shell
 # For SQL Server
-Install-Package EntityFrameworkCore.ExecuteInsert.SqlServer
+Install-Package PhenX.EntityFrameworkCore.BulkInsert.SqlServer
 
 # For PostgreSQL
-Install-Package EntityFrameworkCore.ExecuteInsert.PostgreSql
+Install-Package PhenX.EntityFrameworkCore.BulkInsert.PostgreSql
 
 # For SQLite
-Install-Package EntityFrameworkCore.ExecuteInsert.Sqlite
+Install-Package PhenX.EntityFrameworkCore.BulkInsert.Sqlite
 ```
 
 ## Usage
@@ -31,7 +36,7 @@ Install-Package EntityFrameworkCore.ExecuteInsert.Sqlite
 services.AddDbContext<MyDbContext>(options =>
 {
     options
-        .UseSqlServer(connectionString) // or UseNpgsql or UseSqlite, as appropriate
+        // .UseSqlServer(connectionString) // or UseNpgsql or UseSqlite, as appropriate
         .UseBulkInsert(); // <<< The important part
 });
 ```
@@ -59,8 +64,8 @@ await dbContext.ExecuteInsertWithIdentityAsync(entities, options => {});
 
 ## Roadmap
 
-- [ ] [Add support for navigation properties](https://github.com/PhenX/EntityFrameworkCore.ExecuteInsert/issues/2)
-- [ ] [Add support for complex types](https://github.com/PhenX/EntityFrameworkCore.ExecuteInsert/issues/3)
+- [ ] [Add support for navigation properties](https://github.com/PhenX/PhenX.EntityFrameworkCore.BulkInsert/issues/2)
+- [ ] [Add support for complex types](https://github.com/PhenX/PhenX.EntityFrameworkCore.BulkInsert/issues/3)
 - [ ] Add support for owned types
 - [ ] Add support for shadow properties
 - [ ] Add support for TPT (Table Per Type) inheritance
@@ -68,7 +73,7 @@ await dbContext.ExecuteInsertWithIdentityAsync(entities, options => {});
 - [ ] Add support for TPH (Table Per Hierarchy) inheritance
 
 ## Benchmarks
-Benchmark projects are available in the [`tests/EntityFrameworkCore.ExecuteInsert.Benchmark`](tests/EntityFrameworkCore.ExecuteInsert.Benchmark/LibComparator.cs) directory.
+Benchmark projects are available in the [`tests/PhenX.EntityFrameworkCore.BulkInsert.Benchmark`](tests/PhenX.EntityFrameworkCore.BulkInsert.Benchmark/LibComparator.cs) directory.
 Run them to compare performance with other libraries (https://github.com/videokojot/EFCore.BulkExtensions.MIT and https://entityframework-extensions.net/bulk-extensions),
 using optimized configuration (local Docker is required).
 

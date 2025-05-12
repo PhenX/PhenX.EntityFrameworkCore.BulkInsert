@@ -236,6 +236,27 @@ public abstract class BasicTestsBase : IAsyncLifetime
         Assert.Contains(insertedEntities, e => e.Name == "Entity" + count);
     }
 
+    [Fact]
+    public async Task InsertAndRead_EntityWithValueConverters()
+    {
+        // Arrange
+        var now = DateTime.UtcNow;
+        var entities = new List<TestEntityWithConverters>
+        {
+            new() { Name = "Entity1", CreatedAt = now },
+            new() { Name = "Entity2", CreatedAt = now.AddDays(-1) }
+        };
+
+        // Act
+        await DbContainer.DbContext.ExecuteInsertAsync(entities);
+        var inserted = DbContainer.DbContext.TestEntitiesWithConverters.ToList();
+
+        // Assert
+        Assert.Equal(2, inserted.Count);
+        Assert.Contains(inserted, e => e.Name == "Entity1" && e.CreatedAt == now);
+        Assert.Contains(inserted, e => e.Name == "Entity2" && e.CreatedAt == now.AddDays(-1));
+    }
+
     public Task InitializeAsync() => DbContainer.InitializeAsync();
 
     public Task DisposeAsync() => DbContainer.DisposeAsync();

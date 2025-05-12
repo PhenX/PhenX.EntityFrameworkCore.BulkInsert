@@ -5,9 +5,49 @@
         <LanguageVersion>12</LanguageVersion>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <NeutralLanguage>en</NeutralLanguage>
+        <EnableNETAnalyzers>true</EnableNETAnalyzers>
+<!--        <AnalysisMode>AllEnabledByDefault</AnalysisMode>-->
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <Authors>Fabien Ménager</Authors>
+        <Description>Super fast bulk insertion for Entity Framework Core on SQL Server, PostgreSQL and SQLite</Description>
+        <Copyright>Fabien Ménager © 2025</Copyright>
+        <PackageProjectUrl>https://github.com/PhenX/PhenX.EntityFrameworkCore.BulkInsert</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/PhenX/PhenX.EntityFrameworkCore.BulkInsert</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageTags>sql sqlite postgresql entity-framework sqlbulkcopy efcore entity-framework-core sqlserver bulk-insert</PackageTags>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageVersion>0.1.0</PackageVersion>
+        <PackageIcon>icon.png</PackageIcon>
+        <PackageReleaseNotes>https://github.com/PhenX/PhenX.EntityFrameworkCore.BulkInsert/releases</PackageReleaseNotes>
     </PropertyGroup>
 
     <ItemGroup>
+        <None Include="$(MSBuildThisFileDirectory)..\README.md" Pack="true" PackagePath="\" />
+        <None Include="$(MSBuildThisFileDirectory)..\images\icon.png" Pack="true" PackagePath="\" />
+    </ItemGroup>
+
+    <PropertyGroup Label="Build">
+<!--        <GenerateDocumentationFile>true</GenerateDocumentationFile>-->
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    </PropertyGroup>
+
+    <PropertyGroup Label="Source Link">
+        <PublishRepositoryUrl>true</PublishRepositoryUrl>
+        <EmbedUntrackedSources>true</EmbedUntrackedSources>
+        <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
+        <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+    </PropertyGroup>
+
+    <ItemGroup Label="Package References">
+        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All"/>
         <PackageReference Include="JetBrains.Annotations" Version="2024.3.0" />
     </ItemGroup>
 

@@ -8,7 +8,7 @@ using PhenX.EntityFrameworkCore.BulkInsert.Options;
 namespace PhenX.EntityFrameworkCore.BulkInsert.SqlServer;
 
 [UsedImplicitly]
-public class SqlServerBulkInsertProvider : BulkInsertProviderBase<SqlServerDialectBuilder>
+internal class SqlServerBulkInsertProvider : BulkInsertProviderBase<SqlServerDialectBuilder>
 {
     //language=sql
     protected override string CreateTableCopySql => "SELECT {2} INTO {0} FROM {1} WHERE 1 = 0;";

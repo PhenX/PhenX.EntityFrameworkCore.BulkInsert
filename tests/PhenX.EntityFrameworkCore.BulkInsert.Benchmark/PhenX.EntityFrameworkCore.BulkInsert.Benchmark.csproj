@@ -12,13 +12,13 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
-    <PackageReference Include="EFCore.BulkExtensions.MIT" Version="8.19.0"/>
-    <PackageReference Include="Z.EntityFramework.Extensions.EFCore" Version="8.103.8.1"/>
+    <PackageReference Include="EFCore.BulkExtensions" Version="8.*"/>
+    <PackageReference Include="Z.EntityFramework.Extensions.EFCore" Version="8.*"/>
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
-    <PackageReference Include="EFCore.BulkExtensions.MIT" Version="8.19.0"/>
-    <PackageReference Include="Z.EntityFramework.Extensions.EFCore" Version="9.103.8.1"/>
+    <PackageReference Include="EFCore.BulkExtensions" Version="9.*"/>
+    <PackageReference Include="Z.EntityFramework.Extensions.EFCore" Version="9.*"/>
   </ItemGroup>
 
   <ItemGroup>

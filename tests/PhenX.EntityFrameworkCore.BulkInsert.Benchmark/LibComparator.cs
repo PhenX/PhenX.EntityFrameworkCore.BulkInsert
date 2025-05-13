@@ -16,8 +16,8 @@ public abstract class LibComparator
     private IList<TestEntity> data = [];
     protected TestDbContext DbContext;
 
-    [GlobalSetup]
-    public void GlobalSetup()
+    [IterationSetup]
+    public void IterationSetup()
     {
         data = Enumerable.Range(1, N).Select(i => new TestEntity
         {
@@ -27,16 +27,15 @@ public abstract class LibComparator
             StringEnumValue = (StringEnum)(i % 2),
             NumericEnumValue = (NumericEnum)(i % 2),
         }).ToList();
+
+        ConfigureDbContext();
+        DbContext.Database.EnsureCreated();
     }
 
     protected LibComparator()
     {
         DbContainer = GetDbContainer();
         DbContainer?.StartAsync().GetAwaiter().GetResult();
-
-        ConfigureDbContext();
-
-        DbContext!.Database.EnsureCreated();
     }
 
     protected abstract void ConfigureDbContext();
@@ -75,7 +74,7 @@ public abstract class LibComparator
     }
 
     [Benchmark]
-    public async Task EFCore_BulkExtensions_MIT()
+    public async Task EFCore_BulkExtensions()
     {
         await DbContext.BulkInsertAsync(data, options =>
         {
@@ -84,11 +83,10 @@ public abstract class LibComparator
         });
     }
 
-    [Benchmark]
-    public async Task EFCore_SaveChanges()
-    {
-        DbContext.ChangeTracker.Clear();
-        DbContext.AddRange(data);
-        await DbContext.SaveChangesAsync();
-    }
+    // [Benchmark]
+    // public async Task EFCore_SaveChanges()
+    // {
+    //     DbContext.AddRange(data);
+    //     await DbContext.SaveChangesAsync();
+    // }
 }

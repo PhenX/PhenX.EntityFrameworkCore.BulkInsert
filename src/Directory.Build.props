@@ -8,7 +8,7 @@
         <NeutralLanguage>en</NeutralLanguage>
         <EnableNETAnalyzers>true</EnableNETAnalyzers>
 <!--        <AnalysisMode>AllEnabledByDefault</AnalysisMode>-->
-        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+        <TreatWarningsAsErrors Condition="$(Configuration) != 'Debug'">true</TreatWarningsAsErrors>
     </PropertyGroup>
 
     <PropertyGroup>
@@ -32,7 +32,7 @@
     </ItemGroup>
 
     <PropertyGroup Label="Build">
-<!--        <GenerateDocumentationFile>true</GenerateDocumentationFile>-->
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     </PropertyGroup>
 

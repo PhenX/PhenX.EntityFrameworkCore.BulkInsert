@@ -2,7 +2,7 @@
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.PostgreSql;
 
-public class PostgreSqlDialectBuilder : SqlDialectBuilder
+internal class PostgreSqlDialectBuilder : SqlDialectBuilder
 {
     protected override string OpenDelimiter => "\"";
     protected override string CloseDelimiter => "\"";

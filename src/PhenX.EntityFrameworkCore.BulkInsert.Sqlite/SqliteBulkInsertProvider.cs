@@ -11,7 +11,7 @@ using PhenX.EntityFrameworkCore.BulkInsert.Options;
 namespace PhenX.EntityFrameworkCore.BulkInsert.Sqlite;
 
 [UsedImplicitly]
-public class SqliteBulkInsertProvider : BulkInsertProviderBase<SqliteDialectBuilder>
+internal class SqliteBulkInsertProvider : BulkInsertProviderBase<SqliteDialectBuilder>
 {
     protected override string BulkInsertId => "rowid";
 

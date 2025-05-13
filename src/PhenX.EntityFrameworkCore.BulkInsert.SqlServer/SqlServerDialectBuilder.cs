@@ -9,7 +9,7 @@ using PhenX.EntityFrameworkCore.BulkInsert.Options;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.SqlServer;
 
-public class SqlServerDialectBuilder : SqlDialectBuilder
+internal class SqlServerDialectBuilder : SqlDialectBuilder
 {
     protected override string OpenDelimiter => "[";
     protected override string CloseDelimiter => "]";

@@ -74,7 +74,7 @@ await dbContext.ExecuteInsertWithIdentityAsync(entities, options => {});
 
 ## Benchmarks
 Benchmark projects are available in the [`tests/PhenX.EntityFrameworkCore.BulkInsert.Benchmark`](tests/PhenX.EntityFrameworkCore.BulkInsert.Benchmark/LibComparator.cs) directory.
-Run them to compare performance with other libraries (https://github.com/videokojot/EFCore.BulkExtensions.MIT and https://entityframework-extensions.net/bulk-extensions),
+Run them to compare performance with other libraries (https://github.com/borisdj/EFCore.BulkExtensions and https://entityframework-extensions.net/bulk-extensions),
 using optimized configuration (local Docker is required).
 
 There is no need to compare with basic EF Core SaveChangesAsync, as it is significantly slower.

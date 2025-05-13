@@ -2,6 +2,9 @@
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Options;
 
+/// <summary>
+/// Conflict options for bulk insert.
+/// </summary>
 public abstract class OnConflictOptions
 {
     /// <summary>
@@ -10,6 +13,10 @@ public abstract class OnConflictOptions
     public string? Condition {get; set; }
 }
 
+/// <summary>
+/// Conflict options for bulk insert, for a specific entity type.
+/// </summary>
+/// <typeparam name="T"></typeparam>
 public class OnConflictOptions<T> : OnConflictOptions
 {
     /// <summary>

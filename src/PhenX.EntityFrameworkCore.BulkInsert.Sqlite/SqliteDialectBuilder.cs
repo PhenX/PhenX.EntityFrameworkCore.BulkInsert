@@ -2,7 +2,7 @@
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Sqlite;
 
-public class SqliteDialectBuilder : SqlDialectBuilder
+internal class SqliteDialectBuilder : SqlDialectBuilder
 {
     protected override string OpenDelimiter => "\"";
     protected override string CloseDelimiter => "\"";

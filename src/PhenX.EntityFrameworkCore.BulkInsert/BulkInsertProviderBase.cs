@@ -10,7 +10,7 @@ using PhenX.EntityFrameworkCore.BulkInsert.Options;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert;
 
-public abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
+internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
     where TDialect : SqlDialectBuilder, new()
 {
     protected readonly TDialect SqlDialect = new();

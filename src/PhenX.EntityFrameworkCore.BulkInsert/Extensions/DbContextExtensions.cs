@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Extensions;
 
-public static class DbContextExtensions
+internal static class DbContextExtensions
 {
     /// <summary>
     /// Gets cached properties for an entity type, using reflection if not already cached.

@@ -2,7 +2,7 @@
 
 namespace PhenX.EntityFrameworkCore.BulkInsert;
 
-public class EnumerableDataReader<T> : IDataReader
+internal class EnumerableDataReader<T> : IDataReader
 {
     private readonly IEnumerator<T> _enumerator;
     private readonly PropertyAccessor[] _properties;

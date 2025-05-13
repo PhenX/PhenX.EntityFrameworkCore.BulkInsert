@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert;
 
-public readonly struct PropertyAccessor
+internal readonly struct PropertyAccessor
 {
     private Func<object, object?> ValueGetter { get; }
 

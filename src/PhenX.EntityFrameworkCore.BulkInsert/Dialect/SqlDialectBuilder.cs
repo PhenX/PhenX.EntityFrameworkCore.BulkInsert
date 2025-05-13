@@ -8,7 +8,7 @@ using PhenX.EntityFrameworkCore.BulkInsert.Options;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Dialect;
 
-public abstract class SqlDialectBuilder
+internal abstract class SqlDialectBuilder
 {
     protected abstract string OpenDelimiter { get; }
     protected abstract string CloseDelimiter { get; }

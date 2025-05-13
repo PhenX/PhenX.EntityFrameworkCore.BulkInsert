@@ -4,8 +4,14 @@ using PhenX.EntityFrameworkCore.BulkInsert.Options;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Abstractions;
 
-public interface IBulkInsertProvider
+/// <summary>
+/// Internal bulk insert provider interface.
+/// </summary>
+internal interface IBulkInsertProvider
 {
+    /// <summary>
+    /// Calls the provider to perform a bulk insert operation.
+    /// </summary>
     internal Task<List<T>> BulkInsertWithIdentityAsync<T>(
         DbContext context,
         IEnumerable<T> entities,
@@ -14,6 +20,9 @@ public interface IBulkInsertProvider
         CancellationToken ctk = default
     ) where T : class;
 
+    /// <summary>
+    /// Calls the provider to perform a bulk insert operation without returning the inserted entities.
+    /// </summary>
     internal Task BulkInsertWithoutReturnAsync<T>(
         DbContext context,
         IEnumerable<T> entities,

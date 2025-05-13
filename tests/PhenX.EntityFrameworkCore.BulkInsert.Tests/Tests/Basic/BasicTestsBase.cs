@@ -32,7 +32,7 @@ public abstract class BasicTestsBase : IAsyncLifetime
         };
 
         // Act
-        await DbContainer.DbContext.ExecuteInsertWithIdentityAsync(entities);
+        await DbContainer.DbContext.ExecuteInsertReturnEntitiesAsync(entities);
 
         // Assert
         var insertedEntities = DbContainer.DbContext.TestEntities.ToList();
@@ -52,7 +52,7 @@ public abstract class BasicTestsBase : IAsyncLifetime
         };
 
         // Act
-        await DbContainer.DbContext.ExecuteInsertWithIdentityAsync(entities, o =>
+        await DbContainer.DbContext.ExecuteInsertReturnEntitiesAsync(entities, o =>
         {
             o.MoveRows = true;
         });

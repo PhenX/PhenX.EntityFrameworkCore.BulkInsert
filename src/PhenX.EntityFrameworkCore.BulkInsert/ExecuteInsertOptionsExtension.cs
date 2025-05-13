@@ -5,7 +5,7 @@ using PhenX.EntityFrameworkCore.BulkInsert.Abstractions;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert;
 
-public class ExecuteInsertOptionsExtension<TProvider> : IDbContextOptionsExtension
+internal class ExecuteInsertOptionsExtension<TProvider> : IDbContextOptionsExtension
     where TProvider : class, IBulkInsertProvider
 {
     public DbContextOptionsExtensionInfo Info

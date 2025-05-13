@@ -2,6 +2,7 @@ using System.Data.Common;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Storage;
 
 using PhenX.EntityFrameworkCore.BulkInsert.Abstractions;
 using PhenX.EntityFrameworkCore.BulkInsert.Dialect;
@@ -31,27 +32,28 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
 
         var keptColumns = string.Join(", ", GetQuotedColumns(context, typeof(T), false));
         var query = string.Format(CreateTableCopySql, tempTableName, tableName, keptColumns);
-        await ExecuteAsync(connection, query, cancellationToken);
+        await ExecuteAsync(context, query, cancellationToken);
 
-        await AddBulkInsertIdColumn<T>(connection, cancellationToken, tempTableName);
+        await AddBulkInsertIdColumn<T>(context, cancellationToken, tempTableName);
 
         return tempTableName;
     }
 
-    protected virtual async Task AddBulkInsertIdColumn<T>(DbConnection connection, CancellationToken cancellationToken,
+    protected virtual async Task AddBulkInsertIdColumn<T>(DbContext context, CancellationToken cancellationToken,
         string tempTableName) where T : class
     {
         var alterQuery = string.Format(AddTableCopyBulkInsertId, tempTableName);
-        await ExecuteAsync(connection, alterQuery, cancellationToken);
+        await ExecuteAsync(context, alterQuery, cancellationToken);
     }
 
     protected virtual string GetTempTableName(string tableName) => $"_temp_bulk_insert_{tableName}";
 
     protected string Quote(string name) => SqlDialect.Quote(name);
 
-    protected static async Task ExecuteAsync(DbConnection connection, string query, CancellationToken cancellationToken = default)
+    protected static async Task ExecuteAsync(DbContext context, string query, CancellationToken cancellationToken = default)
     {
-        var command = connection.CreateCommand();
+        var command = context.Database.GetDbConnection().CreateCommand();
+        command.Transaction = context.Database.CurrentTransaction!.GetDbTransaction();
         command.CommandText = query;
 
         await command.ExecuteNonQueryAsync(cancellationToken);
@@ -103,7 +105,7 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
         }
 
         // If not returning data, just execute the command
-        await ExecuteAsync(connection, query, cancellationToken);
+        await ExecuteAsync(context, query, cancellationToken);
         return [];
     }
 
@@ -115,11 +117,16 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
         CancellationToken ctk = default
     ) where T : class
     {
-        var (connection, wasClosed) = await context.GetConnection(ctk);
+        var (connection, wasClosed, transaction, wasBegan) = await context.GetConnection(ctk);
 
         var (tableName, _) = await PerformBulkInsertAsync(context, entities, options, tempTableRequired: true, ctk: ctk);
 
         var result = await CopyFromTempTableAsync<T>(context, connection, tableName, true, options, onConflict, cancellationToken: ctk);
+
+        if (!wasBegan)
+        {
+            await transaction.CommitAsync(ctk);
+        }
 
         if (wasClosed)
         {
@@ -139,11 +146,16 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
     {
         if (onConflict != null)
         {
-            var (connection, wasClosed) = await context.GetConnection(ctk);
+            var (connection, wasClosed, transaction, wasBegan) = await context.GetConnection(ctk);
 
             var (tableName, _) = await PerformBulkInsertAsync(context, entities, options, tempTableRequired: true, ctk: ctk);
 
             await CopyFromTempTableAsync<T>(context, connection, tableName, false, options, onConflict, ctk);
+
+            if (!wasBegan)
+            {
+                await transaction.CommitAsync(ctk);
+            }
 
             if (wasClosed)
             {
@@ -156,7 +168,8 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
         }
     }
 
-    private async Task<(string TableName, DbConnection Connection)> PerformBulkInsertAsync<T>(DbContext context,
+    private async Task<(string TableName, DbConnection Connection)> PerformBulkInsertAsync<T>(
+        DbContext context,
         IEnumerable<T> entities,
         BulkInsertOptions options,
         bool tempTableRequired,
@@ -167,7 +180,7 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
             throw new InvalidOperationException("No entities to insert.");
         }
 
-        var (connection, wasClosed) = await context.GetConnection(ctk);
+        var (connection, wasClosed, transaction, wasBegan) = await context.GetConnection(ctk);
 
         var tableName = tempTableRequired
             ? await CreateTableCopyAsync<T>(context, connection, ctk)
@@ -180,6 +193,11 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
 
         await BulkInsert(context, entities, tableName, properties, options, ctk);
 
+        if (!wasBegan)
+        {
+            await transaction.CommitAsync(ctk);
+        }
+
         if (wasClosed)
         {
             await connection.CloseAsync();
@@ -188,8 +206,17 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
         return (tableName, connection);
     }
 
-    protected abstract Task BulkInsert<T>(DbContext context, IEnumerable<T> entities,
-        string tableName, PropertyAccessor[] properties, BulkInsertOptions options, CancellationToken ctk) where T : class;
+    /// <summary>
+    /// The main bulk insert method: will insert either in a temp table or directly in the target table.
+    /// </summary>
+    protected abstract Task BulkInsert<T>(
+        DbContext context,
+        IEnumerable<T> entities,
+        string tableName,
+        PropertyAccessor[] properties,
+        BulkInsertOptions options,
+        CancellationToken ctk
+    ) where T : class;
 
     /// <summary>
     /// Get table information for the given entity type : schema name, table name and primary key.

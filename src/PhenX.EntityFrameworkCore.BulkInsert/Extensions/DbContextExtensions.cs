@@ -3,6 +3,7 @@ using System.Data.Common;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Extensions;
 
@@ -11,7 +12,7 @@ internal static class DbContextExtensions
     /// <summary>
     /// Gets cached properties for an entity type, using reflection if not already cached.
     /// </summary>
-    public static IProperty[] GetProperties(this DbContext context, Type entityType, bool includeGenerated = true)
+    internal static IProperty[] GetProperties(this DbContext context, Type entityType, bool includeGenerated = true)
     {
         var entityTypeInfo = context.Model.FindEntityType(entityType) ?? throw new InvalidOperationException($"Could not determine entity type for type {entityType.Name}");
 
@@ -21,7 +22,7 @@ internal static class DbContextExtensions
             .ToArray();
     }
 
-    public static async Task<(DbConnection connection, bool wasClosed)> GetConnection(this DbContext context, CancellationToken ctk = default)
+    internal static async Task<(DbConnection connection, bool wasClosed, IDbContextTransaction transaction, bool wasBegan)> GetConnection(this DbContext context, CancellationToken ctk = default)
     {
         var connection = context.Database.GetDbConnection();
         var wasClosed = connection.State == ConnectionState.Closed;
@@ -31,6 +32,15 @@ internal static class DbContextExtensions
             await connection.OpenAsync(ctk);
         }
 
-        return (connection, wasClosed);
+        var wasBegan = true;
+        var transaction = context.Database.CurrentTransaction;
+
+        if (transaction == null)
+        {
+            wasBegan = false;
+            transaction = await context.Database.BeginTransactionAsync(ctk);
+        }
+
+        return (connection, wasClosed, transaction, wasBegan);
     }
 }

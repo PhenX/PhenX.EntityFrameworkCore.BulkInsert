@@ -13,15 +13,19 @@ namespace PhenX.EntityFrameworkCore.BulkInsert.Sqlite;
 [UsedImplicitly]
 internal class SqliteBulkInsertProvider : BulkInsertProviderBase<SqliteDialectBuilder>
 {
+    /// <inheritdoc />
     protected override string BulkInsertId => "rowid";
 
     //language=sql
+    /// <inheritdoc />
     protected override string CreateTableCopySql => "CREATE TEMP TABLE {0} AS SELECT * FROM {1} WHERE 0;";
 
     //language=sql
+    /// <inheritdoc />
     protected override string AddTableCopyBulkInsertId => "--"; // No need to add an ID column in SQLite
 
-    protected override Task AddBulkInsertIdColumn<T>(DbConnection connection, CancellationToken cancellationToken,
+    /// <inheritdoc />
+    protected override Task AddBulkInsertIdColumn<T>(DbContext context, CancellationToken cancellationToken,
         string tempTableName) where T : class
     {
         return Task.CompletedTask;
@@ -111,13 +115,10 @@ internal class SqliteBulkInsertProvider : BulkInsertProviderBase<SqliteDialectBu
         return cmd;
     }
 
+    /// <inheritdoc />
     protected override async Task BulkInsert<T>(DbContext context, IEnumerable<T> entities,
         string tableName, PropertyAccessor[] properties, BulkInsertOptions options, CancellationToken ctk) where T : class
     {
-        var connection = context.Database.GetDbConnection();
-
-        await using var transaction = await connection.BeginTransactionAsync(ctk);
-
         const int maxParams = 1000;
         var batchSize = options.BatchSize ?? 5;
         batchSize = Math.Min(batchSize, maxParams / properties.Length);
@@ -142,8 +143,6 @@ internal class SqliteBulkInsertProvider : BulkInsertProviderBase<SqliteDialectBu
                 await partialInsertCommand.ExecuteNonQueryAsync(ctk);
             }
         }
-
-        await transaction.CommitAsync(ctk);
     }
 
     private static void FillValues<T>(T[] chunk, DbParameterCollection parameters, PropertyAccessor[] properties) where T : class

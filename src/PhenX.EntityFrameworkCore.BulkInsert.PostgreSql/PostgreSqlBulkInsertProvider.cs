@@ -12,9 +12,11 @@ namespace PhenX.EntityFrameworkCore.BulkInsert.PostgreSql;
 internal class PostgreSqlBulkInsertProvider : BulkInsertProviderBase<PostgreSqlDialectBuilder>
 {
     //language=sql
+    /// <inheritdoc />
     protected override string CreateTableCopySql => "CREATE TEMPORARY TABLE {0} AS TABLE {1} WITH NO DATA;";
 
     //language=sql
+    /// <inheritdoc />
     protected override string AddTableCopyBulkInsertId => $"ALTER TABLE {{0}} ADD COLUMN {BulkInsertId} SERIAL PRIMARY KEY;";
 
     private string GetBinaryImportCommand(DbContext context, Type entityType, string tableName)
@@ -24,6 +26,7 @@ internal class PostgreSqlBulkInsertProvider : BulkInsertProviderBase<PostgreSqlD
         return $"COPY {tableName} ({string.Join(", ", columns)}) FROM STDIN (FORMAT BINARY)";
     }
 
+    /// <inheritdoc />
     protected override async Task BulkInsert<T>(
         DbContext context,
         IEnumerable<T> entities,

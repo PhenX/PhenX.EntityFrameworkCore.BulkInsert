@@ -14,7 +14,7 @@ public abstract class LibComparator
     public int N;
 
     private IList<TestEntity> data = [];
-    protected TestDbContext DbContext;
+    protected TestDbContext DbContext { get; set; } = null!;
 
     [IterationSetup]
     public void IterationSetup()

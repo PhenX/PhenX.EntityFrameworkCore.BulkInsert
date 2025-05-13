@@ -1,4 +1,4 @@
-﻿using System;
+﻿﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -255,6 +255,51 @@ public abstract class BasicTestsBase : IAsyncLifetime
         Assert.Equal(2, inserted.Count);
         Assert.Contains(inserted, e => e.Name == "Entity1" && e.CreatedAt == now);
         Assert.Contains(inserted, e => e.Name == "Entity2" && e.CreatedAt == now.AddDays(-1));
+    }
+
+    [Fact]
+    public async Task BulkInsert_WithOpenTransaction_CommitsSuccessfully()
+    {
+        // Arrange
+        var entities = new List<TestEntity>
+        {
+            new TestEntity { Name = "EntityWithTx1" },
+            new TestEntity { Name = "EntityWithTx2" }
+        };
+
+        await using var transaction = await DbContainer.DbContext.Database.BeginTransactionAsync();
+
+        await DbContainer.DbContext.ExecuteInsertAsync(entities);
+
+        await transaction.CommitAsync();
+
+        // Assert
+        var insertedEntities = DbContainer.DbContext.TestEntities.ToList();
+        Assert.Contains(insertedEntities, e => e.Name == "EntityWithTx1");
+        Assert.Contains(insertedEntities, e => e.Name == "EntityWithTx2");
+    }
+
+    [Fact]
+    public async Task BulkInsert_WithOpenTransaction_RollsBackOnFailure()
+    {
+        // Arrange
+        var entities = new List<TestEntity>
+        {
+            new TestEntity { Name = "EntityWithTxFail1" },
+            new TestEntity { Name = "EntityWithTxFail2" }
+        };
+
+        await using var transaction = await DbContainer.DbContext.Database.BeginTransactionAsync();
+
+        await DbContainer.DbContext.ExecuteInsertAsync(entities);
+
+        await transaction.RollbackAsync();
+
+        // Assert
+        DbContainer.DbContext.ChangeTracker.Clear();
+        var insertedEntities = DbContainer.DbContext.TestEntities.ToList();
+        Assert.DoesNotContain(insertedEntities, e => e.Name == "EntityWithTxFail1");
+        Assert.DoesNotContain(insertedEntities, e => e.Name == "EntityWithTxFail2");
     }
 
     public Task InitializeAsync() => DbContainer.InitializeAsync();

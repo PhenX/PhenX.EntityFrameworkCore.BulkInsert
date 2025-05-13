@@ -12,7 +12,8 @@ internal interface IBulkInsertProvider
     /// <summary>
     /// Calls the provider to perform a bulk insert operation.
     /// </summary>
-    internal Task<List<T>> BulkInsertWithIdentityAsync<T>(
+    internal Task<List<T>> BulkInsertReturnEntities<T>(
+        bool sync,
         DbContext context,
         IEnumerable<T> entities,
         BulkInsertOptions options,
@@ -23,7 +24,8 @@ internal interface IBulkInsertProvider
     /// <summary>
     /// Calls the provider to perform a bulk insert operation without returning the inserted entities.
     /// </summary>
-    internal Task BulkInsertWithoutReturnAsync<T>(
+    internal Task BulkInsert<T>(
+        bool sync,
         DbContext context,
         IEnumerable<T> entities,
         BulkInsertOptions options,

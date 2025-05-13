@@ -23,9 +23,15 @@ internal class SqlServerBulkInsertProvider : BulkInsertProviderBase<SqlServerDia
     protected override string GetTempTableName(string tableName) => $"#_temp_bulk_insert_{tableName}";
 
     /// <inheritdoc />
-    protected override async Task BulkInsert<T>(DbContext context, IEnumerable<T> entities,
+    protected override async Task BulkInsert<T>(
+        bool sync,
+        DbContext context,
+        IEnumerable<T> entities,
         string tableName,
-        PropertyAccessor[] properties, BulkInsertOptions options, CancellationToken ctk)
+        PropertyAccessor[] properties,
+        BulkInsertOptions options,
+        CancellationToken ctk
+    )
     {
         var connection = context.Database.GetDbConnection();
         var sqlTransaction = context.Database.CurrentTransaction!.GetDbTransaction() as SqlTransaction;
@@ -40,6 +46,14 @@ internal class SqlServerBulkInsertProvider : BulkInsertProviderBase<SqlServerDia
             bulkCopy.ColumnMappings.Add(prop.Name, SqlDialect.Quote(prop.ColumnName));
         }
 
-        await bulkCopy.WriteToServerAsync(new EnumerableDataReader<T>(entities, properties), ctk);
+        if (sync)
+        {
+            // ReSharper disable once MethodHasAsyncOverloadWithCancellation
+            bulkCopy.WriteToServer(new EnumerableDataReader<T>(entities, properties));
+        }
+        else
+        {
+            await bulkCopy.WriteToServerAsync(new EnumerableDataReader<T>(entities, properties), ctk);
+        }
     }
 }

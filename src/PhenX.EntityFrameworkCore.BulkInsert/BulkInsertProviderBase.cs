@@ -22,8 +22,8 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
     protected abstract string AddTableCopyBulkInsertId { get; }
 
     protected async Task<string> CreateTableCopyAsync<T>(
+        bool sync,
         DbContext context,
-        DbConnection connection,
         CancellationToken cancellationToken = default) where T : class
     {
         var tableInfo = GetTableInfo(context, typeof(T));
@@ -32,35 +32,46 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
 
         var keptColumns = string.Join(", ", GetQuotedColumns(context, typeof(T), false));
         var query = string.Format(CreateTableCopySql, tempTableName, tableName, keptColumns);
-        await ExecuteAsync(context, query, cancellationToken);
 
-        await AddBulkInsertIdColumn<T>(context, cancellationToken, tempTableName);
+        await ExecuteAsync(sync, context, query, cancellationToken);
+
+        await AddBulkInsertIdColumn<T>(sync, context, tempTableName, cancellationToken);
 
         return tempTableName;
     }
 
-    protected virtual async Task AddBulkInsertIdColumn<T>(DbContext context, CancellationToken cancellationToken,
-        string tempTableName) where T : class
+    protected virtual async Task AddBulkInsertIdColumn<T>(bool sync, DbContext context,
+        string tempTableName, CancellationToken cancellationToken) where T : class
     {
         var alterQuery = string.Format(AddTableCopyBulkInsertId, tempTableName);
-        await ExecuteAsync(context, alterQuery, cancellationToken);
+
+        await ExecuteAsync(sync, context, alterQuery, cancellationToken);
     }
 
     protected virtual string GetTempTableName(string tableName) => $"_temp_bulk_insert_{tableName}";
 
     protected string Quote(string name) => SqlDialect.Quote(name);
 
-    protected static async Task ExecuteAsync(DbContext context, string query, CancellationToken cancellationToken = default)
+    protected static async Task ExecuteAsync(bool sync, DbContext context, string query, CancellationToken cancellationToken = default)
     {
         var command = context.Database.GetDbConnection().CreateCommand();
         command.Transaction = context.Database.CurrentTransaction!.GetDbTransaction();
         command.CommandText = query;
 
-        await command.ExecuteNonQueryAsync(cancellationToken);
+        if (sync)
+        {
+            // ReSharper disable once MethodHasAsyncOverloadWithCancellation
+            command.ExecuteNonQuery();
+        }
+        else
+        {
+            await command.ExecuteNonQueryAsync(cancellationToken);
+        }
     }
 
-    public async Task<List<T>> CopyFromTempTableAsync<T>(DbContext context,
-        DbConnection connection,
+    public async Task<List<T>> CopyFromTempTableAsync<T>(
+        bool sync,
+        DbContext context,
         string tempTableName,
         bool returnData,
         BulkInsertOptions options,
@@ -68,8 +79,8 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
         CancellationToken cancellationToken = default) where T : class
     {
         return await CopyFromTempTableWithoutKeysAsync<T, T>(
+            sync,
             context,
-            connection,
             tempTableName,
             returnData,
             options,
@@ -77,8 +88,9 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
             cancellationToken: cancellationToken);
     }
 
-    private async Task<List<TResult>> CopyFromTempTableWithoutKeysAsync<T, TResult>(DbContext context,
-        DbConnection connection,
+    private async Task<List<TResult>> CopyFromTempTableWithoutKeysAsync<T, TResult>(
+        bool sync,
+        DbContext context,
         string tempTableName,
         bool returnData,
         BulkInsertOptions options,
@@ -98,18 +110,25 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
         if (returnData)
         {
             // Use EF to execute the query and return the results
-            return await context
+            IQueryable<TResult> queryable = context
                 .Set<TResult>()
-                .FromSqlRaw(query)
-                .ToListAsync(cancellationToken);
+                .FromSqlRaw(query);
+
+            if (sync)
+            {
+                return queryable.ToList();
+            }
+
+            return await queryable.ToListAsync(cancellationToken: cancellationToken);
         }
 
         // If not returning data, just execute the command
-        await ExecuteAsync(context, query, cancellationToken);
+        await ExecuteAsync(sync, context, query, cancellationToken);
         return [];
     }
 
-    public async Task<List<T>> BulkInsertWithIdentityAsync<T>(
+    public async Task<List<T>> BulkInsertReturnEntities<T>(
+        bool sync,
         DbContext context,
         IEnumerable<T> entities,
         BulkInsertOptions options,
@@ -117,26 +136,49 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
         CancellationToken ctk = default
     ) where T : class
     {
-        var (connection, wasClosed, transaction, wasBegan) = await context.GetConnection(ctk);
+        var (connection, wasClosed, transaction, wasBegan) = await context.GetConnection(sync, ctk);
 
-        var (tableName, _) = await PerformBulkInsertAsync(context, entities, options, tempTableRequired: true, ctk: ctk);
+        var (tableName, _) = await PerformBulkInsertAsync(sync, context, entities, options, tempTableRequired: true, ctk: ctk);
 
-        var result = await CopyFromTempTableAsync<T>(context, connection, tableName, true, options, onConflict, cancellationToken: ctk);
+        var result = await CopyFromTempTableAsync<T>(sync, context, tableName, true, options, onConflict, cancellationToken: ctk);
 
-        if (!wasBegan)
-        {
-            await transaction.CommitAsync(ctk);
-        }
-
-        if (wasClosed)
-        {
-            await connection.CloseAsync();
-        }
+        await Finish(sync, connection, wasClosed, transaction, wasBegan, ctk);
 
         return result;
     }
 
-    public async Task BulkInsertWithoutReturnAsync<T>(
+    private static async Task Finish(bool sync, DbConnection connection, bool wasClosed,
+        IDbContextTransaction transaction, bool wasBegan, CancellationToken ctk)
+    {
+        if (!wasBegan)
+        {
+            if (sync)
+            {
+                // ReSharper disable once MethodHasAsyncOverloadWithCancellation
+                transaction.Commit();
+            }
+            else
+            {
+                await transaction.CommitAsync(ctk);
+            }
+        }
+
+        if (wasClosed)
+        {
+            if (sync)
+            {
+                // ReSharper disable once MethodHasAsyncOverload
+                connection.Close();
+            }
+            else
+            {
+                await connection.CloseAsync();
+            }
+        }
+    }
+
+    public async Task BulkInsert<T>(
+        bool sync,
         DbContext context,
         IEnumerable<T> entities,
         BulkInsertOptions options,
@@ -146,29 +188,22 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
     {
         if (onConflict != null)
         {
-            var (connection, wasClosed, transaction, wasBegan) = await context.GetConnection(ctk);
+            var (connection, wasClosed, transaction, wasBegan) = await context.GetConnection(sync, ctk);
 
-            var (tableName, _) = await PerformBulkInsertAsync(context, entities, options, tempTableRequired: true, ctk: ctk);
+            var (tableName, _) = await PerformBulkInsertAsync(sync, context, entities, options, tempTableRequired: true, ctk: ctk);
 
-            await CopyFromTempTableAsync<T>(context, connection, tableName, false, options, onConflict, ctk);
+            await CopyFromTempTableAsync<T>(sync, context, tableName, false, options, onConflict, ctk);
 
-            if (!wasBegan)
-            {
-                await transaction.CommitAsync(ctk);
-            }
-
-            if (wasClosed)
-            {
-                await connection.CloseAsync();
-            }
+            await Finish(sync, connection, wasClosed, transaction, wasBegan, ctk);
         }
         else
         {
-            await PerformBulkInsertAsync(context, entities, options, tempTableRequired: false, ctk: ctk);
+            await PerformBulkInsertAsync(sync, context, entities, options, tempTableRequired: false, ctk: ctk);
         }
     }
 
     private async Task<(string TableName, DbConnection Connection)> PerformBulkInsertAsync<T>(
+        bool sync,
         DbContext context,
         IEnumerable<T> entities,
         BulkInsertOptions options,
@@ -180,10 +215,10 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
             throw new InvalidOperationException("No entities to insert.");
         }
 
-        var (connection, wasClosed, transaction, wasBegan) = await context.GetConnection(ctk);
+        var (connection, wasClosed, transaction, wasBegan) = await context.GetConnection(sync, ctk);
 
         var tableName = tempTableRequired
-            ? await CreateTableCopyAsync<T>(context, connection, ctk)
+            ? await CreateTableCopyAsync<T>(sync, context, ctk)
             : GetQuotedTableName(context, typeof(T));
 
         var properties = context
@@ -191,17 +226,9 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
             .Select(p => new PropertyAccessor(p))
             .ToArray();
 
-        await BulkInsert(context, entities, tableName, properties, options, ctk);
+        await BulkInsert(false, context, entities, tableName, properties, options, ctk);
 
-        if (!wasBegan)
-        {
-            await transaction.CommitAsync(ctk);
-        }
-
-        if (wasClosed)
-        {
-            await connection.CloseAsync();
-        }
+        await Finish(sync, connection, wasClosed, transaction, wasBegan, ctk);
 
         return (tableName, connection);
     }
@@ -210,6 +237,7 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
     /// The main bulk insert method: will insert either in a temp table or directly in the target table.
     /// </summary>
     protected abstract Task BulkInsert<T>(
+        bool sync,
         DbContext context,
         IEnumerable<T> entities,
         string tableName,

@@ -22,14 +22,23 @@ internal static class DbContextExtensions
             .ToArray();
     }
 
-    internal static async Task<(DbConnection connection, bool wasClosed, IDbContextTransaction transaction, bool wasBegan)> GetConnection(this DbContext context, CancellationToken ctk = default)
+    internal static async Task<(DbConnection connection, bool wasClosed, IDbContextTransaction transaction, bool wasBegan)> GetConnection(
+            this DbContext context, bool sync, CancellationToken ctk = default)
     {
         var connection = context.Database.GetDbConnection();
         var wasClosed = connection.State == ConnectionState.Closed;
 
         if (wasClosed)
         {
-            await connection.OpenAsync(ctk);
+            if (sync)
+            {
+                // ReSharper disable once MethodHasAsyncOverloadWithCancellation
+                connection.Open();
+            }
+            else
+            {
+                await connection.OpenAsync(ctk);
+            }
         }
 
         var wasBegan = true;
@@ -38,7 +47,16 @@ internal static class DbContextExtensions
         if (transaction == null)
         {
             wasBegan = false;
-            transaction = await context.Database.BeginTransactionAsync(ctk);
+
+            if (sync)
+            {
+                // ReSharper disable once MethodHasAsyncOverloadWithCancellation
+                transaction = context.Database.BeginTransaction();
+            }
+            else
+            {
+                transaction = await context.Database.BeginTransactionAsync(ctk);
+            }
         }
 
         return (connection, wasClosed, transaction, wasBegan);

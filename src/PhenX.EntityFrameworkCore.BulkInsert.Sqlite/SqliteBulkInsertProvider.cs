@@ -25,11 +25,12 @@ internal class SqliteBulkInsertProvider : BulkInsertProviderBase<SqliteDialectBu
     protected override string AddTableCopyBulkInsertId => "--"; // No need to add an ID column in SQLite
 
     /// <inheritdoc />
-    protected override Task AddBulkInsertIdColumn<T>(DbContext context, CancellationToken cancellationToken,
-        string tempTableName) where T : class
-    {
-        return Task.CompletedTask;
-    }
+    protected override Task AddBulkInsertIdColumn<T>(
+        bool sync,
+        DbContext context,
+        string tempTableName,
+        CancellationToken cancellationToken
+    ) where T : class => Task.CompletedTask;
 
     /// <summary>
     /// Taken from https://github.com/dotnet/efcore/blob/667c569c49a1ab7e142621395d3f14f2af0508b4/src/Microsoft.Data.Sqlite.Core/SqliteValueBinder.cs#L231
@@ -116,8 +117,15 @@ internal class SqliteBulkInsertProvider : BulkInsertProviderBase<SqliteDialectBu
     }
 
     /// <inheritdoc />
-    protected override async Task BulkInsert<T>(DbContext context, IEnumerable<T> entities,
-        string tableName, PropertyAccessor[] properties, BulkInsertOptions options, CancellationToken ctk) where T : class
+    protected override async Task BulkInsert<T>(
+        bool sync,
+        DbContext context,
+        IEnumerable<T> entities,
+        string tableName,
+        PropertyAccessor[] properties,
+        BulkInsertOptions options,
+        CancellationToken ctk
+    ) where T : class
     {
         const int maxParams = 1000;
         var batchSize = options.BatchSize ?? 5;
@@ -131,17 +139,29 @@ internal class SqliteBulkInsertProvider : BulkInsertProviderBase<SqliteDialectBu
             if (chunk.Length == batchSize)
             {
                 FillValues(chunk, insertCommand.Parameters, properties);
-
-                await insertCommand.ExecuteNonQueryAsync(ctk);
+                await ExecuteCommand(sync, insertCommand, ctk);
             }
             // Last chunk
             else
             {
                 var partialInsertCommand = GetInsertCommand(context, typeof(T), tableName, chunk.Length);
-                FillValues(chunk, partialInsertCommand.Parameters, properties);
 
-                await partialInsertCommand.ExecuteNonQueryAsync(ctk);
+                FillValues(chunk, partialInsertCommand.Parameters, properties);
+                await ExecuteCommand(sync, partialInsertCommand, ctk);
             }
+        }
+    }
+
+    private static async Task ExecuteCommand(bool sync, DbCommand insertCommand, CancellationToken ctk)
+    {
+        if (sync)
+        {
+            // ReSharper disable once MethodHasAsyncOverloadWithCancellation
+            insertCommand.ExecuteNonQuery();
+        }
+        else
+        {
+            await insertCommand.ExecuteNonQueryAsync(ctk);
         }
     }
 

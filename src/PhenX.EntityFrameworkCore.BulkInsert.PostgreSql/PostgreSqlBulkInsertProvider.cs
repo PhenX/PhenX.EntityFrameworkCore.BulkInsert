@@ -28,6 +28,7 @@ internal class PostgreSqlBulkInsertProvider : BulkInsertProviderBase<PostgreSqlD
 
     /// <inheritdoc />
     protected override async Task BulkInsert<T>(
+        bool sync,
         DbContext context,
         IEnumerable<T> entities,
         string tableName,
@@ -39,20 +40,51 @@ internal class PostgreSqlBulkInsertProvider : BulkInsertProviderBase<PostgreSqlD
 
         var importCommand = GetBinaryImportCommand(context, typeof(T), tableName);
 
-        await using var writer = await connection.BeginBinaryImportAsync(importCommand, ctk);
+        var writer = sync
+            // ReSharper disable once MethodHasAsyncOverloadWithCancellation
+            ? connection.BeginBinaryImport(importCommand)
+            : await connection.BeginBinaryImportAsync(importCommand, ctk);
 
         foreach (var entity in entities)
         {
-            await writer.StartRowAsync(ctk);
+            if (sync)
+            {
+                // ReSharper disable once MethodHasAsyncOverloadWithCancellation
+                writer.StartRow();
+            }
+            else
+            {
+                await writer.StartRowAsync(ctk);
+            }
 
             foreach (var property in properties)
             {
                 var value = property.GetValue(entity);
 
-                await writer.WriteAsync(value, ctk);
+                if (sync)
+                {
+                    // ReSharper disable once MethodHasAsyncOverloadWithCancellation
+                    writer.Write(value);
+                }
+                else
+                {
+                    await writer.WriteAsync(value, ctk);
+                }
             }
         }
 
-        await writer.CompleteAsync(ctk);
+        if (sync)
+        {
+            // ReSharper disable once MethodHasAsyncOverloadWithCancellation
+            writer.Complete();
+            // ReSharper disable once MethodHasAsyncOverload
+            writer.Dispose();
+        }
+        else
+        {
+            await writer.CompleteAsync(ctk);
+            await writer.DisposeAsync();
+        }
+
     }
 }

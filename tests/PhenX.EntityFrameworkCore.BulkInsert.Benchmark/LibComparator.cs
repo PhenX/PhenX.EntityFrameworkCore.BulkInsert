@@ -54,6 +54,12 @@ public abstract class LibComparator
     {
         await DbContext.ExecuteInsertAsync(data);
     }
+
+    [Benchmark]
+    public void PhenX_EntityFrameworkCore_BulkInsert_Sync()
+    {
+        DbContext.ExecuteInsert(data);
+    }
     //
     // [Benchmark]
     // public async Task PhenX_EntityFrameworkCore_BulkInsertWithIdentity()
@@ -74,9 +80,25 @@ public abstract class LibComparator
     }
 
     [Benchmark]
+    public void Z_EntityFramework_Extensions_EFCore_Sync()
+    {
+        DbContext.BulkInsertOptimized(data, options => options.IncludeGraph = false);
+    }
+
+    [Benchmark]
     public async Task EFCore_BulkExtensions()
     {
         await DbContext.BulkInsertAsync(data, options =>
+        {
+            options.IncludeGraph = false;
+            options.PreserveInsertOrder = false;
+        });
+    }
+
+    [Benchmark]
+    public void EFCore_BulkExtensions_Sync()
+    {
+        DbContext.BulkInsert(data, options =>
         {
             options.IncludeGraph = false;
             options.PreserveInsertOrder = false;

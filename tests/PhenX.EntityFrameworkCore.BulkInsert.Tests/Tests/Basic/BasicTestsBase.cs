@@ -42,6 +42,26 @@ public abstract class BasicTestsBase : IAsyncLifetime
     }
 
     [Fact]
+    public void InsertsEntitiesSuccessfully_Sync()
+    {
+        // Arrange
+        var entities = new List<TestEntity>
+        {
+            new TestEntity { Id = 1, Name = "Entity1" },
+            new TestEntity { Id = 2, Name = "Entity2" }
+        };
+
+        // Act
+        DbContainer.DbContext.ExecuteInsertReturnEntities(entities);
+
+        // Assert
+        var insertedEntities = DbContainer.DbContext.TestEntities.ToList();
+        Assert.Equal(2, insertedEntities.Count);
+        Assert.Contains(insertedEntities, e => e.Name == "Entity1");
+        Assert.Contains(insertedEntities, e => e.Name == "Entity2");
+    }
+
+    [Fact]
     public async Task InsertsEntitiesMoveRowsSuccessfully()
     {
         // Arrange
@@ -280,6 +300,28 @@ public abstract class BasicTestsBase : IAsyncLifetime
     }
 
     [Fact]
+    public void BulkInsert_WithOpenTransaction_CommitsSuccessfully_Sync()
+    {
+        // Arrange
+        var entities = new List<TestEntity>
+        {
+            new TestEntity { Name = "EntityWithTx1" },
+            new TestEntity { Name = "EntityWithTx2" }
+        };
+
+        var transaction = DbContainer.DbContext.Database.BeginTransaction();
+
+        DbContainer.DbContext.ExecuteInsert(entities);
+
+        transaction.Commit();
+
+        // Assert
+        var insertedEntities = DbContainer.DbContext.TestEntities.ToList();
+        Assert.Contains(insertedEntities, e => e.Name == "EntityWithTx1");
+        Assert.Contains(insertedEntities, e => e.Name == "EntityWithTx2");
+    }
+
+    [Fact]
     public async Task BulkInsert_WithOpenTransaction_RollsBackOnFailure()
     {
         // Arrange
@@ -294,6 +336,29 @@ public abstract class BasicTestsBase : IAsyncLifetime
         await DbContainer.DbContext.ExecuteInsertAsync(entities);
 
         await transaction.RollbackAsync();
+
+        // Assert
+        DbContainer.DbContext.ChangeTracker.Clear();
+        var insertedEntities = DbContainer.DbContext.TestEntities.ToList();
+        Assert.DoesNotContain(insertedEntities, e => e.Name == "EntityWithTxFail1");
+        Assert.DoesNotContain(insertedEntities, e => e.Name == "EntityWithTxFail2");
+    }
+
+    [Fact]
+    public void BulkInsert_WithOpenTransaction_RollsBackOnFailure_Sync()
+    {
+        // Arrange
+        var entities = new List<TestEntity>
+        {
+            new TestEntity { Name = "EntityWithTxFail1" },
+            new TestEntity { Name = "EntityWithTxFail2" }
+        };
+
+        using var transaction = DbContainer.DbContext.Database.BeginTransaction();
+
+        DbContainer.DbContext.ExecuteInsert(entities);
+
+        transaction.Rollback();
 
         // Assert
         DbContainer.DbContext.ChangeTracker.Clear();

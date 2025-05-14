@@ -3,6 +3,7 @@ using JetBrains.Annotations;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.Logging;
 
 using PhenX.EntityFrameworkCore.BulkInsert.Options;
 
@@ -11,6 +12,10 @@ namespace PhenX.EntityFrameworkCore.BulkInsert.SqlServer;
 [UsedImplicitly]
 internal class SqlServerBulkInsertProvider : BulkInsertProviderBase<SqlServerDialectBuilder>
 {
+    public SqlServerBulkInsertProvider(ILogger<SqlServerBulkInsertProvider>? logger = null) : base(logger)
+    {
+    }
+
     //language=sql
     /// <inheritdoc />
     protected override string CreateTableCopySql => "SELECT {2} INTO {0} FROM {1} WHERE 1 = 0;";

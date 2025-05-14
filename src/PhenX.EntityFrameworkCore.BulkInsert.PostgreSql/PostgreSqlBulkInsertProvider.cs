@@ -1,6 +1,7 @@
 using JetBrains.Annotations;
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 using Npgsql;
 
@@ -11,6 +12,10 @@ namespace PhenX.EntityFrameworkCore.BulkInsert.PostgreSql;
 [UsedImplicitly]
 internal class PostgreSqlBulkInsertProvider : BulkInsertProviderBase<PostgreSqlDialectBuilder>
 {
+    public PostgreSqlBulkInsertProvider(ILogger<PostgreSqlBulkInsertProvider>? logger = null) : base(logger)
+    {
+    }
+
     //language=sql
     /// <inheritdoc />
     protected override string CreateTableCopySql => "CREATE TEMPORARY TABLE {0} AS TABLE {1} WITH NO DATA;";

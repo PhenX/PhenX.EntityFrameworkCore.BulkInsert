@@ -4,6 +4,7 @@ using JetBrains.Annotations;
 
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 using PhenX.EntityFrameworkCore.BulkInsert.Extensions;
 using PhenX.EntityFrameworkCore.BulkInsert.Options;
@@ -13,6 +14,10 @@ namespace PhenX.EntityFrameworkCore.BulkInsert.Sqlite;
 [UsedImplicitly]
 internal class SqliteBulkInsertProvider : BulkInsertProviderBase<SqliteDialectBuilder>
 {
+    public SqliteBulkInsertProvider(ILogger<SqliteBulkInsertProvider>? logger = null) : base(logger)
+    {
+    }
+
     /// <inheritdoc />
     protected override string BulkInsertId => "rowid";
 

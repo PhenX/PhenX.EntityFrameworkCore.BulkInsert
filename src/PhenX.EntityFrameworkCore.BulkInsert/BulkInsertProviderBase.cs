@@ -3,6 +3,7 @@ using System.Data.Common;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.Logging;
 
 using PhenX.EntityFrameworkCore.BulkInsert.Abstractions;
 using PhenX.EntityFrameworkCore.BulkInsert.Dialect;
@@ -15,11 +16,17 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
     where TDialect : SqlDialectBuilder, new()
 {
     protected readonly TDialect SqlDialect = new();
+    private readonly ILogger<BulkInsertProviderBase<TDialect>>? Logger;
 
     protected virtual string BulkInsertId => "_bulk_insert_id";
 
     protected abstract string CreateTableCopySql { get; }
     protected abstract string AddTableCopyBulkInsertId { get; }
+
+    protected BulkInsertProviderBase(ILogger<BulkInsertProviderBase<TDialect>>? logger = null)
+    {
+        Logger = logger;
+    }
 
     protected async Task<string> CreateTableCopyAsync<T>(
         bool sync,

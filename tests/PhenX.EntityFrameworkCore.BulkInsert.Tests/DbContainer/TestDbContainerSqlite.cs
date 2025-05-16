@@ -1,6 +1,4 @@
-﻿using System;
-
-using DotNet.Testcontainers.Containers;
+﻿using DotNet.Testcontainers.Containers;
 
 using Microsoft.EntityFrameworkCore;
 

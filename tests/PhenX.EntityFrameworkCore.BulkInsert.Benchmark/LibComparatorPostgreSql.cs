@@ -22,7 +22,7 @@ public class LibComparatorPostgreSql : LibComparator
 
         DbContext = new TestDbContext(p => p
             .UseNpgsql(connectionString)
-            .UseExecuteInsertPostgres()
+            .UseExecuteInsertPostgreSql()
         );
     }
 

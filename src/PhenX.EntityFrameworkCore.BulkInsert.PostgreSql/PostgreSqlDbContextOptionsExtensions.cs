@@ -11,7 +11,7 @@ public static class PostgreSqlDbContextOptionsExtensions
     /// <summary>
     /// Configures the DbContext to use the PostgreSQL bulk insert provider.
     /// </summary>
-    public static DbContextOptionsBuilder UseExecuteInsertPostgres(this DbContextOptionsBuilder optionsBuilder)
+    public static DbContextOptionsBuilder UseExecuteInsertPostgreSql(this DbContextOptionsBuilder optionsBuilder)
     {
         var extension = optionsBuilder.Options.FindExtension<ExecuteInsertOptionsExtension<PostgreSqlBulkInsertProvider>>() ?? new ExecuteInsertOptionsExtension<PostgreSqlBulkInsertProvider>();
 

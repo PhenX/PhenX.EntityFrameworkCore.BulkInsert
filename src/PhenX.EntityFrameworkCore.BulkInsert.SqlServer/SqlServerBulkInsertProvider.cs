@@ -38,10 +38,10 @@ internal class SqlServerBulkInsertProvider : BulkInsertProviderBase<SqlServerDia
         CancellationToken ctk
     )
     {
-        var connection = context.Database.GetDbConnection();
+        var connection = (SqlConnection) context.Database.GetDbConnection();
         var sqlTransaction = context.Database.CurrentTransaction!.GetDbTransaction() as SqlTransaction;
 
-        using var bulkCopy = new SqlBulkCopy(connection as SqlConnection, SqlBulkCopyOptions.TableLock, sqlTransaction);
+        using var bulkCopy = new SqlBulkCopy(connection, SqlBulkCopyOptions.TableLock, sqlTransaction);
         bulkCopy.DestinationTableName = tableName;
         bulkCopy.BatchSize = options.BatchSize ?? 50_000;
         bulkCopy.BulkCopyTimeout = 60;

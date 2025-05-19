@@ -2,7 +2,6 @@
 using System.Text;
 
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata;
 
 using PhenX.EntityFrameworkCore.BulkInsert.Dialect;
 using PhenX.EntityFrameworkCore.BulkInsert.Options;
@@ -19,14 +18,14 @@ internal class SqlServerDialectBuilder : SqlDialectBuilder
 
     public override string BuildMoveDataSql<T>(DbContext context, string source,
         string target,
-        IProperty[] insertedProperties,
-        IProperty[] properties,
+        PropertyAccessor[] insertedProperties,
+        PropertyAccessor[] properties,
         BulkInsertOptions options, OnConflictOptions? onConflict = null)
     {
-        var insertedColumns = insertedProperties.Select(p => Quote(p.GetColumnName())).ToArray();
+        var insertedColumns = insertedProperties.Select(p => Quote(p.ColumnName)).ToArray();
         var insertedColumnList = string.Join(", ", insertedColumns);
 
-        var returnedColumns = properties.Select(p => $"INSERTED.{p.GetColumnName()} AS {p.GetColumnName()}");
+        var returnedColumns = properties.Select(p => $"INSERTED.{p.ColumnName} AS {p.ColumnName}");
         var columnList = string.Join(", ", returnedColumns);
 
         var q = new StringBuilder();

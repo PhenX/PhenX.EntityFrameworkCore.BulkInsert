@@ -23,9 +23,9 @@ public class TestEntity
     [Column("the_identifier")]
     public Guid Identifier { get; set; }
 
-    [Column("string_enum_value", TypeName = "text")]
+    [Column("string_enum_value")]
     public StringEnum StringEnumValue { get; set; }
 
-    [Column("num_enum_value", TypeName = "text")]
+    [Column("num_enum_value")]
     public NumericEnum NumericEnumValue { get; set; }
 }

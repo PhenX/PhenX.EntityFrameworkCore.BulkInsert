@@ -2,7 +2,6 @@
 using System.Text;
 
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata;
 
 using PhenX.EntityFrameworkCore.BulkInsert.Options;
 
@@ -55,14 +54,14 @@ internal abstract class SqlDialectBuilder
     /// <returns>The SQL query</returns>
     public virtual string BuildMoveDataSql<T>(DbContext context, string source,
         string target,
-        IProperty[] insertedProperties,
-        IProperty[] properties,
+        PropertyAccessor[] insertedProperties,
+        PropertyAccessor[] properties,
         BulkInsertOptions options, OnConflictOptions? onConflict = null)
     {
-        var insertedColumns = insertedProperties.Select(p => Quote(p.GetColumnName()));
+        var insertedColumns = insertedProperties.Select(p => Quote(p.ColumnName));
         var insertedColumnList = string.Join(", ", insertedColumns);
 
-        var returnedColumns = properties.Select(p => Quote(p.GetColumnName()));
+        var returnedColumns = properties.Select(p => Quote(p.ColumnName));
         var columnList = string.Join(", ", returnedColumns);
 
         var q = new StringBuilder();
@@ -203,6 +202,11 @@ internal abstract class SqlDialectBuilder
         }
     }
 
+    protected virtual string EscapeString(string value)
+    {
+        return $"'{value.Replace("'", "''")}'";
+    }
+
     /// <summary>
     /// Converts an expression to an SQL string.
     /// </summary>
@@ -241,15 +245,20 @@ internal abstract class SqlDialectBuilder
                 return $"({left} {op} {right})";
 
             case ConstantExpression c:
-                if (c.Type == typeof(RawSqlValue) && c.Value != null)
+                if (c.Value is null)
                 {
-                    return ((RawSqlValue)c.Value!).Sql;
+                    return "NULL";
+                }
+
+                if (c.Type == typeof(RawSqlValue))
+                {
+                    return ((RawSqlValue)c.Value).Sql;
                 }
 
                 if (c.Type == typeof(string) ||
                     c.Type == typeof(Guid))
                 {
-                    return $"'{c.Value}'";
+                    return EscapeString(c.Value.ToString()!);
                 }
 
                 if (c.Type == typeof(bool))
@@ -257,7 +266,7 @@ internal abstract class SqlDialectBuilder
                     return (bool)c.Value! ? "TRUE" : "FALSE";
                 }
 
-                return c.Value?.ToString() ?? "NULL";
+                return c.Value.ToString()!;
 
             case UnaryExpression u:
                 if (u.NodeType == ExpressionType.Convert)

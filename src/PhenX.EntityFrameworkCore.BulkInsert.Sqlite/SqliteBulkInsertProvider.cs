@@ -84,14 +84,14 @@ internal class SqliteBulkInsertProvider : BulkInsertProviderBase<SqliteDialectBu
     private DbCommand GetInsertCommand(DbContext context, Type entityType, string tableName,
         int batchSize)
     {
-        var columns = context.GetProperties(entityType, false);
+        var columns = context.GetPropertyAccessors(entityType, false);
         var cmd = context.Database.GetDbConnection().CreateCommand();
 
         var sqliteColumns = columns
             .Select(c => new
             {
-                Name = c.GetColumnName(),
-                Type = GetSqliteType(c.GetProviderClrType() ?? c.ClrType)
+                Name = c.ColumnName,
+                Type = GetSqliteType(c.ProviderClrType)
             })
             .ToArray();
 
@@ -177,7 +177,7 @@ internal class SqliteBulkInsertProvider : BulkInsertProviderBase<SqliteDialectBu
         {
             foreach (var property in properties)
             {
-                var value = property.GetValue(entity);
+                var value = property.GetEntityValueToProvider(entity);
                 parameters[index].Value = value;
 
                 index++;

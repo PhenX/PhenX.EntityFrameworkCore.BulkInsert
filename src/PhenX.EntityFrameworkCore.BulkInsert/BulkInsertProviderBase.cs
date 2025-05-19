@@ -83,7 +83,7 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
         bool returnData,
         BulkInsertOptions options,
         OnConflictOptions? onConflict = null,
-        CancellationToken cancellationToken = default) where T : class
+        CancellationToken cancellationToken = default) where T : class, new()
     {
         return await CopyFromTempTableWithoutKeysAsync<T, T>(
             sync,
@@ -104,29 +104,117 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
         OnConflictOptions? onConflict = null,
         CancellationToken cancellationToken = default)
         where T : class
-        where TResult : class
+        where TResult : class, new()
     {
         var (schemaName, tableName, _) = GetTableInfo(context, typeof(T));
         var quotedTableName = QuoteTableName(schemaName, tableName);
 
-        var movedProperties = context.GetProperties(typeof(T), false);
-        var returnedProperties = returnData ? context.GetProperties(typeof(T)) : [];
+        var movedProperties = context.GetPropertyAccessors(typeof(T), false);
+        var returnedProperties = returnData ? context.GetPropertyAccessors(typeof(T)) : [];
 
         var query = SqlDialect.BuildMoveDataSql<T>(context, tempTableName, quotedTableName, movedProperties, returnedProperties, options, onConflict);
 
+        // query = $"SELECT * FROM ({query})";
+
         if (returnData)
         {
-            // Use EF to execute the query and return the results
-            IQueryable<TResult> queryable = context
-                .Set<TResult>()
-                .FromSqlRaw(query);
+            // // Use EF to execute the query and return the results
+            // IQueryable<TResult> queryable = context
+            //     .Set<TResult>()
+            //     .FromSqlRaw(query)
+            //     .AsSplitQuery();
+            //
+            // if (sync)
+            // {
+            //     return queryable.ToList();
+            // }
+            //
+            // return await queryable.ToListAsync(cancellationToken: cancellationToken);
+            using var command = context.Database.GetDbConnection().CreateCommand();
+            command.CommandText = query;
+            command.Transaction = context.Database.CurrentTransaction!.GetDbTransaction();
 
-            if (sync)
+            var properties = context.GetPropertyAccessors(typeof(T)).ToDictionary(p => p.ColumnName, p => p);
+
+            var result = new List<TResult>();
+
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+
+            while (await reader.ReadAsync(cancellationToken))
             {
-                return queryable.ToList();
+                var row = new TResult();
+
+                for (var i = 0; i < reader.FieldCount; i++)
+                {
+                    var columnName = reader.GetName(i);
+
+                    if (!properties.TryGetValue(columnName, out var column))
+                    {
+                        continue;
+                    }
+
+                    object? value;
+
+                    if (reader.IsDBNull(i))
+                    {
+                        value = null;
+                    }
+                    else if (column.ProviderClrType == typeof(string))
+                    {
+                        value = reader.GetString(i);
+                    }
+                    else if (column.ProviderClrType == typeof(int))
+                    {
+                        value = reader.GetInt32(i);
+                    }
+                    else if (column.ProviderClrType == typeof(long))
+                    {
+                        value = reader.GetInt64(i);
+                    }
+                    else if (column.ProviderClrType == typeof(DateTime))
+                    {
+                        value = reader.GetDateTime(i);
+                    }
+                    else if (column.ProviderClrType == typeof(bool))
+                    {
+                        value = reader.GetBoolean(i);
+                    }
+                    else if (column.ProviderClrType == typeof(Guid))
+                    {
+                        value = reader.GetGuid(i);
+                    }
+                    else if (column.ProviderClrType == typeof(decimal))
+                    {
+                        value = reader.GetDecimal(i);
+                    }
+                    else if (column.ProviderClrType == typeof(double))
+                    {
+                        value = reader.GetDouble(i);
+                    }
+                    else if (column.ProviderClrType == typeof(float))
+                    {
+                        value = reader.GetFloat(i);
+                    }
+                    else if (column.ProviderClrType == typeof(char))
+                    {
+                        value = reader.GetChar(i);
+                    }
+                    else if (column.ProviderClrType == typeof(short))
+                    {
+                        value = reader.GetInt16(i);
+                    }
+                    else
+                    {
+                        value = reader.GetValue(i);
+                    }
+
+                    column.SetEntityValueFromProvider(row, value);
+                }
+
+                result.Add(row);
             }
 
-            return await queryable.ToListAsync(cancellationToken: cancellationToken);
+            return result;
         }
 
         // If not returning data, just execute the command
@@ -141,7 +229,7 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
         BulkInsertOptions options,
         OnConflictOptions? onConflict = null,
         CancellationToken ctk = default
-    ) where T : class
+    ) where T : class, new()
     {
         var (connection, wasClosed, transaction, wasBegan) = await context.GetConnection(sync, ctk);
 
@@ -191,7 +279,7 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
         BulkInsertOptions options,
         OnConflictOptions? onConflict = null,
         CancellationToken ctk = default
-    ) where T : class
+    ) where T : class, new()
     {
         if (onConflict != null)
         {
@@ -228,10 +316,7 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
             ? await CreateTableCopyAsync<T>(sync, context, ctk)
             : GetQuotedTableName(context, typeof(T));
 
-        var properties = context
-            .GetProperties(typeof(T), false)
-            .Select(p => new PropertyAccessor(p))
-            .ToArray();
+        var properties = context.GetPropertyAccessors(typeof(T), false);
 
         await BulkInsert(false, context, entities, tableName, properties, options, ctk);
 
@@ -281,8 +366,8 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
 
     protected string[] GetQuotedColumns(DbContext context, Type entityType, bool includeGenerated = true)
     {
-        return context.GetProperties(entityType, includeGenerated)
-            .Select(p => Quote(p.GetColumnName()))
+        return context.GetPropertyAccessors(entityType, includeGenerated)
+            .Select(p => Quote(p.ColumnName))
             .ToArray();
     }
 }

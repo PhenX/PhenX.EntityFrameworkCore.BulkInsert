@@ -37,6 +37,44 @@ public abstract class BasicTestsBase : IAsyncLifetime
     }
 
     [Fact]
+    public async Task VariousColumnTypes()
+    {
+        // Arrange
+        var entities = new List<TestEntityWithMultipleTypes>
+        {
+            new()
+            {
+                Price = 10,
+                NullableIdentifier = Guid.NewGuid(),
+                NewPrice = 20,
+                SubEntity = new JsonEntity
+                {
+                    Name = "SubEntity1",
+                    Value = 100
+                }
+            },
+            new()
+            {
+                Price = 20,
+                NewPrice = -50,
+                NullableIdentifier = null
+            }
+        };
+
+        // Act
+        await DbContainer.DbContext.ExecuteInsertReturnEntitiesAsync(entities);
+
+        // Assert
+        DbContainer.DbContext.ChangeTracker.Clear();
+        var insertedEntities = DbContainer.DbContext.TestEntityWithMultipleTypes.ToList();
+        Assert.Equal(2, insertedEntities.Count);
+
+        Assert.Contains(insertedEntities, e => e.Price == 10 && e.NewPrice == 20);
+        Assert.Contains(insertedEntities, e => e.Price == 20 && e.NewPrice == -50);
+        Assert.Contains(insertedEntities, e => e.SubEntity != null && e.SubEntity.Name == "SubEntity1");
+    }
+
+    [Fact]
     public void InsertsEntitiesSuccessfully_Sync()
     {
         // Arrange
@@ -50,6 +88,7 @@ public abstract class BasicTestsBase : IAsyncLifetime
         DbContainer.DbContext.ExecuteInsertReturnEntities(entities);
 
         // Assert
+        DbContainer.DbContext.ChangeTracker.Clear();
         var insertedEntities = DbContainer.DbContext.TestEntities.ToList();
         Assert.Equal(2, insertedEntities.Count);
         Assert.Contains(insertedEntities, e => e.Name == "Entity1");

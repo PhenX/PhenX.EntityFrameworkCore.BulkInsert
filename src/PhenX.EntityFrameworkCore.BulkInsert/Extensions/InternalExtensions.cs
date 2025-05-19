@@ -10,9 +10,9 @@ namespace PhenX.EntityFrameworkCore.BulkInsert.Extensions;
 internal static class DbContextExtensions
 {
     /// <summary>
-    /// Gets cached properties for an entity type, using reflection if not already cached.
+    /// Gets properties for an entity type
     /// </summary>
-    internal static IProperty[] GetProperties(this DbContext context, Type entityType, bool includeGenerated = true)
+    private static IProperty[] GetSimpleProperties(this DbContext context, Type entityType, bool includeGenerated = true)
     {
         var entityTypeInfo = context.Model.FindEntityType(entityType) ?? throw new InvalidOperationException($"Could not determine entity type for type {entityType.Name}");
 
@@ -22,6 +22,28 @@ internal static class DbContextExtensions
             .ToArray();
     }
 
+    /// <summary>
+    /// Gets property accessors from an entity type
+    /// </summary>
+    internal static PropertyAccessor[] GetPropertyAccessors(this DbContext context, Type entityType, bool includeGenerated = true)
+    {
+        var simpleProperties = GetSimpleProperties(context, entityType, includeGenerated)
+            .Select(p => new PropertyAccessor(p));
+
+        var entityTypeInfo = context.Model.FindEntityType(entityType) ?? throw new InvalidOperationException($"Could not determine entity type for type {entityType.Name}");
+
+        var jsonColumns = entityTypeInfo
+            .GetNavigations()
+            .Where(n => n.TargetEntityType.IsOwned() && n.TargetEntityType.IsMappedToJson());
+
+        var jsonProperties = jsonColumns.Select(n => new PropertyAccessor(n));
+
+        return simpleProperties.Concat(jsonProperties).ToArray();
+    }
+
+    /// <summary>
+    /// Gets the DbContext connection and transaction, opening the connection if it is closed and beginning a transaction if one does not exist.
+    /// </summary>
     internal static async Task<(DbConnection connection, bool wasClosed, IDbContextTransaction transaction, bool wasBegan)> GetConnection(
             this DbContext context, bool sync, CancellationToken ctk = default)
     {

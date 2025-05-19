@@ -5,6 +5,8 @@ using Microsoft.Extensions.Logging;
 
 using Npgsql;
 
+using NpgsqlTypes;
+
 using PhenX.EntityFrameworkCore.BulkInsert.Options;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.PostgreSql;
@@ -64,7 +66,9 @@ internal class PostgreSqlBulkInsertProvider : BulkInsertProviderBase<PostgreSqlD
 
             foreach (var property in properties)
             {
-                var value = property.GetValue(entity);
+                var value = property.GetEntityValueToProvider(entity);
+
+                var t = property.ColumnType;
 
                 if (sync)
                 {

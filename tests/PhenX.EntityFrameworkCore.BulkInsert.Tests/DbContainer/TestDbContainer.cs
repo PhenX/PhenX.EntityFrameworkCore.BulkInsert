@@ -29,6 +29,14 @@ public abstract class TestDbContainer<TDbContext> : IAsyncLifetime
 
     protected abstract void Configure(DbContextOptionsBuilder optionsBuilder);
 
+    protected virtual void ConfigureModel(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<TestEntityWithMultipleTypes>(builder =>
+        {
+            builder.OwnsOne(p => p.SubEntity, owned => owned.ToJson("child_entity"));
+        });
+    }
+
     public async Task InitializeAsync()
     {
         if (DbContainer != null)
@@ -38,7 +46,8 @@ public abstract class TestDbContainer<TDbContext> : IAsyncLifetime
 
         DbContext = new TDbContext
         {
-            ConfigureOptions = Configure
+            ConfigureOptions = Configure,
+            ConfigureModel = ConfigureModel,
         };
         DbContext.Database.SetConnectionString(GetConnectionString());
 

@@ -28,7 +28,7 @@ internal class EnumerableDataReader<T> : IDataReader
     {
         if (_enumerator.Current != null)
         {
-            return _properties[i].GetValue(_enumerator.Current);
+            return _properties[i].GetEntityValueToProvider(_enumerator.Current);
         }
 
         return DBNull.Value;

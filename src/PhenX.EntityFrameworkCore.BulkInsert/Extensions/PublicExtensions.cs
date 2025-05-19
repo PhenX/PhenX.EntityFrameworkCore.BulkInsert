@@ -7,9 +7,9 @@ using PhenX.EntityFrameworkCore.BulkInsert.Options;
 namespace PhenX.EntityFrameworkCore.BulkInsert.Extensions;
 
 /// <summary>
-/// DbSet extensions for bulk insert operations.
+/// Public DbSet and DbContext extensions for bulk insert operations.
 /// </summary>
-public static class DbSetExtensions
+public static class PublicExtensions
 {
     /// <summary>
     /// Executes a bulk insert operation returning the inserted/updated entities, from the DbSet.
@@ -20,7 +20,7 @@ public static class DbSetExtensions
         Action<BulkInsertOptions>? configure = null,
         OnConflictOptions? onConflict = null,
         CancellationToken ctk = default
-    ) where T : class
+    ) where T : class, new()
     {
         var provider = InitProvider(dbSet, configure, out var context, out var options);
 
@@ -30,7 +30,7 @@ public static class DbSetExtensions
     /// <summary>
     /// Executes a bulk insert operation returning the inserted/updated entities, from the DbContext.
     /// </summary>
-    public static async Task<List<T>> ExecuteInsertReturnEntitiesAsync<T>(this DbContext dbContext, IEnumerable<T> entities, Action<BulkInsertOptions>? configure = null, OnConflictOptions? onConflict = null, CancellationToken cancellationToken = default) where T : class
+    public static async Task<List<T>> ExecuteInsertReturnEntitiesAsync<T>(this DbContext dbContext, IEnumerable<T> entities, Action<BulkInsertOptions>? configure = null, OnConflictOptions? onConflict = null, CancellationToken cancellationToken = default) where T : class, new()
     {
         var dbSet = dbContext.Set<T>();
         if (dbSet == null)
@@ -50,7 +50,7 @@ public static class DbSetExtensions
         Action<BulkInsertOptions>? configure = null,
         OnConflictOptions? onConflict = null,
         CancellationToken ctk = default
-    ) where T : class
+    ) where T : class, new()
     {
         var provider = InitProvider(dbSet, configure, out var context, out var options);
 
@@ -60,7 +60,7 @@ public static class DbSetExtensions
     /// <summary>
     /// Executes a bulk insert operation without returning the inserted/updated entities, from the DbContext.
     /// </summary>
-    public static async Task ExecuteInsertAsync<T>(this DbContext dbContext, IEnumerable<T> entities, Action<BulkInsertOptions>? configure = null, OnConflictOptions? onConflict = null, CancellationToken cancellationToken = default) where T : class
+    public static async Task ExecuteInsertAsync<T>(this DbContext dbContext, IEnumerable<T> entities, Action<BulkInsertOptions>? configure = null, OnConflictOptions? onConflict = null, CancellationToken cancellationToken = default) where T : class, new()
     {
         var dbSet = dbContext.Set<T>();
         if (dbSet == null)
@@ -79,7 +79,7 @@ public static class DbSetExtensions
         IEnumerable<T> entities,
         Action<BulkInsertOptions>? configure = null,
         OnConflictOptions? onConflict = null
-    ) where T : class
+    ) where T : class, new()
     {
         var provider = InitProvider(dbSet, configure, out var context, out var options);
 
@@ -94,7 +94,7 @@ public static class DbSetExtensions
         IEnumerable<T> entities,
         Action<BulkInsertOptions>? configure = null,
         OnConflictOptions? onConflict = null
-    ) where T : class
+    ) where T : class, new()
     {
         var dbSet = dbContext.Set<T>();
         if (dbSet == null)
@@ -113,7 +113,7 @@ public static class DbSetExtensions
         IEnumerable<T> entities,
         Action<BulkInsertOptions>? configure = null,
         OnConflictOptions? onConflict = null
-    ) where T : class
+    ) where T : class, new()
     {
         var provider = InitProvider(dbSet, configure, out var context, out var options);
 
@@ -128,7 +128,7 @@ public static class DbSetExtensions
         IEnumerable<T> entities,
         Action<BulkInsertOptions>? configure = null,
         OnConflictOptions? onConflict = null
-    ) where T : class
+    ) where T : class, new()
     {
         var dbSet = dbContext.Set<T>();
         if (dbSet == null)

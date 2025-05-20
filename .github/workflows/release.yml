@@ -1,0 +1,51 @@
+﻿name: dotnet release
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+env:
+  VERSION: 0.0.1
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify commit exists in origin/master
+        run: |
+          git fetch --no-tags --prune --depth=1 origin +refs/heads/*:refs/remotes/origin/*
+          git branch --remote --contains | grep origin/master
+
+      - name: Set Version Variable
+        if: ${{ github.ref_type == 'tag' }}
+        env:
+          TAG: ${{ github.ref_name }}
+        run: echo "VERSION=${TAG#v}" >> $GITHUB_ENV
+
+      - name: Setup .NET 8.0
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Setup .NET 9.0
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore /p:Version=$VERSION
+
+      - name: Test
+        run: dotnet test --no-build --verbosity normal
+
+      - name: Pack nuget packages
+        run: dotnet pack --output nupkgs --no-restore --no-build /p:PackageVersion=$VERSION
+
+      - name: Upload nuget package
+        if: github.ref_type == 'tag' && startsWith(github.ref, 'refs/tags/v')
+        run: dotnet nuget push nupkgs/*.nupkg -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json

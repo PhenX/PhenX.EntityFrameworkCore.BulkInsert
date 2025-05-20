@@ -21,7 +21,6 @@
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageTags>sql sqlite postgresql entity-framework sqlbulkcopy efcore entity-framework-core sqlserver bulk-insert</PackageTags>
         <PackageReadmeFile>README.md</PackageReadmeFile>
-        <PackageVersion>0.1.0</PackageVersion>
         <PackageIcon>icon.png</PackageIcon>
         <PackageReleaseNotes>https://github.com/PhenX/PhenX.EntityFrameworkCore.BulkInsert/releases</PackageReleaseNotes>
     </PropertyGroup>

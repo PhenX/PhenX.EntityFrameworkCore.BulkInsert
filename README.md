@@ -73,23 +73,34 @@ await dbContext.ExecuteInsertWithIdentityAsync(entities, options => {});
 - [ ] Add support for TPH (Table Per Hierarchy) inheritance
 
 ## Benchmarks
+
 Benchmark projects are available in the [`tests/PhenX.EntityFrameworkCore.BulkInsert.Benchmark`](tests/PhenX.EntityFrameworkCore.BulkInsert.Benchmark/LibComparator.cs) directory.
-Run them to compare performance with other libraries (https://github.com/borisdj/EFCore.BulkExtensions and https://entityframework-extensions.net/bulk-extensions),
-using optimized configuration (local Docker is required).
+Run them to compare performance with raw bulk insert methods and other libraries (https://github.com/borisdj/EFCore.BulkExtensions
+and https://entityframework-extensions.net/bulk-extensions), using optimized configuration (local Docker is required).
 
-There is no need to compare with basic EF Core SaveChangesAsync, as it is significantly slower.
+Legend :
+ * `PhenX_EntityFrameworkCore_BulkInsert`: this library
+ * `RawInsert`: no library, using the native provider API (SqlBulkCopy for SQL Server, BeginBinaryImport for PostgreSQL, raw inserts for SQLite)
+ * `Z_EntityFramework_Extensions_EFCore`: https://entityframework-extensions.net/bulk-extensions
+ * `EFCore_BulkExtensions`: https://github.com/borisdj/EFCore.BulkExtensions
+ * `EFCore_SaveChanges`: EF Core SaveChanges classic method
 
-SQL Server results :
-![bench-sqlserver.png](images/bench-sqlserver.png)
+SQL Server results with 500 000 rows :
 
-PostgreSQL results :
-![bench-postgresql.png](images/bench-postgresql.png)
+![bench-sqlserver.png](https://raw.githubusercontent.com/PhenX/PhenX.EntityFrameworkCore.BulkInsert/refs/heads/master/images/bench-sqlserver.png)
 
-SQLite results :
-![bench-sqlite.png](images/bench-sqlite.png)
+PostgreSQL results with 500 000 rows :
+
+![bench-postgresql.png](https://raw.githubusercontent.com/PhenX/PhenX.EntityFrameworkCore.BulkInsert/refs/heads/master/images/bench-postgresql.png)
+
+SQLite results with 500 000 rows :
+
+![bench-sqlite.png](https://raw.githubusercontent.com/PhenX/PhenX.EntityFrameworkCore.BulkInsert/refs/heads/master/images/bench-sqlite.png)
 
 ## Contributing
+
 Contributions are welcome! Please open issues or submit pull requests for bug fixes, features, or documentation improvements.
 
 ## License
+
 MIT License. See [LICENSE](LICENSE) for details.

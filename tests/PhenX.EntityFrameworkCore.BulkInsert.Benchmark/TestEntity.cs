@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 namespace PhenX.EntityFrameworkCore.BulkInsert.Benchmark;
 
 [PrimaryKey(nameof(Id))]
+[Table(nameof(TestEntity))]
 public class TestEntity
 {
     public int Id { get; set; }

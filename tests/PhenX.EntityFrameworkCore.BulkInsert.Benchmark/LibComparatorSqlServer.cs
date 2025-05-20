@@ -5,6 +5,7 @@ using DotNet.Testcontainers.Containers;
 
 using Microsoft.EntityFrameworkCore;
 
+using PhenX.EntityFrameworkCore.BulkInsert.Sqlite;
 using PhenX.EntityFrameworkCore.BulkInsert.SqlServer;
 
 using Testcontainers.MsSql;
@@ -22,7 +23,7 @@ public class LibComparatorSqlServer : LibComparator
 
         DbContext = new TestDbContext(p => p
             .UseSqlServer(connectionString)
-            .UseExecuteInsertSqlServer()
+            .UseBulkInsertSqlServer()
         );
     }
 

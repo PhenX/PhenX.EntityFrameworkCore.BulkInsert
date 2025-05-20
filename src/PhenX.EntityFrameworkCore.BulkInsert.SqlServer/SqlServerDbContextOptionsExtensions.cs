@@ -11,9 +11,9 @@ public static class SqlServerDbContextOptionsExtensions
     /// <summary>
     /// Configures the DbContext to use the SQL Server bulk insert provider.
     /// </summary>
-    public static DbContextOptionsBuilder UseExecuteInsertSqlServer(this DbContextOptionsBuilder optionsBuilder)
+    public static DbContextOptionsBuilder UseBulkInsertSqlServer(this DbContextOptionsBuilder optionsBuilder)
     {
-        var extension = optionsBuilder.Options.FindExtension<ExecuteInsertOptionsExtension<SqlServerBulkInsertProvider>>() ?? new ExecuteInsertOptionsExtension<SqlServerBulkInsertProvider>();
+        var extension = optionsBuilder.Options.FindExtension<BulkInsertOptionsExtension<SqlServerBulkInsertProvider>>() ?? new BulkInsertOptionsExtension<SqlServerBulkInsertProvider>();
 
         ((IDbContextOptionsBuilderInfrastructure)optionsBuilder).AddOrUpdateExtension(extension);
 

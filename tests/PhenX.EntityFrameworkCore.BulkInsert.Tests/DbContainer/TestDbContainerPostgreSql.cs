@@ -25,6 +25,6 @@ public class TestDbContainerPostgreSql<TDbContext> : TestDbContainer<TDbContext>
     {
         optionsBuilder
             .UseNpgsql()
-            .UseExecuteInsertPostgreSql();
+            .UseBulkInsertPostgreSql();
     }
 }

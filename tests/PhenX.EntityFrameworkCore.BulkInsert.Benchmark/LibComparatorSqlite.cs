@@ -20,7 +20,7 @@ public class LibComparatorSqlite : LibComparator
 
         DbContext = new TestDbContext(p => p
             .UseSqlite(connectionString)
-            .UseExecuteInsertSqlite()
+            .UseBulkInsertSqlite()
         );
     }
 

@@ -22,6 +22,6 @@ public class TestDbContainerSqlite<TDbContext> : TestDbContainer<TDbContext>
     {
         optionsBuilder
             .UseSqlite()
-            .UseExecuteInsertSqlite();
+            .UseBulkInsertSqlite();
     }
 }

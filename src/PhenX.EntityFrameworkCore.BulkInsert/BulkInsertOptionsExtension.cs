@@ -5,11 +5,11 @@ using PhenX.EntityFrameworkCore.BulkInsert.Abstractions;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert;
 
-internal class ExecuteInsertOptionsExtension<TProvider> : IDbContextOptionsExtension
+internal class BulkInsertOptionsExtension<TProvider> : IDbContextOptionsExtension
     where TProvider : class, IBulkInsertProvider
 {
     public DbContextOptionsExtensionInfo Info
-        => new ExecuteInsertOptionsExtensionInfo(this);
+        => new BulkInsertOptionsExtensionInfo(this);
 
     public void ApplyServices(IServiceCollection services)
     {
@@ -20,9 +20,9 @@ internal class ExecuteInsertOptionsExtension<TProvider> : IDbContextOptionsExten
     {
     }
 
-    private class ExecuteInsertOptionsExtensionInfo : DbContextOptionsExtensionInfo
+    private class BulkInsertOptionsExtensionInfo : DbContextOptionsExtensionInfo
     {
-        public ExecuteInsertOptionsExtensionInfo(IDbContextOptionsExtension extension)
+        public BulkInsertOptionsExtensionInfo(IDbContextOptionsExtension extension)
             : base(extension) { }
 
         /// <inheritdoc />
@@ -35,7 +35,7 @@ internal class ExecuteInsertOptionsExtension<TProvider> : IDbContextOptionsExten
         public override bool IsDatabaseProvider => false;
 
         /// <inheritdoc />
-        public override string LogFragment => "ExecuteInsertOptionsExtension";
+        public override string LogFragment => "BulkInsertOptionsExtension";
 
         /// <inheritdoc />
         public override void PopulateDebugInfo(IDictionary<string, string> debugInfo)

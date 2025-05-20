@@ -27,7 +27,7 @@ public abstract class BasicTestsBase : IAsyncLifetime
         };
 
         // Act
-        await DbContainer.DbContext.ExecuteInsertReturnEntitiesAsync(entities);
+        await DbContainer.DbContext.ExecuteBulkInsertReturnEntitiesAsync(entities);
 
         // Assert
         var insertedEntities = DbContainer.DbContext.TestEntities.ToList();
@@ -47,7 +47,7 @@ public abstract class BasicTestsBase : IAsyncLifetime
         };
 
         // Act
-        DbContainer.DbContext.ExecuteInsertReturnEntities(entities);
+        DbContainer.DbContext.ExecuteBulkInsertReturnEntities(entities);
 
         // Assert
         var insertedEntities = DbContainer.DbContext.TestEntities.ToList();
@@ -67,7 +67,7 @@ public abstract class BasicTestsBase : IAsyncLifetime
         };
 
         // Act
-        await DbContainer.DbContext.ExecuteInsertReturnEntitiesAsync(entities, o =>
+        await DbContainer.DbContext.ExecuteBulkInsertReturnEntitiesAsync(entities, o =>
         {
             o.MoveRows = true;
         });
@@ -94,7 +94,7 @@ public abstract class BasicTestsBase : IAsyncLifetime
         };
 
         // Act
-        await DbContainer.DbContext.ExecuteInsertAsync(entities, o =>
+        await DbContainer.DbContext.ExecuteBulkInsertAsync(entities, o =>
         {
             o.MoveRows = true;
         }, new OnConflictOptions<TestEntity>
@@ -129,7 +129,7 @@ public abstract class BasicTestsBase : IAsyncLifetime
             new TestEntity { Name = "Entity2" },
         };
 
-        await DbContainer.DbContext.ExecuteInsertAsync(entities, o =>
+        await DbContainer.DbContext.ExecuteBulkInsertAsync(entities, o =>
         {
             o.MoveRows = true;
         }, new OnConflictOptions<TestEntity>
@@ -159,7 +159,7 @@ public abstract class BasicTestsBase : IAsyncLifetime
             new TestEntity { Name = "Entity2", Price = 30 },
         };
 
-        await DbContainer.DbContext.ExecuteInsertAsync(entities, o =>
+        await DbContainer.DbContext.ExecuteBulkInsertAsync(entities, o =>
         {
             o.MoveRows = true;
         }, new OnConflictOptions<TestEntity>
@@ -188,7 +188,7 @@ public abstract class BasicTestsBase : IAsyncLifetime
             new TestEntity { Name = "Entity2", Price = 30, Identifier = Guid.NewGuid() },
         };
 
-        await DbContainer.DbContext.ExecuteInsertAsync(entities, o =>
+        await DbContainer.DbContext.ExecuteBulkInsertAsync(entities, o =>
         {
             o.MoveRows = true;
         }, new OnConflictOptions<TestEntity>
@@ -216,7 +216,7 @@ public abstract class BasicTestsBase : IAsyncLifetime
         var entities = new List<TestEntity>();
 
         // Act
-        await Assert.ThrowsAsync<InvalidOperationException>(async () => await DbContainer.DbContext.ExecuteInsertAsync(entities));
+        await Assert.ThrowsAsync<InvalidOperationException>(async () => await DbContainer.DbContext.ExecuteBulkInsertAsync(entities));
 
         // Assert
         var insertedEntities = DbContainer.DbContext.TestEntities.ToList();
@@ -239,7 +239,7 @@ public abstract class BasicTestsBase : IAsyncLifetime
         }).ToList();
 
         // Act
-        await DbContainer.DbContext.ExecuteInsertAsync(entities, o =>
+        await DbContainer.DbContext.ExecuteBulkInsertAsync(entities, o =>
         {
             o.MoveRows = false;
         });
@@ -263,7 +263,7 @@ public abstract class BasicTestsBase : IAsyncLifetime
         };
 
         // Act
-        await DbContainer.DbContext.ExecuteInsertAsync(entities);
+        await DbContainer.DbContext.ExecuteBulkInsertAsync(entities);
         var inserted = DbContainer.DbContext.TestEntitiesWithConverters.ToList();
 
         // Assert
@@ -284,7 +284,7 @@ public abstract class BasicTestsBase : IAsyncLifetime
 
         await using var transaction = await DbContainer.DbContext.Database.BeginTransactionAsync();
 
-        await DbContainer.DbContext.ExecuteInsertAsync(entities);
+        await DbContainer.DbContext.ExecuteBulkInsertAsync(entities);
 
         await transaction.CommitAsync();
 
@@ -306,7 +306,7 @@ public abstract class BasicTestsBase : IAsyncLifetime
 
         var transaction = DbContainer.DbContext.Database.BeginTransaction();
 
-        DbContainer.DbContext.ExecuteInsert(entities);
+        DbContainer.DbContext.ExecuteBulkInsert(entities);
 
         transaction.Commit();
 
@@ -328,7 +328,7 @@ public abstract class BasicTestsBase : IAsyncLifetime
 
         await using var transaction = await DbContainer.DbContext.Database.BeginTransactionAsync();
 
-        await DbContainer.DbContext.ExecuteInsertAsync(entities);
+        await DbContainer.DbContext.ExecuteBulkInsertAsync(entities);
 
         await transaction.RollbackAsync();
 
@@ -351,7 +351,7 @@ public abstract class BasicTestsBase : IAsyncLifetime
 
         using var transaction = DbContainer.DbContext.Database.BeginTransaction();
 
-        DbContainer.DbContext.ExecuteInsert(entities);
+        DbContainer.DbContext.ExecuteBulkInsert(entities);
 
         transaction.Rollback();
 

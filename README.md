@@ -1,12 +1,12 @@
 # PhenX.EntityFrameworkCore.BulkInsert
 
-A high-performance, provider-agnostic bulk insert extension for Entity Framework Core. Supports SQL Server, PostgreSQL, SQLite.
+A high-performance, provider-agnostic bulk insert extension for Entity Framework Core 8+. Supports SQL Server, PostgreSQL, SQLite.
 
 Its main purpose is to provide a fast way to perform simple bulk inserts in Entity Framework Core applications.
 
 ## Why this library?
 
-- **Performance**: It is designed to be fast and efficient, making it suitable for high-performance applications.
+- **Performance**: It is designed to be fast and memory efficient, making it suitable for high-performance applications.
 - **Provider-agnostic**: It works with multiple database providers (SQL Server, PostgreSQL, and SQLite), allowing you to use it in different environments without changing your code.
 - **Simplicity**: The API is simple and easy to use, making it accessible for developers of all skill levels.
 
@@ -37,20 +37,30 @@ services.AddDbContext<MyDbContext>(options =>
 {
     options
         // .UseSqlServer(connectionString) // or UseNpgsql or UseSqlite, as appropriate
-        .UseBulkInsert(); // <<< The important part
+
+        .UseBulkInsertPostgreSql()
+        // OR
+        .UseBulkInsertSqlServer()
+        // OR
+        .UseBulkInsertSqlite()
+        ;
 });
 ```
 
 2. Use the bulk insert extension method:
 
 ```csharp
-await dbContext.ExecuteInsertAsync(entities);
+// Asynchronously
+await dbContext.ExecuteBulkInsertAsync(entities);
+
+// Or synchronously
+dbContext.ExecuteBulkInsert(entities);
 ```
 
 3. Optionally, you can configure the bulk insert options:
 
 ```csharp
-await dbContext.ExecuteInsertAsync(entities, options =>
+await dbContext.ExecuteBulkInsertAsync(entities, options =>
 {
     options.BatchSize = 1000; // Set the batch size for the insert operation, the default value is different for each provider
 });
@@ -59,7 +69,7 @@ await dbContext.ExecuteInsertAsync(entities, options =>
 4. You can also return the inserted entities (slower):
 
 ```csharp
-await dbContext.ExecuteInsertWithIdentityAsync(entities, options => {});
+await dbContext.ExecuteBulkInsertReturnEntitiesAsync(entities);
 ```
 
 ## Roadmap

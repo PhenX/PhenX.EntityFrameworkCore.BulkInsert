@@ -11,9 +11,9 @@ public static class SqliteDbContextOptionsExtensions
     /// <summary>
     /// Configures the DbContext to use the SQLite bulk insert provider.
     /// </summary>
-    public static DbContextOptionsBuilder UseExecuteInsertSqlite(this DbContextOptionsBuilder optionsBuilder)
+    public static DbContextOptionsBuilder UseBulkInsertSqlite(this DbContextOptionsBuilder optionsBuilder)
     {
-        var extension = optionsBuilder.Options.FindExtension<ExecuteInsertOptionsExtension<SqliteBulkInsertProvider>>() ?? new ExecuteInsertOptionsExtension<SqliteBulkInsertProvider>();
+        var extension = optionsBuilder.Options.FindExtension<BulkInsertOptionsExtension<SqliteBulkInsertProvider>>() ?? new BulkInsertOptionsExtension<SqliteBulkInsertProvider>();
         ((IDbContextOptionsBuilderInfrastructure)optionsBuilder).AddOrUpdateExtension(extension);
         return optionsBuilder;
     }

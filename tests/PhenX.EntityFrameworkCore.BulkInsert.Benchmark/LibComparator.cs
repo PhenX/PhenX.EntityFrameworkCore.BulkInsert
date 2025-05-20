@@ -60,13 +60,13 @@ public abstract class LibComparator
     [Benchmark(Baseline = true)]
     public async Task PhenX_EntityFrameworkCore_BulkInsert()
     {
-        await DbContext.ExecuteInsertAsync(data);
+        await DbContext.ExecuteBulkInsertAsync(data);
     }
     //
     // [Benchmark]
     // public void PhenX_EntityFrameworkCore_BulkInsert_Sync()
     // {
-    //     DbContext.ExecuteInsert(data);
+    //     DbContext.ExecuteBulkInsert(data);
     // }
 
     [Benchmark]

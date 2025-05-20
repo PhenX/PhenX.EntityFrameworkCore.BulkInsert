@@ -21,6 +21,6 @@ public class TestDbContainerSqlServer<TDbContext> : TestDbContainer<TDbContext>
     {
         optionsBuilder
             .UseSqlServer()
-            .UseExecuteInsertSqlServer();
+            .UseBulkInsertSqlServer();
     }
 }

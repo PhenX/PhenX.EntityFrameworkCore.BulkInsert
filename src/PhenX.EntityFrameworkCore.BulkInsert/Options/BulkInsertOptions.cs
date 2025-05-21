@@ -37,4 +37,14 @@ public class BulkInsertOptions
     /// Indicates if also generated columns should be copied. This is useful for upsert operations.
     /// </summary>
     public bool CopyGeneratedColumns { get; set; }
+    
+    /// <summary>
+    /// The timeout to copy records.
+    /// </summary>
+    public TimeSpan CopyTimeout = TimeSpan.FromMinutes(10);
+
+    internal int GetCopyTimeoutInSeconds()
+    {
+        return Math.Max(0, (int)CopyTimeout.TotalSeconds);
+    }
 }

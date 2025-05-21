@@ -1,4 +1,4 @@
-﻿using System.Linq.Expressions;
+using System.Linq.Expressions;
 using System.Text;
 
 using Microsoft.EntityFrameworkCore;
@@ -15,6 +15,7 @@ internal abstract class SqlDialectBuilder
 
     protected virtual string ConcatOperator => "||";
     protected virtual bool SupportsMoveRows => true;
+    public virtual bool SupportsReturning => true;
 
     /// <summary>
     /// Gets the name of the column for a property in a given entity type.
@@ -116,6 +117,33 @@ internal abstract class SqlDialectBuilder
         {
             q.AppendLine($"RETURNING {columnList}");
         }
+
+        q.AppendLine(";");
+
+        return q.ToString();
+    }
+
+    /// <summary>
+    /// Builds the SQL for selecting data from one table.
+    /// </summary>
+    /// <param name="context">The DbContext</param>
+    /// <param name="source">Source table name</param>
+    /// <param name="insertedProperties">Properties to be copied</param>
+    /// <typeparam name="T">Entity type</typeparam>
+    /// <returns>The SQL query</returns>
+    public virtual string BuildSelectSql<T>(DbContext context, string source,
+        IProperty[] insertedProperties)
+    {
+        var insertedColumns = insertedProperties.Select(p => Quote(p.GetColumnName()));
+        var insertedColumnList = string.Join(", ", insertedColumns);
+
+        var q = new StringBuilder();
+
+        q.AppendLine($"""
+            SELECT {insertedColumnList}
+            FROM {source}
+            WHERE TRUE
+            """);
 
         q.AppendLine(";");
 

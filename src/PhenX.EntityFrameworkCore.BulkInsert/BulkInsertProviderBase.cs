@@ -108,13 +108,34 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
     {
         var (schemaName, tableName, _) = GetTableInfo(context, typeof(T));
         var quotedTableName = QuoteTableName(schemaName, tableName);
-
         var movedProperties = context.GetProperties(typeof(T), false);
         var returnedProperties = returnData ? context.GetProperties(typeof(T)) : [];
+
+        if (returnData && !SqlDialect.SupportsReturning)
+        {
+            var moveQuery = SqlDialect.BuildMoveDataSql<T>(context, tempTableName, quotedTableName, movedProperties, [], options, onConflict);
+
+            // Just copy the values first.
+            await ExecuteAsync(sync, context, moveQuery, cancellationToken);
+
+            // Then query them.
+            var selectQuery = SqlDialect.BuildSelectSql<T>(context, tempTableName, returnedProperties);
+
+            return await QueryAsync(sync, context, selectQuery, cancellationToken);
+        }
 
         var query = SqlDialect.BuildMoveDataSql<T>(context, tempTableName, quotedTableName, movedProperties, returnedProperties, options, onConflict);
 
         if (returnData)
+        {
+            return await QueryAsync(sync, context, query, cancellationToken);
+        }
+
+        // If not returning data, just execute the command
+        await ExecuteAsync(sync, context, query, cancellationToken);
+        return [];
+
+        static async Task<List<TResult>> QueryAsync(bool sync, DbContext context, string query, CancellationToken cancellationToken)
         {
             // Use EF to execute the query and return the results
             IQueryable<TResult> queryable = context
@@ -128,10 +149,6 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
 
             return await queryable.ToListAsync(cancellationToken: cancellationToken);
         }
-
-        // If not returning data, just execute the command
-        await ExecuteAsync(sync, context, query, cancellationToken);
-        return [];
     }
 
     public async Task<List<T>> BulkInsertReturnEntities<T>(

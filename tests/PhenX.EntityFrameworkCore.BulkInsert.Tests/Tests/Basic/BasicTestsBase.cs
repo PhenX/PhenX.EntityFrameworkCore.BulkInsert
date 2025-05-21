@@ -1,4 +1,4 @@
-﻿using PhenX.EntityFrameworkCore.BulkInsert.Extensions;
+using PhenX.EntityFrameworkCore.BulkInsert.Extensions;
 using PhenX.EntityFrameworkCore.BulkInsert.Options;
 using PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContainer;
 using PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContext;
@@ -9,6 +9,14 @@ namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.Tests.Basic;
 
 public abstract class BasicTestsBase : IAsyncLifetime
 {
+    private static int Id = (int)DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+    private readonly string _prefix = Guid.NewGuid().ToString();
+
+    public static int GetId()
+    {
+        return Interlocked.Increment(ref Id) + 1;
+    }
+
     protected BasicTestsBase(TestDbContainer<TestDbContext> dbContainer)
     {
         DbContainer = dbContainer;
@@ -22,8 +30,8 @@ public abstract class BasicTestsBase : IAsyncLifetime
         // Arrange
         var entities = new List<TestEntity>
         {
-            new TestEntity { Id = 1, Name = "Entity1" },
-            new TestEntity { Id = 2, Name = "Entity2" }
+            new TestEntity { Id = GetId(), Name = $"{_prefix}_Entity1" },
+            new TestEntity { Id = GetId(), Name = $"{_prefix}_Entity2" }
         };
 
         // Act
@@ -32,8 +40,8 @@ public abstract class BasicTestsBase : IAsyncLifetime
         // Assert
         var insertedEntities = DbContainer.DbContext.TestEntities.ToList();
         Assert.Equal(2, insertedEntities.Count);
-        Assert.Contains(insertedEntities, e => e.Name == "Entity1");
-        Assert.Contains(insertedEntities, e => e.Name == "Entity2");
+        Assert.Contains(insertedEntities, e => e.Name == $"{_prefix}_Entity1");
+        Assert.Contains(insertedEntities, e => e.Name == $"{_prefix}_Entity2");
     }
 
     [Fact]
@@ -42,8 +50,8 @@ public abstract class BasicTestsBase : IAsyncLifetime
         // Arrange
         var entities = new List<TestEntity>
         {
-            new TestEntity { Id = 1, Name = "Entity1" },
-            new TestEntity { Id = 2, Name = "Entity2" }
+            new TestEntity { Id = GetId(), Name = $"{_prefix}_Entity1" },
+            new TestEntity { Id = GetId(), Name = $"{_prefix}_Entity2" }
         };
 
         // Act
@@ -52,8 +60,8 @@ public abstract class BasicTestsBase : IAsyncLifetime
         // Assert
         var insertedEntities = DbContainer.DbContext.TestEntities.ToList();
         Assert.Equal(2, insertedEntities.Count);
-        Assert.Contains(insertedEntities, e => e.Name == "Entity1");
-        Assert.Contains(insertedEntities, e => e.Name == "Entity2");
+        Assert.Contains(insertedEntities, e => e.Name == $"{_prefix}_Entity1");
+        Assert.Contains(insertedEntities, e => e.Name == $"{_prefix}_Entity2");
     }
 
     [Fact]
@@ -62,8 +70,8 @@ public abstract class BasicTestsBase : IAsyncLifetime
         // Arrange
         var entities = new List<TestEntity>
         {
-            new TestEntity { Id = 1, Name = "Entity1" },
-            new TestEntity { Id = 2, Name = "Entity2" }
+            new TestEntity { Id = GetId(), Name = $"{_prefix}_Entity1" },
+            new TestEntity { Id = GetId(), Name = $"{_prefix}_Entity2" }
         };
 
         // Act
@@ -75,22 +83,22 @@ public abstract class BasicTestsBase : IAsyncLifetime
         // Assert
         var insertedEntities = DbContainer.DbContext.TestEntities.ToList();
         Assert.Equal(2, insertedEntities.Count);
-        Assert.Contains(insertedEntities, e => e.Name == "Entity1");
-        Assert.Contains(insertedEntities, e => e.Name == "Entity2");
+        Assert.Contains(insertedEntities, e => e.Name == $"{_prefix}_Entity1");
+        Assert.Contains(insertedEntities, e => e.Name == $"{_prefix}_Entity2");
     }
 
     [Fact]
     public async Task InsertsEntitiesWithConflict_SingleColumn()
     {
-        DbContainer.DbContext.TestEntities.Add(new TestEntity { Name = "Entity1" });
+        DbContainer.DbContext.TestEntities.Add(new TestEntity { Name = $"{_prefix}_Entity1" });
         await DbContainer.DbContext.SaveChangesAsync();
         DbContainer.DbContext.ChangeTracker.Clear();
 
         // Arrange
         var entities = new List<TestEntity>
         {
-            new TestEntity { Name = "Entity1" },
-            new TestEntity { Name = "Entity2" },
+            new TestEntity { Name = $"{_prefix}_Entity1" },
+            new TestEntity { Name = $"{_prefix}_Entity2" },
         };
 
         // Act
@@ -113,20 +121,20 @@ public abstract class BasicTestsBase : IAsyncLifetime
         var insertedEntities = DbContainer.DbContext.TestEntities.ToList();
         Assert.Equal(2, insertedEntities.Count);
         Assert.Contains(insertedEntities, e => e.Name == "Entity1 - Conflict");
-        Assert.Contains(insertedEntities, e => e.Name == "Entity2");
+        Assert.Contains(insertedEntities, e => e.Name == $"{_prefix}_Entity2");
     }
 
     [Fact]
     public async Task InsertsEntitiesWithConflict_DoNothing()
     {
-        DbContainer.DbContext.TestEntities.Add(new TestEntity { Name = "Entity1" });
+        DbContainer.DbContext.TestEntities.Add(new TestEntity { Name = $"{_prefix}_Entity1" });
         await DbContainer.DbContext.SaveChangesAsync();
         DbContainer.DbContext.ChangeTracker.Clear();
 
         var entities = new List<TestEntity>
         {
-            new TestEntity { Name = "Entity1" },
-            new TestEntity { Name = "Entity2" },
+            new TestEntity { Name = $"{_prefix}_Entity1" },
+            new TestEntity { Name = $"{_prefix}_Entity2" },
         };
 
         await DbContainer.DbContext.ExecuteBulkInsertAsync(entities, o =>
@@ -140,8 +148,8 @@ public abstract class BasicTestsBase : IAsyncLifetime
 
         var insertedEntities = DbContainer.DbContext.TestEntities.ToList();
         Assert.Equal(2, insertedEntities.Count);
-        Assert.Contains(insertedEntities, e => e.Name == "Entity1");
-        Assert.Contains(insertedEntities, e => e.Name == "Entity2");
+        Assert.Contains(insertedEntities, e => e.Name == $"{_prefix}_Entity1");
+        Assert.Contains(insertedEntities, e => e.Name == $"{_prefix}_Entity2");
     }
 
     [SkippableFact]
@@ -149,14 +157,14 @@ public abstract class BasicTestsBase : IAsyncLifetime
     {
         // Skip.If(DbContainer.DbContext.Database.ProviderName!.Contains("Npgsql", StringComparison.InvariantCultureIgnoreCase));
 
-        DbContainer.DbContext.TestEntities.Add(new TestEntity { Name = "Entity1", Price = 10 });
+        DbContainer.DbContext.TestEntities.Add(new TestEntity { Name = $"{_prefix}_Entity1", Price = 10 });
         await DbContainer.DbContext.SaveChangesAsync();
         DbContainer.DbContext.ChangeTracker.Clear();
 
         var entities = new List<TestEntity>
         {
-            new TestEntity { Name = "Entity1", Price = 20 },
-            new TestEntity { Name = "Entity2", Price = 30 },
+            new TestEntity { Name = $"{_prefix}_Entity1", Price = 20 },
+            new TestEntity { Name = $"{_prefix}_Entity2", Price = 30 },
         };
 
         await DbContainer.DbContext.ExecuteBulkInsertAsync(entities, o =>
@@ -171,21 +179,21 @@ public abstract class BasicTestsBase : IAsyncLifetime
 
         var insertedEntities = DbContainer.DbContext.TestEntities.ToList();
         Assert.Equal(2, insertedEntities.Count);
-        Assert.Contains(insertedEntities, e => e.Name == "Entity1" && e.Price == 20);
-        Assert.Contains(insertedEntities, e => e.Name == "Entity2" && e.Price == 30);
+        Assert.Contains(insertedEntities, e => e.Name == $"{_prefix}_Entity1" && e.Price == 20);
+        Assert.Contains(insertedEntities, e => e.Name == $"{_prefix}_Entity2" && e.Price == 30);
     }
 
     [Fact]
     public async Task InsertsEntitiesWithConflict_MultipleColumns()
     {
-        DbContainer.DbContext.TestEntities.Add(new TestEntity { Name = "Entity1", Price = 10 });
+        DbContainer.DbContext.TestEntities.Add(new TestEntity { Name = $"{_prefix}_Entity1", Price = 10 });
         await DbContainer.DbContext.SaveChangesAsync();
         DbContainer.DbContext.ChangeTracker.Clear();
 
         var entities = new List<TestEntity>
         {
-            new TestEntity { Name = "Entity1", Price = 20, Identifier = Guid.NewGuid() },
-            new TestEntity { Name = "Entity2", Price = 30, Identifier = Guid.NewGuid() },
+            new TestEntity { Name = $"{_prefix}_Entity1", Price = 20, Identifier = Guid.NewGuid() },
+            new TestEntity { Name = $"{_prefix}_Entity2", Price = 30, Identifier = Guid.NewGuid() },
         };
 
         await DbContainer.DbContext.ExecuteBulkInsertAsync(entities, o =>
@@ -203,7 +211,7 @@ public abstract class BasicTestsBase : IAsyncLifetime
         var insertedEntities = DbContainer.DbContext.TestEntities.ToList();
         Assert.Equal(2, insertedEntities.Count);
         Assert.Equal(1, insertedEntities.Count(e => e.Name == "Entity1 - Conflict"));
-        Assert.Contains(insertedEntities, e => e.Name == "Entity2");
+        Assert.Contains(insertedEntities, e => e.Name == $"{_prefix}_Entity2");
 
         var entity1 = insertedEntities.First(e => e.Name == "Entity1 - Conflict");
         Assert.Equal(0, entity1.Price);
@@ -247,7 +255,7 @@ public abstract class BasicTestsBase : IAsyncLifetime
         // Assert
         var insertedEntities = DbContainer.DbContext.TestEntities.ToList();
         Assert.Equal(count, insertedEntities.Count);
-        Assert.Contains(insertedEntities, e => e.Name == "Entity1");
+        Assert.Contains(insertedEntities, e => e.Name == $"{_prefix}_Entity1");
         Assert.Contains(insertedEntities, e => e.Name == "Entity" + count);
     }
 
@@ -258,8 +266,8 @@ public abstract class BasicTestsBase : IAsyncLifetime
         var now = DateTime.UtcNow;
         var entities = new List<TestEntityWithConverters>
         {
-            new() { Name = "Entity1", CreatedAt = now },
-            new() { Name = "Entity2", CreatedAt = now.AddDays(-1) }
+            new() { Name = $"{_prefix}_Entity1", CreatedAt = now },
+            new() { Name = $"{_prefix}_Entity2", CreatedAt = now.AddDays(-1) }
         };
 
         // Act
@@ -268,8 +276,8 @@ public abstract class BasicTestsBase : IAsyncLifetime
 
         // Assert
         Assert.Equal(2, inserted.Count);
-        Assert.Contains(inserted, e => e.Name == "Entity1" && e.CreatedAt == now);
-        Assert.Contains(inserted, e => e.Name == "Entity2" && e.CreatedAt == now.AddDays(-1));
+        Assert.Contains(inserted, e => e.Name == $"{_prefix}_Entity1" && e.CreatedAt == now);
+        Assert.Contains(inserted, e => e.Name == $"{_prefix}_Entity2" && e.CreatedAt == now.AddDays(-1));
     }
 
     [Fact]

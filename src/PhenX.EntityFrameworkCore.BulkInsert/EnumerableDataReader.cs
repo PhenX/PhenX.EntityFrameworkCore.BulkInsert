@@ -1,4 +1,4 @@
-﻿using System.Data;
+using System.Data;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert;
 
@@ -26,12 +26,29 @@ internal class EnumerableDataReader<T> : IDataReader
 
     public virtual object GetValue(int i)
     {
-        if (_enumerator.Current != null)
+        var current = _enumerator.Current;
+        if (current == null)
         {
-            return _properties[i].GetValue(_enumerator.Current);
+            return DBNull.Value;
         }
 
-        return DBNull.Value;
+        return _properties[i].GetValue(current);
+    }
+
+    public int GetValues(object[] values)
+    {
+        var current = _enumerator.Current;
+        if (current == null)
+        {
+            return 0;
+        }
+
+        for (var i = 0; i < _properties.Length; i++)
+        {
+            values[i] = _properties[i].GetValue(current);
+        }
+
+        return _properties.Length;
     }
 
     public bool Read() => _enumerator.MoveNext();
@@ -57,8 +74,6 @@ internal class EnumerableDataReader<T> : IDataReader
     public DataTable GetSchemaTable() => throw new NotImplementedException();
 
     public bool NextResult() => throw new NotImplementedException();
-
-    public int GetValues(object[] values) => throw new NotImplementedException();
 
     public bool IsDBNull(int i) => GetValue(i) is DBNull;
 

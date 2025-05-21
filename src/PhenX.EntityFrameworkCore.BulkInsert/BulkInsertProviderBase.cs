@@ -108,20 +108,12 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
     {
         var (schemaName, tableName, _) = GetTableInfo(context, typeof(T));
         var quotedTableName = QuoteTableName(schemaName, tableName);
-        var movedProperties = context.GetProperties(typeof(T), false);
+        var movedProperties = context.GetProperties(typeof(T), options.CopyGeneratedColumns);
         var returnedProperties = returnData ? context.GetProperties(typeof(T)) : [];
 
         if (returnData && !SqlDialect.SupportsReturning)
         {
-            var moveQuery = SqlDialect.BuildMoveDataSql<T>(context, tempTableName, quotedTableName, movedProperties, [], options, onConflict);
-
-            // Just copy the values first.
-            await ExecuteAsync(sync, context, moveQuery, cancellationToken);
-
-            // Then query them.
-            var selectQuery = SqlDialect.BuildSelectSql<T>(context, tempTableName, returnedProperties);
-
-            return await QueryAsync(sync, context, selectQuery, cancellationToken);
+            throw new NotSupportedException("Provider does not support returning entities.");
         }
 
         var query = SqlDialect.BuildMoveDataSql<T>(context, tempTableName, quotedTableName, movedProperties, returnedProperties, options, onConflict);
@@ -246,7 +238,7 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
             : GetQuotedTableName(context, typeof(T));
 
         var properties = context
-            .GetProperties(typeof(T), false)
+            .GetProperties(typeof(T), options.CopyGeneratedColumns)
             .Select(p => new PropertyAccessor(p))
             .ToArray();
 

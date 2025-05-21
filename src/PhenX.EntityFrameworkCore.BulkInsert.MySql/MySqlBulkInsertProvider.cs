@@ -16,7 +16,7 @@ internal class MySqlBulkInsertProvider : BulkInsertProviderBase<MySqlServerDiale
 
     //language=sql
     /// <inheritdoc />
-    protected override string CreateTableCopySql => "CREATE TEMPORARY  TABLE {0} SELECT * FROM {1} WHERE 1 = 0;";
+    protected override string CreateTableCopySql => "CREATE TEMPORARY TABLE {0} SELECT * FROM {1} WHERE 1 = 0;";
 
     //language=sql
     /// <inheritdoc />

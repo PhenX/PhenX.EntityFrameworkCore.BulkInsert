@@ -9,13 +9,7 @@ namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.Tests.Basic;
 
 public abstract class BasicTestsBase : IAsyncLifetime
 {
-    private static int Id = (int)DateTimeOffset.UtcNow.ToUnixTimeSeconds();
     private readonly string _prefix = Guid.NewGuid().ToString();
-
-    public static int GetId()
-    {
-        return Interlocked.Increment(ref Id) + 1;
-    }
 
     protected BasicTestsBase(TestDbContainer<TestDbContext> dbContainer)
     {
@@ -30,12 +24,12 @@ public abstract class BasicTestsBase : IAsyncLifetime
         // Arrange
         var entities = new List<TestEntity>
         {
-            new TestEntity { Id = GetId(), Name = $"{_prefix}_Entity1" },
-            new TestEntity { Id = GetId(), Name = $"{_prefix}_Entity2" }
+            new TestEntity { Name = $"{_prefix}_Entity1" },
+            new TestEntity { Name = $"{_prefix}_Entity2" }
         };
 
         // Act
-        await DbContainer.DbContext.ExecuteBulkInsertReturnEntitiesAsync(entities);
+        await DbContainer.DbContext.ExecuteBulkInsertAsync(entities);
 
         // Assert
         var insertedEntities = DbContainer.DbContext.TestEntities.ToList();
@@ -50,15 +44,57 @@ public abstract class BasicTestsBase : IAsyncLifetime
         // Arrange
         var entities = new List<TestEntity>
         {
-            new TestEntity { Id = GetId(), Name = $"{_prefix}_Entity1" },
-            new TestEntity { Id = GetId(), Name = $"{_prefix}_Entity2" }
+            new TestEntity { Name = $"{_prefix}_Entity1" },
+            new TestEntity { Name = $"{_prefix}_Entity2" }
         };
 
         // Act
-        DbContainer.DbContext.ExecuteBulkInsertReturnEntities(entities);
+        DbContainer.DbContext.ExecuteBulkInsert(entities);
 
         // Assert
         var insertedEntities = DbContainer.DbContext.TestEntities.ToList();
+        Assert.Equal(2, insertedEntities.Count);
+        Assert.Contains(insertedEntities, e => e.Name == $"{_prefix}_Entity1");
+        Assert.Contains(insertedEntities, e => e.Name == $"{_prefix}_Entity2");
+    }
+
+    [SkippableFact]
+    public async Task InsertsEntitiesAndReturn()
+    {
+        Skip.If(DbContainer.DbContext.Database.ProviderName!.Contains("Mysql", StringComparison.InvariantCultureIgnoreCase));
+
+        // Arrange
+        var entities = new List<TestEntity>
+        {
+            new TestEntity { Name = $"{_prefix}_Entity1" },
+            new TestEntity { Name = $"{_prefix}_Entity2" }
+        };
+
+        // Act
+        var insertedEntities = await DbContainer.DbContext.ExecuteBulkInsertReturnEntitiesAsync(entities);
+
+        // Assert
+        Assert.Equal(2, insertedEntities.Count);
+        Assert.Contains(insertedEntities, e => e.Name == $"{_prefix}_Entity1");
+        Assert.Contains(insertedEntities, e => e.Name == $"{_prefix}_Entity2");
+    }
+
+    [SkippableFact]
+    public void InsertsEntitiesAndReturn_Sync()
+    {
+        Skip.If(DbContainer.DbContext.Database.ProviderName!.Contains("Mysql", StringComparison.InvariantCultureIgnoreCase));
+
+        // Arrange
+        var entities = new List<TestEntity>
+        {
+            new TestEntity { Name = $"{_prefix}_Entity1" },
+            new TestEntity { Name = $"{_prefix}_Entity2" }
+        };
+
+        // Act
+        var insertedEntities = DbContainer.DbContext.ExecuteBulkInsertReturnEntities(entities);
+
+        // Assert
         Assert.Equal(2, insertedEntities.Count);
         Assert.Contains(insertedEntities, e => e.Name == $"{_prefix}_Entity1");
         Assert.Contains(insertedEntities, e => e.Name == $"{_prefix}_Entity2");
@@ -70,19 +106,19 @@ public abstract class BasicTestsBase : IAsyncLifetime
         // Arrange
         var entities = new List<TestEntity>
         {
-            new TestEntity { Id = GetId(), Name = $"{_prefix}_Entity1" },
-            new TestEntity { Id = GetId(), Name = $"{_prefix}_Entity2" }
+            new TestEntity { Name = $"{_prefix}_Entity1" },
+            new TestEntity { Name = $"{_prefix}_Entity2" }
         };
 
         // Act
-        await DbContainer.DbContext.ExecuteBulkInsertReturnEntitiesAsync(entities);
+        await DbContainer.DbContext.ExecuteBulkInsertAsync(entities);
 
         foreach (var entity in entities)
         {
             entity.NumericEnumValue = NumericEnum.Second;
         }
 
-        await DbContainer.DbContext.ExecuteBulkInsertReturnEntitiesAsync(entities,
+        await DbContainer.DbContext.ExecuteBulkInsertAsync(entities,
             onConflict: new OnConflictOptions<TestEntity>
             {
                 Update = e => e,
@@ -96,17 +132,50 @@ public abstract class BasicTestsBase : IAsyncLifetime
     }
 
     [Fact]
+    public async Task InsertsEntities_MultipleTimes_With_Conflict_On_Id()
+    {
+        // Arrange
+        var entities = new List<TestEntity>
+        {
+            new TestEntity { Name = $"{_prefix}_Entity1" },
+            new TestEntity { Name = $"{_prefix}_Entity2" }
+        };
+
+        // Act
+        await DbContainer.DbContext.ExecuteBulkInsertAsync(entities);
+
+        var insertedEntities0 = DbContainer.DbContext.TestEntities.ToList();
+        foreach (var entity in insertedEntities0)
+        {
+            entity.Name = $"Updated_{entity.Name}";
+        }
+
+        await DbContainer.DbContext.ExecuteBulkInsertAsync(insertedEntities0,
+            o => o.CopyGeneratedColumns = true,
+            onConflict: new OnConflictOptions<TestEntity>
+            {
+                Update = e => e,
+            });
+
+        // Assert
+        var insertedEntities1 = DbContainer.DbContext.TestEntities.ToList();
+        Assert.Equal(2, insertedEntities1.Count);
+        Assert.Contains(insertedEntities1, e => e.Name == $"Updated_{_prefix}_Entity1");
+        Assert.Contains(insertedEntities1, e => e.Name == $"Updated_{_prefix}_Entity2");
+    }
+
+    [Fact]
     public async Task InsertsEntitiesMoveRowsSuccessfully()
     {
         // Arrange
         var entities = new List<TestEntity>
         {
-            new TestEntity { Id = GetId(), Name = $"{_prefix}_Entity1" },
-            new TestEntity { Id = GetId(), Name = $"{_prefix}_Entity2" }
+            new TestEntity { Name = $"{_prefix}_Entity1" },
+            new TestEntity { Name = $"{_prefix}_Entity2" }
         };
 
         // Act
-        await DbContainer.DbContext.ExecuteBulkInsertReturnEntitiesAsync(entities, o =>
+        await DbContainer.DbContext.ExecuteBulkInsertAsync(entities, o =>
         {
             o.MoveRows = true;
         });

@@ -32,4 +32,9 @@ public class BulkInsertOptions
     /// </list>
     /// </summary>
     public int? BatchSize { get; set; }
+
+    /// <summary>
+    /// Indicates if also generated columns should be copied. This is useful for upsert operations.
+    /// </summary>
+    public bool CopyGeneratedColumns { get; set; }
 }

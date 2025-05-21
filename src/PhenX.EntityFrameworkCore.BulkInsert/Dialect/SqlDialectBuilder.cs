@@ -3,6 +3,7 @@ using System.Text;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 using PhenX.EntityFrameworkCore.BulkInsert.Options;
 
@@ -176,33 +177,6 @@ internal abstract class SqlDialectBuilder
     protected virtual void AppendConflictCondition<T>(StringBuilder sql, OnConflictOptions<T> onConflictTyped)
     {
         sql.AppendLine($"WHERE {onConflictTyped.Condition}");
-    }
-
-    /// <summary>
-    /// Builds the SQL for selecting data from one table.
-    /// </summary>
-    /// <param name="context">The DbContext</param>
-    /// <param name="source">Source table name</param>
-    /// <param name="insertedProperties">Properties to be copied</param>
-    /// <typeparam name="T">Entity type</typeparam>
-    /// <returns>The SQL query</returns>
-    public virtual string BuildSelectSql<T>(DbContext context, string source,
-        IProperty[] insertedProperties)
-    {
-        var insertedColumns = insertedProperties.Select(p => Quote(p.GetColumnName()));
-        var insertedColumnList = string.Join(", ", insertedColumns);
-
-        var q = new StringBuilder();
-
-        q.AppendLine($"""
-            SELECT {insertedColumnList}
-            FROM {source}
-            WHERE TRUE
-            """);
-
-        q.AppendLine(";");
-
-        return q.ToString();
     }
 
     /// <summary>

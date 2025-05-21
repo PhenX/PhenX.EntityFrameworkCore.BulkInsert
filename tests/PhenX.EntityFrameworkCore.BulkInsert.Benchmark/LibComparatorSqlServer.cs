@@ -5,6 +5,7 @@ using DotNet.Testcontainers.Containers;
 
 using Microsoft.EntityFrameworkCore;
 
+using PhenX.EntityFrameworkCore.BulkInsert.Sqlite;
 using PhenX.EntityFrameworkCore.BulkInsert.SqlServer;
 
 using Testcontainers.MsSql;

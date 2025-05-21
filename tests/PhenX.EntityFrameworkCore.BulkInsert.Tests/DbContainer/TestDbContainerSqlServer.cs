@@ -16,6 +16,7 @@ public class TestDbContainerSqlServer<TDbContext> : TestDbContainer<TDbContext>
     {
         return new MsSqlBuilder()
             .WithReuse(true)
+            .WithName(GetRandomContainerName())
             .Build();
     }
 

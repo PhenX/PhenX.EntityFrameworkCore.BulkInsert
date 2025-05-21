@@ -19,6 +19,8 @@ public abstract class TestDbContainer<TDbContext> : IAsyncLifetime
         DbContainer = GetDbContainer();
     }
 
+    protected string GetRandomContainerName() => "phenx-bulk-insert-test-" + Guid.NewGuid();
+
     protected abstract IDatabaseContainer? GetDbContainer();
 
     protected virtual string GetConnectionString()

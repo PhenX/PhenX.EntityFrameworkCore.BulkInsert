@@ -17,6 +17,7 @@ public class TestDbContainerMySql<TDbContext> : TestDbContainer<TDbContext>
         return new MySqlBuilder()
             .WithReuse(true)
             .WithCommand("--log-bin-trust-function-creators=1", "--local-infile=1", "--innodb-print-all-deadlocks=ON")
+            .WithName(GetRandomContainerName())
             .Build();
     }
 

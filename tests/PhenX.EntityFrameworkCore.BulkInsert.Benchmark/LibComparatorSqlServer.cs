@@ -3,6 +3,8 @@ using BenchmarkDotNet.Engines;
 
 using DotNet.Testcontainers.Containers;
 
+using LinqToDB.EntityFrameworkCore;
+
 using Microsoft.EntityFrameworkCore;
 
 using PhenX.EntityFrameworkCore.BulkInsert.Sqlite;
@@ -24,6 +26,7 @@ public class LibComparatorSqlServer : LibComparator
         DbContext = new TestDbContext(p => p
             .UseSqlServer(connectionString)
             .UseBulkInsertSqlServer()
+            .UseLinqToDB()
         );
     }
 

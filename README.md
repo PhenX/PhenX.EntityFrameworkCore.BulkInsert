@@ -93,7 +93,7 @@ Legend :
  * `RawInsert`: no library, using the native provider API (SqlBulkCopy for SQL Server, BeginBinaryImport for PostgreSQL, raw inserts for SQLite)
  * `Z_EntityFramework_Extensions_EFCore`: https://entityframework-extensions.net/bulk-extensions
  * `EFCore_BulkExtensions`: https://github.com/borisdj/EFCore.BulkExtensions
- * `EFCore_SaveChanges`: EF Core SaveChanges classic method
+ * `Linq2Db`: https://github.com/linq2db/linq2db
 
 SQL Server results with 500 000 rows :
 

@@ -3,6 +3,8 @@ using BenchmarkDotNet.Engines;
 
 using DotNet.Testcontainers.Containers;
 
+using LinqToDB.EntityFrameworkCore;
+
 using Microsoft.EntityFrameworkCore;
 
 using PhenX.EntityFrameworkCore.BulkInsert.PostgreSql;
@@ -11,7 +13,6 @@ using Testcontainers.PostgreSql;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Benchmark;
 
-[MinColumn, MaxColumn, BaselineColumn]
 [MemoryDiagnoser]
 [SimpleJob(RunStrategy.Throughput, launchCount: 1, warmupCount: 0, iterationCount: 5)]
 public class LibComparatorPostgreSql : LibComparator
@@ -23,6 +24,7 @@ public class LibComparatorPostgreSql : LibComparator
         DbContext = new TestDbContext(p => p
             .UseNpgsql(connectionString)
             .UseBulkInsertPostgreSql()
+            .UseLinqToDB()
         );
     }
 

@@ -44,7 +44,7 @@ internal class SqlServerBulkInsertProvider : BulkInsertProviderBase<SqlServerDia
         using var bulkCopy = new SqlBulkCopy(connection, SqlBulkCopyOptions.TableLock, sqlTransaction);
         bulkCopy.DestinationTableName = tableName;
         bulkCopy.BatchSize = options.BatchSize ?? 50_000;
-        bulkCopy.BulkCopyTimeout = 60;
+        bulkCopy.BulkCopyTimeout = options.GetCopyTimeoutInSeconds();
 
         foreach (var prop in properties)
         {

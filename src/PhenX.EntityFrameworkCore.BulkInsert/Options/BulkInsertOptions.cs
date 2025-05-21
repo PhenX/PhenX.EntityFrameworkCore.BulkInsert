@@ -1,4 +1,4 @@
-﻿namespace PhenX.EntityFrameworkCore.BulkInsert.Options;
+namespace PhenX.EntityFrameworkCore.BulkInsert.Options;
 
 /// <summary>
 /// Bulk insert general options.
@@ -32,4 +32,14 @@ public class BulkInsertOptions
     /// </list>
     /// </summary>
     public int? BatchSize { get; set; }
+
+    /// <summary>
+    /// The timeout to copy records.
+    /// </summary>
+    public TimeSpan CopyTimeout = TimeSpan.FromMinutes(10);
+
+    internal int GetCopyTimeoutInSeconds()
+    {
+        return Math.Max(0, (int)CopyTimeout.TotalSeconds);
+    }
 }

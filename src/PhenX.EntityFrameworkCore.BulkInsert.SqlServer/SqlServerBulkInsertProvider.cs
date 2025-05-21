@@ -48,7 +48,7 @@ internal class SqlServerBulkInsertProvider : BulkInsertProviderBase<SqlServerDia
 
         foreach (var prop in properties)
         {
-            bulkCopy.ColumnMappings.Add(prop.Name, SqlDialect.Quote(prop.ColumnName));
+            bulkCopy.ColumnMappings.Add(prop.Name, prop.ColumnName);
         }
 
         if (sync)

@@ -1,8 +1,9 @@
-﻿using System.Linq.Expressions;
+using System.Linq.Expressions;
 using System.Text;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 using PhenX.EntityFrameworkCore.BulkInsert.Options;
 
@@ -87,28 +88,32 @@ internal abstract class SqlDialectBuilder
 
         if (onConflict is OnConflictOptions<T> onConflictTyped)
         {
-            q.AppendLine("ON CONFLICT");
+            AppendOnConflictStatement(q);
 
             if (onConflictTyped.Update != null)
             {
                 if (onConflictTyped.Match != null)
                 {
-                    q.AppendLine($"({string.Join(", ", GetColumns(context, onConflictTyped.Match))})");
+                    q.Append(' ');
+                    AppendConflictMatch(q, GetColumns(context, onConflictTyped.Match));
                 }
 
                 if (onConflictTyped.Update != null)
                 {
-                    q.AppendLine($"DO UPDATE SET {string.Join(", ", GetUpdates(context, onConflictTyped.Update))}");
+                    q.Append(' ');
+                    AppendOnConflictUpdate(q, GetUpdates(context, insertedProperties, onConflictTyped.Update));
                 }
 
                 if (onConflictTyped.Condition != null)
                 {
-                    q.AppendLine($"WHERE {onConflictTyped.Condition}");
+                    q.Append(' ');
+                    AppendConflictCondition(q, onConflictTyped);
                 }
             }
             else
             {
-                q.AppendLine("DO NOTHING");
+                q.Append(' ');
+                AppendDoNothing(q, insertedProperties);
             }
         }
 
@@ -122,12 +127,63 @@ internal abstract class SqlDialectBuilder
         return q.ToString();
     }
 
+    protected virtual void AppendDoNothing(StringBuilder sql, IProperty[] insertedProperties)
+    {
+        sql.AppendLine("DO NOTHING");
+    }
+
+    protected virtual void AppendOnConflictUpdate(StringBuilder sql, IEnumerable<string> updates)
+    {
+        sql.AppendLine("DO UPDATE SET");
+
+        var i = 0;
+        foreach (var update in updates)
+        {
+            if (i > 0)
+            {
+                sql.Append(", ");
+            }
+
+            sql.Append(update);
+            i++;
+        };
+    }
+
+    protected virtual void AppendConflictMatch(StringBuilder sql, IEnumerable<string> columns)
+    {
+        sql.AppendLine("(");
+
+        var i = 0;
+        foreach (var column in columns)
+        {
+            if (i > 0)
+            {
+                sql.Append(", ");
+            }
+
+            sql.Append(column);
+            i++;
+        }
+
+        sql.AppendLine(")");
+    }
+
+    protected virtual void AppendOnConflictStatement(StringBuilder sql)
+    {
+        sql.AppendLine("ON CONFLICT");
+    }
+
+    protected virtual void AppendConflictCondition<T>(StringBuilder sql, OnConflictOptions<T> onConflictTyped)
+    {
+        sql.AppendLine($"WHERE {onConflictTyped.Condition}");
+    }
+
     /// <summary>
     /// Get the name of the excluded column for the ON CONFLICT clause.
     /// </summary>
-    protected virtual string GetExcludedColumnName<TEntity>(DbContext context, MemberExpression member)
+    protected virtual string GetExcludedColumnName(string columnName)
     {
-        return $"EXCLUDED.{GetColumnName<TEntity>(context, member.Member.Name)}";
+        return $"EXCLUDED.{columnName}";
     }
 
     /// <summary>
@@ -173,7 +229,7 @@ internal abstract class SqlDialectBuilder
     /// var updates = GetUpdates(context, e => e.Prop1);
     /// </code>
     /// </example>
-    protected IEnumerable<string> GetUpdates<T>(DbContext context, Expression<Func<T, object>> update)
+    protected IEnumerable<string> GetUpdates<T>(DbContext context, IProperty[] properties, Expression<Func<T, object>> update)
     {
         switch (update.Body)
         {
@@ -198,8 +254,18 @@ internal abstract class SqlDialectBuilder
             case MemberExpression memberExpr:
                 yield return $"{GetColumnName<T>(context, memberExpr.Member.Name)} = {ToSqlExpression<T>(context, memberExpr)}";
                 break;
+            case ParameterExpression parameterExpr when (parameterExpr.Type == typeof(T)):
+                foreach (var property in properties)
+                {
+                    var columName = property.GetColumnName();
+
+                    yield return $"{Quote(columName)} = {GetExcludedColumnName(columName)}";
+                }
+
+                break;
+
             default:
-                throw new NotSupportedException("Unsupported expression type for update");
+                throw new NotSupportedException($"Unsupported expression type {update.Body.GetType()} for update");
         }
     }
 
@@ -216,7 +282,7 @@ internal abstract class SqlDialectBuilder
         switch (expr)
         {
             case MemberExpression m:
-                return GetExcludedColumnName<TEntity>(context, m);
+                return GetExcludedColumnName(GetColumnName<TEntity>(context, m.Member.Name));
 
             case BinaryExpression b:
                 var left = ToSqlExpression<TEntity>(context, b.Left);

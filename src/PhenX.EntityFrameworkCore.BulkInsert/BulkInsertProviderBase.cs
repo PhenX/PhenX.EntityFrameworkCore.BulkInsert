@@ -31,13 +31,14 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
     protected async Task<string> CreateTableCopyAsync<T>(
         bool sync,
         DbContext context,
+        BulkInsertOptions options,
         CancellationToken cancellationToken = default) where T : class
     {
         var tableInfo = GetTableInfo(context, typeof(T));
         var tableName = QuoteTableName(tableInfo.SchemaName, tableInfo.TableName);
         var tempTableName = QuoteTableName(null, GetTempTableName(tableInfo.TableName));
 
-        var keptColumns = string.Join(", ", GetQuotedColumns(context, typeof(T), false));
+        var keptColumns = string.Join(", ", GetQuotedColumns(context, typeof(T), options.CopyGeneratedColumns));
         var query = string.Format(CreateTableCopySql, tempTableName, tableName, keptColumns);
 
         await ExecuteAsync(sync, context, query, cancellationToken);
@@ -108,13 +109,21 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
     {
         var (schemaName, tableName, _) = GetTableInfo(context, typeof(T));
         var quotedTableName = QuoteTableName(schemaName, tableName);
-
-        var movedProperties = context.GetProperties(typeof(T), false);
+        var movedProperties = context.GetProperties(typeof(T), options.CopyGeneratedColumns);
         var returnedProperties = returnData ? context.GetProperties(typeof(T)) : [];
 
         var query = SqlDialect.BuildMoveDataSql<T>(context, tempTableName, quotedTableName, movedProperties, returnedProperties, options, onConflict);
 
         if (returnData)
+        {
+            return await QueryAsync(sync, context, query, cancellationToken);
+        }
+
+        // If not returning data, just execute the command
+        await ExecuteAsync(sync, context, query, cancellationToken);
+        return [];
+
+        static async Task<List<TResult>> QueryAsync(bool sync, DbContext context, string query, CancellationToken cancellationToken)
         {
             // Use EF to execute the query and return the results
             IQueryable<TResult> queryable = context
@@ -128,13 +137,9 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
 
             return await queryable.ToListAsync(cancellationToken: cancellationToken);
         }
-
-        // If not returning data, just execute the command
-        await ExecuteAsync(sync, context, query, cancellationToken);
-        return [];
     }
 
-    public async Task<List<T>> BulkInsertReturnEntities<T>(
+    public virtual async Task<List<T>> BulkInsertReturnEntities<T>(
         bool sync,
         DbContext context,
         IEnumerable<T> entities,
@@ -163,10 +168,12 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
             {
                 // ReSharper disable once MethodHasAsyncOverloadWithCancellation
                 transaction.Commit();
+                transaction.Dispose();
             }
             else
             {
                 await transaction.CommitAsync(ctk);
+                await transaction.DisposeAsync();
             }
         }
 
@@ -184,7 +191,7 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
         }
     }
 
-    public async Task BulkInsert<T>(
+    public virtual async Task BulkInsert<T>(
         bool sync,
         DbContext context,
         IEnumerable<T> entities,
@@ -225,11 +232,11 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
         var (connection, wasClosed, transaction, wasBegan) = await context.GetConnection(sync, ctk);
 
         var tableName = tempTableRequired
-            ? await CreateTableCopyAsync<T>(sync, context, ctk)
+            ? await CreateTableCopyAsync<T>(sync, context, options, ctk)
             : GetQuotedTableName(context, typeof(T));
 
         var properties = context
-            .GetProperties(typeof(T), false)
+            .GetProperties(typeof(T), options.CopyGeneratedColumns)
             .Select(p => new PropertyAccessor(p))
             .ToArray();
 

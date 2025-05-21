@@ -1,4 +1,4 @@
-﻿using DotNet.Testcontainers.Containers;
+using DotNet.Testcontainers.Containers;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -15,10 +15,10 @@ public class TestDbContainerPostgreSql<TDbContext> : TestDbContainer<TDbContext>
     protected override IDatabaseContainer? GetDbContainer()
     {
         return new PostgreSqlBuilder()
+            .WithReuse(true)
             .WithDatabase("testdb")
             .WithUsername("testuser")
             .WithPassword("testpassword")
-            .WithName(GetRandomContainerName())
             .Build();
     }
 

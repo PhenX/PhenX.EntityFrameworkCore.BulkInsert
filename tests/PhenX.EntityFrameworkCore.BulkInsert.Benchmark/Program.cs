@@ -1,4 +1,4 @@
-﻿using BenchmarkDotNet.Configs;
+using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Running;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Benchmark;
@@ -11,6 +11,7 @@ public class Program
             .Create(DefaultConfig.Instance)
             .WithOptions(ConfigOptions.DisableOptimizationsValidator);
 
+        BenchmarkRunner.Run<LibComparatorMySql>(config);
         BenchmarkRunner.Run<LibComparatorPostgreSql>(config);
         BenchmarkRunner.Run<LibComparatorSqlServer>(config);
         BenchmarkRunner.Run<LibComparatorSqlite>(config);

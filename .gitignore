@@ -88,3 +88,6 @@ fabric.properties
 
 # Nuget assets
 /nupkgs
+
+# Visual Studio Files
+.vs

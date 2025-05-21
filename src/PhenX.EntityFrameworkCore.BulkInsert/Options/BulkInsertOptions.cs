@@ -34,6 +34,11 @@ public class BulkInsertOptions
     public int? BatchSize { get; set; }
 
     /// <summary>
+    /// Indicates if also generated columns should be copied. This is useful for upsert operations.
+    /// </summary>
+    public bool CopyGeneratedColumns { get; set; }
+    
+    /// <summary>
     /// The timeout to copy records.
     /// </summary>
     public TimeSpan CopyTimeout = TimeSpan.FromMinutes(10);

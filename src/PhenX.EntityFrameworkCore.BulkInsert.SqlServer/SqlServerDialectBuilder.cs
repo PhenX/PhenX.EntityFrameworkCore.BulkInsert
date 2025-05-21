@@ -1,4 +1,4 @@
-﻿using System.Linq.Expressions;
+using System.Linq.Expressions;
 using System.Text;
 
 using Microsoft.EntityFrameworkCore;
@@ -31,6 +31,11 @@ internal class SqlServerDialectBuilder : SqlDialectBuilder
 
         var q = new StringBuilder();
 
+        if (options.CopyGeneratedColumns)
+        {
+            q.AppendLine($"SET IDENTITY_INSERT {target} ON;");
+        }
+
         // Merge handling
         if (onConflict is OnConflictOptions<T> onConflictTyped && onConflictTyped.Match != null)
         {
@@ -39,7 +44,7 @@ internal class SqlServerDialectBuilder : SqlDialectBuilder
                 matchColumns.Select(col => $"TARGET.{col} = SOURCE.{col}"));
 
             var updateSet = onConflictTyped.Update != null
-                ? string.Join(", ", GetUpdates(context, onConflictTyped.Update))
+                ? string.Join(", ", GetUpdates(context, insertedProperties, onConflictTyped.Update))
                 : null;
 
             q.AppendLine($"MERGE INTO {target} AS TARGET");
@@ -79,11 +84,16 @@ internal class SqlServerDialectBuilder : SqlDialectBuilder
 
         q.AppendLine(";");
 
+        if (options.CopyGeneratedColumns)
+        {
+            q.AppendLine($"SET IDENTITY_INSERT {target} OFF;");
+        }
+
         return q.ToString();
     }
 
-    protected override string GetExcludedColumnName<TEntity>(DbContext context, MemberExpression member)
+    protected override string GetExcludedColumnName(string columnName)
     {
-        return $"SOURCE.{GetColumnName<TEntity>(context, member.Member.Name)}";
+        return $"SOURCE.{columnName}";
     }
 }

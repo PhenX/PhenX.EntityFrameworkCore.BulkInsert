@@ -1,4 +1,4 @@
-﻿using DotNet.Testcontainers.Containers;
+using DotNet.Testcontainers.Containers;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -11,16 +11,13 @@ namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContainer;
 public abstract class TestDbContainer<TDbContext> : IAsyncLifetime
     where TDbContext : TestDbContextBase, new()
 {
+    private static readonly TimeSpan WaitTime = TimeSpan.FromSeconds(30);
     protected readonly IDatabaseContainer? DbContainer;
-
-    public TDbContext DbContext { get; private set; } = null!;
 
     protected TestDbContainer()
     {
         DbContainer = GetDbContainer();
     }
-
-    protected string GetRandomContainerName() => "phenx-bulk-insert-test-" + Guid.NewGuid();
 
     protected abstract IDatabaseContainer? GetDbContainer();
 
@@ -39,29 +36,42 @@ public abstract class TestDbContainer<TDbContext> : IAsyncLifetime
         }
     }
 
+    public async Task<TDbContext> CreateContextAsync()
+    {
+        var dbContext = new TDbContext
+        {
+            ConfigureOptions = Configure
+        };
+
+        dbContext.Database.SetConnectionString(GetConnectionString());
+
+        await EnsureConnectedAsync(dbContext);
+        try
+        {
+            await dbContext.Database.EnsureCreatedAsync();
+        }
+        catch
+        {
+            // Often fails with SQL server.
+        }
+
+        return dbContext;
+    }
+
+    protected virtual async Task EnsureConnectedAsync(TDbContext context)
+    {
+        using var cts = new CancellationTokenSource(WaitTime);
+        while (!await context.Database.CanConnectAsync(cts.Token))
+        {
+            await Task.Delay(100, cts.Token);
+        }
+    }
+
     public async Task DisposeAsync()
     {
         if (DbContainer != null)
         {
             await DbContainer.DisposeAsync();
         }
-    }
-
-    public async Task InitializeDbContextAsync()
-    {
-        DbContext = new TDbContext
-        {
-            ConfigureOptions = Configure
-        };
-
-        DbContext.Database.SetConnectionString(GetConnectionString());
-        await DbContext.Database.EnsureCreatedAsync();
-    }
-
-    public async Task DisposeDbContextAsync()
-    {
-        await DbContext.Database.EnsureDeletedAsync();
-        await DbContext.DisposeAsync();
-        DbContext = null!;
     }
 }

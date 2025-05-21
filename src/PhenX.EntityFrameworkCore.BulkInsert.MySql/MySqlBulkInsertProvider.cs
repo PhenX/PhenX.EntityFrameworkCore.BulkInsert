@@ -37,9 +37,14 @@ internal class MySqlBulkInsertProvider : BulkInsertProviderBase<MySqlServerDiale
     )
     {
         var connection = (MySqlConnection)context.Database.GetDbConnection();
-        var sqlTransaction = context.Database.CurrentTransaction!.GetDbTransaction() as MySqlTransaction;
+        var sqlTransaction = context.Database.CurrentTransaction!.GetDbTransaction()
+            ?? throw new InvalidOperationException("No open transaction found.");
+        if (sqlTransaction is not MySqlTransaction mySqlTransaction)
+        {
+            throw new InvalidOperationException($"Invalid transaction foud, got {sqlTransaction.GetType()}.");
+        }
 
-        var bulkCopy = new MySqlBulkCopy(connection, sqlTransaction);
+        var bulkCopy = new MySqlBulkCopy(connection, mySqlTransaction);
         bulkCopy.DestinationTableName = tableName;
         bulkCopy.BulkCopyTimeout = 60;
 

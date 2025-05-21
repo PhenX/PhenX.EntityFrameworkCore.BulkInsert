@@ -244,7 +244,7 @@ public abstract class BasicTestsBase : IAsyncLifetime
         Assert.Contains(insertedEntities, e => e.Name == $"{_run}_Entity2");
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task InsertsEntitiesWithConflict_DoNothing()
     {
         Skip.If(_context.Database.ProviderName!.Contains("Mysql", StringComparison.InvariantCultureIgnoreCase));

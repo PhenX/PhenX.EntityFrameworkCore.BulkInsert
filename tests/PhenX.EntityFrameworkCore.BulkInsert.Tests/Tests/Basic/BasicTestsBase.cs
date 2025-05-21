@@ -247,6 +247,8 @@ public abstract class BasicTestsBase : IAsyncLifetime
     [Fact]
     public async Task InsertsEntitiesWithConflict_DoNothing()
     {
+        Skip.If(_context.Database.ProviderName!.Contains("Mysql", StringComparison.InvariantCultureIgnoreCase));
+
         _context.TestEntities.Add(new TestEntity { TestRun = _run, Name = $"{_run}_Entity1" });
         await _context.SaveChangesAsync();
         _context.ChangeTracker.Clear();

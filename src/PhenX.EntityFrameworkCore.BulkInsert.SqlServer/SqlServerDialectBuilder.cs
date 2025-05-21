@@ -84,6 +84,6 @@ internal class SqlServerDialectBuilder : SqlDialectBuilder
 
     protected override string GetExcludedColumnName(string columnName)
     {
-        return $"SOURCE.{Quote(columnName)}";
+        return $"SOURCE.{columnName}";
     }
 }

@@ -6,9 +6,9 @@ using Xunit;
 namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.Tests.Basic;
 
 [Trait("Category", "MySql")]
-public class BasicTestsMySql : BasicTestsBase
+public class BasicTestsMySql : BasicTestsBase, IClassFixture<TestDbContainerMySql<TestDbContext>>
 {
-    public BasicTestsMySql() : base(new TestDbContainerMySql<TestDbContext>())
+    public BasicTestsMySql(TestDbContainerMySql<TestDbContext> fixture) : base(fixture)
     {
     }
 }

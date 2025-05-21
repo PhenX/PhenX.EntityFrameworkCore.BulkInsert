@@ -14,8 +14,6 @@ public abstract class TestDbContainer<TDbContext> : IAsyncLifetime
     private static readonly TimeSpan WaitTime = TimeSpan.FromSeconds(30);
     protected readonly IDatabaseContainer? DbContainer;
 
-    public TDbContext DbContext { get; private set; } = null!;
-
     protected TestDbContainer()
     {
         DbContainer = GetDbContainer();
@@ -36,22 +34,34 @@ public abstract class TestDbContainer<TDbContext> : IAsyncLifetime
         {
             await DbContainer.StartAsync();
         }
+    }
 
-        DbContext = new TDbContext
+    public async Task<TDbContext> CreateContextAsync()
+    {
+        var dbContext = new TDbContext
         {
             ConfigureOptions = Configure
         };
-        DbContext.Database.SetConnectionString(GetConnectionString());
 
-        await EnsureConnectedAsync();
+        dbContext.Database.SetConnectionString(GetConnectionString());
 
-        await DbContext.Database.EnsureCreatedAsync();
+        await EnsureConnectedAsync(dbContext);
+        try
+        {
+            await dbContext.Database.EnsureCreatedAsync();
+        }
+        catch
+        {
+            // Often fails with SQL server.
+        }
+
+        return dbContext;
     }
 
-    protected virtual async Task EnsureConnectedAsync()
+    protected virtual async Task EnsureConnectedAsync(TDbContext context)
     {
         using var cts = new CancellationTokenSource(WaitTime);
-        while (!await DbContext.Database.CanConnectAsync(cts.Token))
+        while (!await context.Database.CanConnectAsync(cts.Token))
         {
             await Task.Delay(100, cts.Token);
         }
@@ -59,9 +69,6 @@ public abstract class TestDbContainer<TDbContext> : IAsyncLifetime
 
     public async Task DisposeAsync()
     {
-        // await DbContext.Database.EnsureDeletedAsync();
-        await DbContext.DisposeAsync();
-
         if (DbContainer != null)
         {
             await DbContainer.DisposeAsync();

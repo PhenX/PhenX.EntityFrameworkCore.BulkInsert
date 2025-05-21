@@ -25,7 +25,7 @@ public class TestDbContainerSqlite<TDbContext> : TestDbContainer<TDbContext>
             .UseBulkInsertSqlite();
     }
 
-    protected override Task EnsureConnectedAsync()
+    protected override Task EnsureConnectedAsync(TDbContext context)
     {
         return Task.CompletedTask;
     }

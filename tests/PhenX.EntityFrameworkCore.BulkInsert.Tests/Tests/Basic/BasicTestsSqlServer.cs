@@ -6,9 +6,9 @@ using Xunit;
 namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.Tests.Basic;
 
 [Trait("Category", "SqlServer")]
-public class BasicTestsSqlServer : BasicTestsBase
+public class BasicTestsSqlServer : BasicTestsBase, IClassFixture<TestDbContainerSqlServer<TestDbContext>>
 {
-    public BasicTestsSqlServer() : base(new TestDbContainerSqlServer<TestDbContext>())
+    public BasicTestsSqlServer(TestDbContainerSqlServer<TestDbContext> fixture) : base(fixture)
     {
     }
 }

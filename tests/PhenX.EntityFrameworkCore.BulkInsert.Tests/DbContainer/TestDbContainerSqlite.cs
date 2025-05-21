@@ -1,4 +1,4 @@
-﻿using DotNet.Testcontainers.Containers;
+using DotNet.Testcontainers.Containers;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -23,5 +23,10 @@ public class TestDbContainerSqlite<TDbContext> : TestDbContainer<TDbContext>
         optionsBuilder
             .UseSqlite()
             .UseBulkInsertSqlite();
+    }
+
+    protected override Task EnsureConnectedAsync()
+    {
+        return Task.CompletedTask;
     }
 }

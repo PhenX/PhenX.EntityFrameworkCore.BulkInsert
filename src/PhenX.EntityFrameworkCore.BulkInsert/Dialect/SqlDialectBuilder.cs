@@ -184,7 +184,7 @@ internal abstract class SqlDialectBuilder
     /// </summary>
     protected virtual string GetExcludedColumnName(string columnName)
     {
-        return $"EXCLUDED.{Quote(columnName)}";
+        return $"EXCLUDED.{columnName}";
     }
 
     /// <summary>

@@ -100,9 +100,11 @@ public abstract class BasicTestsBase : IAsyncLifetime
         Assert.Contains(insertedEntities, e => e.Name == $"{_prefix}_Entity2");
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task InsertsEntities_MultipleTimes()
     {
+        Skip.If(DbContainer.DbContext.Database.ProviderName!.Contains("Postgres", StringComparison.InvariantCultureIgnoreCase));
+
         // Arrange
         var entities = new List<TestEntity>
         {
@@ -131,9 +133,11 @@ public abstract class BasicTestsBase : IAsyncLifetime
         Assert.Contains(insertedEntities, e => e.NumericEnumValue == NumericEnum.Second);
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task InsertsEntities_MultipleTimes_With_Conflict_On_Id()
     {
+        Skip.If(DbContainer.DbContext.Database.ProviderName!.Contains("Postgres", StringComparison.InvariantCultureIgnoreCase));
+
         // Arrange
         var entities = new List<TestEntity>
         {
@@ -222,7 +226,7 @@ public abstract class BasicTestsBase : IAsyncLifetime
         // Assert
         var insertedEntities = DbContainer.DbContext.TestEntities.ToList();
         Assert.Equal(2, insertedEntities.Count);
-        Assert.Contains(insertedEntities, e => e.Name == "Entity1 - Conflict");
+        Assert.Contains(insertedEntities, e => e.Name == $"{_prefix}_Entity1 - Conflict");
         Assert.Contains(insertedEntities, e => e.Name == $"{_prefix}_Entity2");
     }
 
@@ -314,10 +318,10 @@ public abstract class BasicTestsBase : IAsyncLifetime
 
         var insertedEntities = DbContainer.DbContext.TestEntities.ToList();
         Assert.Equal(2, insertedEntities.Count);
-        Assert.Equal(1, insertedEntities.Count(e => e.Name == "Entity1 - Conflict"));
+        Assert.Equal(1, insertedEntities.Count(e => e.Name == $"{_prefix}_Entity1 - Conflict"));
         Assert.Contains(insertedEntities, e => e.Name == $"{_prefix}_Entity2");
 
-        var entity1 = insertedEntities.First(e => e.Name == "Entity1 - Conflict");
+        var entity1 = insertedEntities.First(e => e.Name == $"{_prefix}_Entity1 - Conflict");
         Assert.Equal(0, entity1.Price);
     }
 

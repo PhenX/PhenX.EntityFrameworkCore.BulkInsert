@@ -82,9 +82,10 @@ internal class SqliteBulkInsertProvider : BulkInsertProviderBase<SqliteDialectBu
     }
 
     private DbCommand GetInsertCommand(DbContext context, Type entityType, string tableName,
+        BulkInsertOptions options,
         int batchSize)
     {
-        var columns = context.GetProperties(entityType, false);
+        var columns = context.GetProperties(entityType, options.CopyGeneratedColumns);
         var cmd = context.Database.GetDbConnection().CreateCommand();
 
         var sqliteColumns = columns
@@ -136,7 +137,7 @@ internal class SqliteBulkInsertProvider : BulkInsertProviderBase<SqliteDialectBu
         var batchSize = options.BatchSize ?? 5;
         batchSize = Math.Min(batchSize, maxParams / properties.Length);
 
-        await using var insertCommand = GetInsertCommand(context, typeof(T), tableName, batchSize);
+        await using var insertCommand = GetInsertCommand(context, typeof(T), tableName, options, batchSize);
 
         foreach (var chunk in entities.Chunk(batchSize))
         {
@@ -149,7 +150,7 @@ internal class SqliteBulkInsertProvider : BulkInsertProviderBase<SqliteDialectBu
             // Last chunk
             else
             {
-                var partialInsertCommand = GetInsertCommand(context, typeof(T), tableName, chunk.Length);
+                var partialInsertCommand = GetInsertCommand(context, typeof(T), tableName, options, chunk.Length);
 
                 FillValues(chunk, partialInsertCommand.Parameters, properties);
                 await ExecuteCommand(sync, partialInsertCommand, ctk);

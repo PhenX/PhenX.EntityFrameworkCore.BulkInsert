@@ -1,4 +1,4 @@
-﻿using DotNet.Testcontainers.Containers;
+using DotNet.Testcontainers.Containers;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -11,6 +11,7 @@ namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContainer;
 public abstract class TestDbContainer<TDbContext> : IAsyncLifetime
     where TDbContext : TestDbContextBase, new()
 {
+    private static readonly TimeSpan WaitTime = TimeSpan.FromSeconds(30);
     protected readonly IDatabaseContainer? DbContainer;
 
     public TDbContext DbContext { get; private set; } = null!;
@@ -42,7 +43,18 @@ public abstract class TestDbContainer<TDbContext> : IAsyncLifetime
         };
         DbContext.Database.SetConnectionString(GetConnectionString());
 
+        await EnsureConnectedAsync();
+
         await DbContext.Database.EnsureCreatedAsync();
+    }
+
+    protected virtual async Task EnsureConnectedAsync()
+    {
+        using var cts = new CancellationTokenSource(WaitTime);
+        while (!await DbContext.Database.CanConnectAsync(cts.Token))
+        {
+            await Task.Delay(100, cts.Token);
+        }
     }
 
     public async Task DisposeAsync()

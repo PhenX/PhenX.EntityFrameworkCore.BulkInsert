@@ -29,28 +29,18 @@ internal abstract class BulkInsertProviderBase<TDialect>(ILogger<BulkInsertProvi
     protected async Task<string> CreateTableCopyAsync<T>(
         bool sync,
         DbContext context,
+        BulkInsertOptions options,
         TableMetadata tableInfo,
         CancellationToken cancellationToken = default) where T : class
     {
-        var tempTableName = await CreateTemporaryTableAsync(sync, context, tableInfo, cancellationToken);
-
-        await AddBulkInsertIdColumn<T>(sync, context, tempTableName, cancellationToken);
-
-        return tempTableName;
-    }
-
-    private async Task<string> CreateTemporaryTableAsync(
-        bool sync,
-        DbContext context,
-        TableMetadata tableInfo,
-        CancellationToken cancellationToken)
-    {
         var tempTableName = SqlDialect.QuoteTableName(null, GetTempTableName(tableInfo.TableName));
-        var tempColumns = string.Join(", ", tableInfo.GetProperties(false).Select(x => x.QuotedColumName));
+        var tempColumns = string.Join(", ", tableInfo.GetProperties(options.CopyGeneratedColumns).Select(x => x.QuotedColumName));
 
         var query = string.Format(CreateTableCopySql, tempTableName, tableInfo.QuotedTableName, tempColumns);
 
         await ExecuteAsync(sync, context, query, cancellationToken);
+        await AddBulkInsertIdColumn<T>(sync, context, tempTableName, cancellationToken);
+
         return tempTableName;
     }
 
@@ -156,15 +146,41 @@ internal abstract class BulkInsertProviderBase<TDialect>(ILogger<BulkInsertProvi
         CancellationToken ctk = default
     ) where T : class
     {
+        List<T> result;
+
         var connectionInfo = await context.GetConnection(sync, ctk);
+        try
+        {
+            var (tableName, _) = await PerformBulkInsertAsync(sync, context, tableInfo, entities, options, tempTableRequired: true, ctk: ctk);
 
-        var (tableName, _) = await PerformBulkInsertAsync(sync, context, tableInfo, entities, options, tempTableRequired: true, ctk: ctk);
+            result = await CopyFromTempTableAsync<T>(sync, context, tableInfo, tableName, true, options, onConflict, cancellationToken: ctk);
 
-        var result = await CopyFromTempTableAsync<T>(sync, context, tableInfo, tableName, true, options, onConflict, cancellationToken: ctk);
-
-        await Finish(sync, connectionInfo, ctk);
+            await Commit(sync, connectionInfo, ctk);
+        }
+        finally
+        {
+            await Finish(sync, connectionInfo, ctk);
+        }
 
         return result;
+    }
+
+    private static async Task Commit(bool sync, ConnectionInfo connectionInfo, CancellationToken ctk)
+    {
+        var (_, _, transaction, wasBegan) = connectionInfo;
+
+        if (!wasBegan)
+        {
+            if (sync)
+            {
+                // ReSharper disable once MethodHasAsyncOverloadWithCancellation
+                transaction.Commit();
+            }
+            else
+            {
+                await transaction.CommitAsync(ctk);
+            }
+        }
     }
 
     private static async Task Finish(bool sync, ConnectionInfo connectionInfo, CancellationToken ctk)
@@ -176,12 +192,10 @@ internal abstract class BulkInsertProviderBase<TDialect>(ILogger<BulkInsertProvi
             if (sync)
             {
                 // ReSharper disable once MethodHasAsyncOverloadWithCancellation
-                transaction.Commit();
                 transaction.Dispose();
             }
             else
             {
-                await transaction.CommitAsync(ctk);
                 await transaction.DisposeAsync();
             }
         }
@@ -213,12 +227,17 @@ internal abstract class BulkInsertProviderBase<TDialect>(ILogger<BulkInsertProvi
         if (onConflict != null)
         {
             var connectionInfo = await context.GetConnection(sync, ctk);
+            try
+            {
+                var (tableName, _) = await PerformBulkInsertAsync(sync, context, tableInfo, entities, options, tempTableRequired: true, ctk: ctk);
 
-            var (tableName, _) = await PerformBulkInsertAsync(sync, context, tableInfo, entities, options, tempTableRequired: true, ctk: ctk);
-
-            await CopyFromTempTableAsync<T>(sync, context, tableInfo, tableName, false, options, onConflict, ctk);
-
-            await Finish(sync, connectionInfo, ctk);
+                await CopyFromTempTableAsync<T>(sync, context, tableInfo, tableName, false, options, onConflict, ctk);
+                await Commit(sync, connectionInfo, ctk);
+            }
+            finally
+            {
+                await Finish(sync, connectionInfo, ctk);
+            }
         }
         else
         {
@@ -243,7 +262,7 @@ internal abstract class BulkInsertProviderBase<TDialect>(ILogger<BulkInsertProvi
         var connectionInfo = await context.GetConnection(sync, ctk);
 
         var tableName = tempTableRequired
-            ? await CreateTableCopyAsync<T>(sync, context, tableInfo, ctk)
+            ? await CreateTableCopyAsync<T>(sync, context, options, tableInfo, ctk)
             : tableInfo.QuotedTableName;
 
         var properties = tableInfo.GetProperties(options.CopyGeneratedColumns);

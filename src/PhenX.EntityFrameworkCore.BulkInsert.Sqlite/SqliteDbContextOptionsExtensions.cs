@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 
 using PhenX.EntityFrameworkCore.BulkInsert.Extensions;
 

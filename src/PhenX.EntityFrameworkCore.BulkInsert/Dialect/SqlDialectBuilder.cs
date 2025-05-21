@@ -26,8 +26,8 @@ internal abstract class SqlDialectBuilder
     /// <typeparam name="T">Entity type</typeparam>
     /// <returns>The SQL query</returns>
     public virtual string BuildMoveDataSql<T>(
-        TableMetadata source,
-        string target,
+        TableMetadata target,
+        string source,
         IReadOnlyList<PropertyMetadata> insertedProperties,
         IReadOnlyList<PropertyMetadata> properties,
         BulkInsertOptions options, OnConflictOptions? onConflict = null)
@@ -40,22 +40,21 @@ internal abstract class SqlDialectBuilder
 
         var q = new StringBuilder();
 
-        var sourceName = source.QuotedTableName;
         if (SupportsMoveRows && options.MoveRows)
         {
             q.AppendLine($"""
                     WITH moved_rows AS (
-                       DELETE FROM {source.QuotedTableName}
+                       DELETE FROM {source}
                            RETURNING {insertedColumnList}
                     )
                     """);
-            sourceName = "moved_rows";
+            source = "moved_rows";
         }
 
         q.AppendLine($"""
-                      INSERT INTO {target} ({insertedColumnList})
+                      INSERT INTO {target.QuotedTableName} ({insertedColumnList})
                       SELECT {insertedColumnList}
-                      FROM {sourceName}
+                      FROM {source}
                       WHERE TRUE
                       """);
 
@@ -68,13 +67,13 @@ internal abstract class SqlDialectBuilder
                 if (onConflictTyped.Match != null)
                 {
                     q.Append(' ');
-                    AppendConflictMatch(q, GetColumns(source, onConflictTyped.Match));
+                    AppendConflictMatch(q, GetColumns(target, onConflictTyped.Match));
                 }
 
                 if (onConflictTyped.Update != null)
                 {
                     q.Append(' ');
-                    AppendOnConflictUpdate(q, GetUpdates(source, insertedProperties, onConflictTyped.Update));
+                    AppendOnConflictUpdate(q, GetUpdates(target, insertedProperties, onConflictTyped.Update));
                 }
 
                 if (onConflictTyped.Condition != null)

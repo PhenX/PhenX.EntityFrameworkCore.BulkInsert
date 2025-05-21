@@ -16,8 +16,6 @@ internal class MySqlServerDialectBuilder : SqlDialectBuilder
 
     protected override bool SupportsMoveRows => false;
 
-    public override bool SupportsReturning => false;
-
     protected override void AppendConflictCondition<T>(StringBuilder sql, OnConflictOptions<T> onConflictTyped)
     {
         throw new NotSupportedException("Conflict conditions are not supported in MYSQL");

@@ -26,6 +26,18 @@ internal class MySqlBulkInsertProvider : BulkInsertProviderBase<MySqlServerDiale
     protected override string GetTempTableName(string tableName) => $"#_temp_bulk_insert_{tableName}";
 
     /// <inheritdoc />
+    public override Task<List<T>> BulkInsertReturnEntities<T>(
+        bool sync,
+        DbContext context,
+        IEnumerable<T> entities,
+        BulkInsertOptions options,
+        OnConflictOptions? onConflict = null,
+        CancellationToken ctk = default)
+    {
+        throw new NotSupportedException("Provider does not support returning entities.");
+    }
+
+    /// <inheritdoc />
     protected override async Task BulkInsert<T>(
         bool sync,
         DbContext context,

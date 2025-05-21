@@ -112,11 +112,6 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
         var movedProperties = context.GetProperties(typeof(T), options.CopyGeneratedColumns);
         var returnedProperties = returnData ? context.GetProperties(typeof(T)) : [];
 
-        if (returnData && !SqlDialect.SupportsReturning)
-        {
-            throw new NotSupportedException("Provider does not support returning entities.");
-        }
-
         var query = SqlDialect.BuildMoveDataSql<T>(context, tempTableName, quotedTableName, movedProperties, returnedProperties, options, onConflict);
 
         if (returnData)
@@ -144,7 +139,7 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
         }
     }
 
-    public async Task<List<T>> BulkInsertReturnEntities<T>(
+    public virtual async Task<List<T>> BulkInsertReturnEntities<T>(
         bool sync,
         DbContext context,
         IEnumerable<T> entities,
@@ -173,10 +168,12 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
             {
                 // ReSharper disable once MethodHasAsyncOverloadWithCancellation
                 transaction.Commit();
+                transaction.Dispose();
             }
             else
             {
                 await transaction.CommitAsync(ctk);
+                await transaction.DisposeAsync();
             }
         }
 
@@ -194,7 +191,7 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
         }
     }
 
-    public async Task BulkInsert<T>(
+    public virtual async Task BulkInsert<T>(
         bool sync,
         DbContext context,
         IEnumerable<T> entities,

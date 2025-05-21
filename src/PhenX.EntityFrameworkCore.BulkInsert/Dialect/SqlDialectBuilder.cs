@@ -16,7 +16,6 @@ internal abstract class SqlDialectBuilder
 
     protected virtual string ConcatOperator => "||";
     protected virtual bool SupportsMoveRows => true;
-    public virtual bool SupportsReturning => true;
 
     /// <summary>
     /// Gets the name of the column for a property in a given entity type.

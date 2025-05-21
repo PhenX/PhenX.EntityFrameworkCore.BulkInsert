@@ -20,6 +20,8 @@ public abstract class TestDbContainer<TDbContext> : IAsyncLifetime
         DbContainer = GetDbContainer();
     }
 
+    protected string GetRandomContainerName() => "phenx-bulk-insert-test-" + Guid.NewGuid();
+
     protected abstract IDatabaseContainer? GetDbContainer();
 
     protected virtual string GetConnectionString()
@@ -35,24 +37,31 @@ public abstract class TestDbContainer<TDbContext> : IAsyncLifetime
         {
             await DbContainer.StartAsync();
         }
-
-        DbContext = new TDbContext
-        {
-            ConfigureOptions = Configure
-        };
-        DbContext.Database.SetConnectionString(GetConnectionString());
-
-        await DbContext.Database.EnsureCreatedAsync();
     }
 
     public async Task DisposeAsync()
     {
-        // await DbContext.Database.EnsureDeletedAsync();
-        await DbContext.DisposeAsync();
-
         if (DbContainer != null)
         {
             await DbContainer.DisposeAsync();
         }
+    }
+
+    public async Task InitializeDbContextAsync()
+    {
+        DbContext = new TDbContext
+        {
+            ConfigureOptions = Configure
+        };
+
+        DbContext.Database.SetConnectionString(GetConnectionString());
+        await DbContext.Database.EnsureCreatedAsync();
+    }
+
+    public async Task DisposeDbContextAsync()
+    {
+        await DbContext.Database.EnsureDeletedAsync();
+        await DbContext.DisposeAsync();
+        DbContext = null!;
     }
 }

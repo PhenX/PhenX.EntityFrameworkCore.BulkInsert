@@ -7,14 +7,15 @@ using Xunit;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.Tests.Basic;
 
-public abstract class BasicTestsBase : IAsyncLifetime
+public abstract class BasicTestsBase<TFixture> : IClassFixture<TFixture>, IAsyncLifetime
+    where TFixture : TestDbContainer<TestDbContext>
 {
-    protected BasicTestsBase(TestDbContainer<TestDbContext> dbContainer)
+    protected BasicTestsBase(TFixture dbContainer)
     {
         DbContainer = dbContainer;
     }
 
-    protected TestDbContainer<TestDbContext> DbContainer { get; }
+    protected TFixture DbContainer { get; }
 
     [Fact]
     public async Task InsertsEntitiesSuccessfully()
@@ -362,7 +363,13 @@ public abstract class BasicTestsBase : IAsyncLifetime
         Assert.DoesNotContain(insertedEntities, e => e.Name == "EntityWithTxFail2");
     }
 
-    public Task InitializeAsync() => DbContainer.InitializeAsync();
+    public Task InitializeAsync()
+    {
+        return DbContainer.InitializeDbContextAsync();
+    }
 
-    public Task DisposeAsync() => DbContainer.DisposeAsync();
+    public Task DisposeAsync()
+    {
+        return DbContainer.DisposeDbContextAsync();
+    }
 }

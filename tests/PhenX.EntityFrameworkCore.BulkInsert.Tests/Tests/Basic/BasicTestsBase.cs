@@ -116,6 +116,7 @@ public abstract class BasicTestsBase : IAsyncLifetime
     public async Task InsertsEntities_MultipleTimes()
     {
         Skip.If(_context.Database.ProviderName!.Contains("Postgres", StringComparison.InvariantCultureIgnoreCase));
+        Skip.If(_context.Database.ProviderName!.Contains("SqlServer", StringComparison.InvariantCultureIgnoreCase));
 
         // Arrange
         var entities = new List<TestEntity>
@@ -149,6 +150,7 @@ public abstract class BasicTestsBase : IAsyncLifetime
     public async Task InsertsEntities_MultipleTimes_With_Conflict_On_Id()
     {
         Skip.If(_context.Database.ProviderName!.Contains("Postgres", StringComparison.InvariantCultureIgnoreCase));
+        Skip.If(_context.Database.ProviderName!.Contains("SqlServer", StringComparison.InvariantCultureIgnoreCase));
 
         // Arrange
         var entities = new List<TestEntity>

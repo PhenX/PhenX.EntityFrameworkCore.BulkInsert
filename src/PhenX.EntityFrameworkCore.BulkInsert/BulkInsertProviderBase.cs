@@ -31,13 +31,14 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
     protected async Task<string> CreateTableCopyAsync<T>(
         bool sync,
         DbContext context,
+        BulkInsertOptions options,
         CancellationToken cancellationToken = default) where T : class
     {
         var tableInfo = GetTableInfo(context, typeof(T));
         var tableName = QuoteTableName(tableInfo.SchemaName, tableInfo.TableName);
         var tempTableName = QuoteTableName(null, GetTempTableName(tableInfo.TableName));
 
-        var keptColumns = string.Join(", ", GetQuotedColumns(context, typeof(T), false));
+        var keptColumns = string.Join(", ", GetQuotedColumns(context, typeof(T), options.CopyGeneratedColumns));
         var query = string.Format(CreateTableCopySql, tempTableName, tableName, keptColumns);
 
         await ExecuteAsync(sync, context, query, cancellationToken);
@@ -234,7 +235,7 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
         var (connection, wasClosed, transaction, wasBegan) = await context.GetConnection(sync, ctk);
 
         var tableName = tempTableRequired
-            ? await CreateTableCopyAsync<T>(sync, context, ctk)
+            ? await CreateTableCopyAsync<T>(sync, context, options, ctk)
             : GetQuotedTableName(context, typeof(T));
 
         var properties = context

@@ -22,7 +22,7 @@ internal class SqlServerBulkInsertProvider : BulkInsertProviderBase<SqlServerDia
 
     //language=sql
     /// <inheritdoc />
-    protected override string AddTableCopyBulkInsertId => $"ALTER TABLE {{0}} ADD {BulkInsertId} INT IDENTITY PRIMARY KEY;";
+    protected override string AddTableCopyBulkInsertId => $"ALTER TABLE {{0}} ADD {BulkInsertId} INT;";
 
     /// <inheritdoc />
     protected override string GetTempTableName(string tableName) => $"#_temp_bulk_insert_{tableName}";
@@ -48,7 +48,7 @@ internal class SqlServerBulkInsertProvider : BulkInsertProviderBase<SqlServerDia
 
         foreach (var prop in properties)
         {
-            bulkCopy.ColumnMappings.Add(prop.Name, SqlDialect.Quote(prop.ColumnName));
+            bulkCopy.ColumnMappings.Add(prop.Name, prop.ColumnName);
         }
 
         if (sync)

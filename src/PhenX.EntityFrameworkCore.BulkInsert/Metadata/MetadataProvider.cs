@@ -5,11 +5,6 @@ using PhenX.EntityFrameworkCore.BulkInsert.Abstractions;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Metadata;
 
-internal static class MetadataProvider<T> where T : DbContext
-{
-    public static readonly MetadataProvider Instance = new();
-}
-
 internal sealed class MetadataProvider
 {
     private Dictionary<Type, TableMetadata>? _tables;

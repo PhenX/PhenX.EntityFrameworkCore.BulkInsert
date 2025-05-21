@@ -13,7 +13,6 @@ internal abstract class SqlDialectBuilder
 
     protected virtual string ConcatOperator => "||";
     protected virtual bool SupportsMoveRows => true;
-    public virtual bool SupportsReturning => true;
 
     /// <summary>
     /// Builds the SQL for moving data from one table to another.
@@ -46,7 +45,7 @@ internal abstract class SqlDialectBuilder
         {
             q.AppendLine($"""
                     WITH moved_rows AS (
-                       DELETE FROM {source}
+                       DELETE FROM {source.QuotedTableName}
                            RETURNING {insertedColumnList}
                     )
                     """);

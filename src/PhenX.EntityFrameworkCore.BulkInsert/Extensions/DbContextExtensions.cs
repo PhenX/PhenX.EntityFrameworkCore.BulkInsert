@@ -3,6 +3,7 @@ using System.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 
+using PhenX.EntityFrameworkCore.BulkInsert.Abstractions;
 using PhenX.EntityFrameworkCore.BulkInsert.Metadata;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Extensions;
@@ -14,6 +15,19 @@ internal static class DbContextExtensions
         var provider = context.GetService<MetadataProvider>();
 
         return provider.GetTableInfo<T>(context);
+    }
+
+    public static DbContextOptionsBuilder UseProvider<TProvider>(this DbContextOptionsBuilder optionsBuilder)
+        where TProvider : class, IBulkInsertProvider
+    {
+        var extension = optionsBuilder.Options.FindExtension<BulkInsertOptionsExtension<TProvider>>() ?? new BulkInsertOptionsExtension<TProvider>();
+
+        ((IDbContextOptionsBuilderInfrastructure)optionsBuilder).AddOrUpdateExtension(extension);
+
+        ((IDbContextOptionsBuilderInfrastructure)optionsBuilder).AddOrUpdateExtension(
+            optionsBuilder.Options.FindExtension<MetadataProviderExtension>() ?? new());
+
+        return optionsBuilder;
     }
 
     internal static async Task<ConnectionInfo> GetConnection(

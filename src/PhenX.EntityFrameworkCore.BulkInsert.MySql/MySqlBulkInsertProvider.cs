@@ -27,6 +27,19 @@ internal class MySqlBulkInsertProvider : BulkInsertProviderBase<MySqlServerDiale
     protected override string GetTempTableName(string tableName) => $"#_temp_bulk_insert_{tableName}";
 
     /// <inheritdoc />
+    public override Task<List<T>> BulkInsertReturnEntities<T>(
+        bool sync,
+        DbContext context,
+        TableMetadata tableInfo,
+        IEnumerable<T> entities,
+        BulkInsertOptions options,
+        OnConflictOptions? onConflict = null,
+        CancellationToken ctk = default)
+    {
+        throw new NotSupportedException("Provider does not support returning entities.");
+    }
+
+    /// <inheritdoc />
     protected override async Task BulkInsert<T>(
         bool sync,
         DbContext context,
@@ -39,11 +52,16 @@ internal class MySqlBulkInsertProvider : BulkInsertProviderBase<MySqlServerDiale
     )
     {
         var connection = (MySqlConnection)context.Database.GetDbConnection();
-        var sqlTransaction = context.Database.CurrentTransaction!.GetDbTransaction() as MySqlTransaction;
+        var sqlTransaction = context.Database.CurrentTransaction!.GetDbTransaction()
+            ?? throw new InvalidOperationException("No open transaction found.");
+        if (sqlTransaction is not MySqlTransaction mySqlTransaction)
+        {
+            throw new InvalidOperationException($"Invalid transaction foud, got {sqlTransaction.GetType()}.");
+        }
 
-        var bulkCopy = new MySqlBulkCopy(connection, sqlTransaction);
+        var bulkCopy = new MySqlBulkCopy(connection, mySqlTransaction);
         bulkCopy.DestinationTableName = tableName;
-        bulkCopy.BulkCopyTimeout = 60;
+        bulkCopy.BulkCopyTimeout = options.GetCopyTimeoutInSeconds();
 
         var sourceOrdinal = 0;
         foreach (var prop in properties)

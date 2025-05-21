@@ -1,5 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+
+using PhenX.EntityFrameworkCore.BulkInsert.Extensions;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.SqlServer;
 
@@ -13,10 +15,6 @@ public static class SqlServerDbContextOptionsExtensions
     /// </summary>
     public static DbContextOptionsBuilder UseBulkInsertSqlServer(this DbContextOptionsBuilder optionsBuilder)
     {
-        var extension = optionsBuilder.Options.FindExtension<BulkInsertOptionsExtension<SqlServerBulkInsertProvider>>() ?? new BulkInsertOptionsExtension<SqlServerBulkInsertProvider>();
-
-        ((IDbContextOptionsBuilderInfrastructure)optionsBuilder).AddOrUpdateExtension(extension);
-
-        return optionsBuilder;
+        return optionsBuilder.UseProvider<SqlServerBulkInsertProvider>();
     }
 }

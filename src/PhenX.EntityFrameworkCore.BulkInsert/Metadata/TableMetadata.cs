@@ -18,7 +18,7 @@ internal sealed class TableMetadata(IEntityType entityType, SqlDialectBuilder di
     public IReadOnlyList<PropertyMetadata> Properties { get; } =
         entityType.GetProperties().Where(p => !p.IsShadowProperty()).Select(x => new PropertyMetadata(x, dialect)).ToList();
 
-    public IReadOnlyList<PropertyMetadata> GetProperties(bool includeGenerated = false)
+    public IReadOnlyList<PropertyMetadata> GetProperties(bool includeGenerated = true)
     {
         if (includeGenerated)
         {

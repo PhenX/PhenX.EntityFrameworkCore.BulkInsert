@@ -1,4 +1,4 @@
-﻿using DotNet.Testcontainers.Containers;
+using DotNet.Testcontainers.Containers;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -14,7 +14,9 @@ public class TestDbContainerSqlServer<TDbContext> : TestDbContainer<TDbContext>
 {
     protected override IDatabaseContainer? GetDbContainer()
     {
-        return new MsSqlBuilder().Build();
+        return new MsSqlBuilder()
+            .WithReuse(true)
+            .Build();
     }
 
     protected override void Configure(DbContextOptionsBuilder optionsBuilder)

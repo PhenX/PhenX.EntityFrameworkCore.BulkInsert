@@ -10,7 +10,7 @@ internal static class PropertyAccessor
     public static Getter<object, object?> CreateUntypedGetter(PropertyInfo propertyInfo, Type sourceType, Type valueType)
     {
         var method =
-            typeof(PropertyAccessor).GetMethod(nameof(CreateInternalUntypedGetter), BindingFlags.NonPublic)!
+            typeof(PropertyAccessor).GetMethod(nameof(CreateInternalUntypedGetter), BindingFlags.NonPublic | BindingFlags.Static)!
                 .MakeGenericMethod(sourceType, valueType);
 
         return (Getter<object, object?>)method.Invoke(null, [propertyInfo])!;

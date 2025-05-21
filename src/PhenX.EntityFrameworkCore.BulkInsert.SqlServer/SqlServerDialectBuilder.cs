@@ -30,6 +30,11 @@ internal class SqlServerDialectBuilder : SqlDialectBuilder
 
         var q = new StringBuilder();
 
+        if (options.CopyGeneratedColumns)
+        {
+            q.AppendLine($"SET IDENTITY_INSERT {target} ON;");
+        }
+
         // Merge handling
         if (onConflict is OnConflictOptions<T> onConflictTyped && onConflictTyped.Match != null)
         {
@@ -78,11 +83,16 @@ internal class SqlServerDialectBuilder : SqlDialectBuilder
 
         q.AppendLine(";");
 
+        if (options.CopyGeneratedColumns)
+        {
+            q.AppendLine($"SET IDENTITY_INSERT {target} OFF;");
+        }
+
         return q.ToString();
     }
 
     protected override string GetExcludedColumnName(string columnName)
     {
-        return $"SOURCE.{Quote(columnName)}";
+        return $"SOURCE.{columnName}";
     }
 }

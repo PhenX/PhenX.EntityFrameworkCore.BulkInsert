@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 
+using PhenX.EntityFrameworkCore.BulkInsert.Extensions;
+
 namespace PhenX.EntityFrameworkCore.BulkInsert.Sqlite;
 
 /// <summary>
@@ -13,9 +15,7 @@ public static class SqliteDbContextOptionsExtensions
     /// </summary>
     public static DbContextOptionsBuilder UseBulkInsertSqlite(this DbContextOptionsBuilder optionsBuilder)
     {
-        var extension = optionsBuilder.Options.FindExtension<BulkInsertOptionsExtension<SqliteBulkInsertProvider>>() ?? new BulkInsertOptionsExtension<SqliteBulkInsertProvider>();
-        ((IDbContextOptionsBuilderInfrastructure)optionsBuilder).AddOrUpdateExtension(extension);
-        return optionsBuilder;
+        return optionsBuilder.UseProvider<SqliteBulkInsertProvider>();
     }
 }
 

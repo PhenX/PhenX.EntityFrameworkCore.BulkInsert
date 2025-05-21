@@ -14,5 +14,8 @@ public class TestEntityWithConverters
 
     [Column("created_at")]
     public DateTime CreatedAt { get; set; }
+
+    [Column("test_run")]
+    public Guid TestRun { get; set; }
 }
 

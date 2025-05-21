@@ -1,10 +1,11 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
+
+using PhenX.EntityFrameworkCore.BulkInsert.Extensions;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.MySql;
 
 /// <summary>
-/// DbContext options extension for SQL Server.
+/// DbContext options extension for MySql.
 /// </summary>
 public static class MySqlDbContextOptionsExtensions
 {
@@ -13,10 +14,6 @@ public static class MySqlDbContextOptionsExtensions
     /// </summary>
     public static DbContextOptionsBuilder UseBulkInsertMySql(this DbContextOptionsBuilder optionsBuilder)
     {
-        var extension = optionsBuilder.Options.FindExtension<BulkInsertOptionsExtension<MySqlBulkInsertProvider>>() ?? new BulkInsertOptionsExtension<MySqlBulkInsertProvider>();
-
-        ((IDbContextOptionsBuilderInfrastructure)optionsBuilder).AddOrUpdateExtension(extension);
-
-        return optionsBuilder;
+        return optionsBuilder.UseProvider<MySqlBulkInsertProvider>();
     }
 }

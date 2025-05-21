@@ -38,18 +38,24 @@ internal sealed class PropertyMetadata(IProperty property,  SqlDialectBuilder di
                 property.DeclaringType.ClrType,
                 property.ClrType);
 
+        var result = actualGetter;
         if (valueConverter != null)
         {
             var converter = valueConverter.ConvertToProvider;
-            var original = actualGetter;
-            actualGetter = source =>
+
+            result = source =>
             {
-                var value = original(source);
+                var value = actualGetter(source);
 
                 return converter(value);
             };
         }
 
-        return actualGetter;
+        return result;
+    }
+
+    public override string ToString()
+    {
+        return $"Name: {Name}, Column: {ColumnName}";
     }
 }

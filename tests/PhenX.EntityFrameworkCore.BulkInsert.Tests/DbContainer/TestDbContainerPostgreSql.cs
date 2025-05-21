@@ -19,6 +19,7 @@ public class TestDbContainerPostgreSql<TDbContext> : TestDbContainer<TDbContext>
             .WithDatabase("testdb")
             .WithUsername("testuser")
             .WithPassword("testpassword")
+            .WithName(GetRandomContainerName())
             .Build();
     }
 

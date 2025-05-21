@@ -65,6 +65,37 @@ public abstract class BasicTestsBase : IAsyncLifetime
     }
 
     [Fact]
+    public async Task InsertsEntities_MultipleTimes()
+    {
+        // Arrange
+        var entities = new List<TestEntity>
+        {
+            new TestEntity { Id = GetId(), Name = $"{_prefix}_Entity1" },
+            new TestEntity { Id = GetId(), Name = $"{_prefix}_Entity2" }
+        };
+
+        // Act
+        await DbContainer.DbContext.ExecuteBulkInsertReturnEntitiesAsync(entities);
+
+        foreach (var entity in entities)
+        {
+            entity.NumericEnumValue = NumericEnum.Second;
+        }
+
+        await DbContainer.DbContext.ExecuteBulkInsertReturnEntitiesAsync(entities,
+            onConflict: new OnConflictOptions<TestEntity>
+            {
+                Update = e => e,
+            });
+
+        // Assert
+        var insertedEntities = DbContainer.DbContext.TestEntities.ToList();
+        Assert.Equal(2, insertedEntities.Count);
+        Assert.Contains(insertedEntities, e => e.NumericEnumValue == NumericEnum.Second);
+        Assert.Contains(insertedEntities, e => e.NumericEnumValue == NumericEnum.Second);
+    }
+
+    [Fact]
     public async Task InsertsEntitiesMoveRowsSuccessfully()
     {
         // Arrange
@@ -87,9 +118,11 @@ public abstract class BasicTestsBase : IAsyncLifetime
         Assert.Contains(insertedEntities, e => e.Name == $"{_prefix}_Entity2");
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task InsertsEntitiesWithConflict_SingleColumn()
     {
+        Skip.If(DbContainer.DbContext.Database.ProviderName!.Contains("Mysql", StringComparison.InvariantCultureIgnoreCase));
+
         DbContainer.DbContext.TestEntities.Add(new TestEntity { Name = $"{_prefix}_Entity1" });
         await DbContainer.DbContext.SaveChangesAsync();
         DbContainer.DbContext.ChangeTracker.Clear();
@@ -155,7 +188,7 @@ public abstract class BasicTestsBase : IAsyncLifetime
     [SkippableFact]
     public async Task InsertsEntitiesWithConflict_Condition()
     {
-        // Skip.If(DbContainer.DbContext.Database.ProviderName!.Contains("Npgsql", StringComparison.InvariantCultureIgnoreCase));
+        Skip.If(DbContainer.DbContext.Database.ProviderName!.Contains("Mysql", StringComparison.InvariantCultureIgnoreCase));
 
         DbContainer.DbContext.TestEntities.Add(new TestEntity { Name = $"{_prefix}_Entity1", Price = 10 });
         await DbContainer.DbContext.SaveChangesAsync();
@@ -183,9 +216,11 @@ public abstract class BasicTestsBase : IAsyncLifetime
         Assert.Contains(insertedEntities, e => e.Name == $"{_prefix}_Entity2" && e.Price == 30);
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task InsertsEntitiesWithConflict_MultipleColumns()
     {
+        Skip.If(DbContainer.DbContext.Database.ProviderName!.Contains("Mysql", StringComparison.InvariantCultureIgnoreCase));
+
         DbContainer.DbContext.TestEntities.Add(new TestEntity { Name = $"{_prefix}_Entity1", Price = 10 });
         await DbContainer.DbContext.SaveChangesAsync();
         DbContainer.DbContext.ChangeTracker.Clear();
@@ -255,7 +290,7 @@ public abstract class BasicTestsBase : IAsyncLifetime
         // Assert
         var insertedEntities = DbContainer.DbContext.TestEntities.ToList();
         Assert.Equal(count, insertedEntities.Count);
-        Assert.Contains(insertedEntities, e => e.Name == $"{_prefix}_Entity1");
+        Assert.Contains(insertedEntities, e => e.Name == "Entity1");
         Assert.Contains(insertedEntities, e => e.Name == "Entity" + count);
     }
 

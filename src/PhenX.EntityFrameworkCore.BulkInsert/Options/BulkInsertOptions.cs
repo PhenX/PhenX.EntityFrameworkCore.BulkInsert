@@ -1,4 +1,4 @@
-﻿namespace PhenX.EntityFrameworkCore.BulkInsert.Options;
+namespace PhenX.EntityFrameworkCore.BulkInsert.Options;
 
 /// <summary>
 /// Bulk insert general options.

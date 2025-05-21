@@ -58,7 +58,7 @@ internal class MySqlBulkInsertProvider : BulkInsertProviderBase<MySqlServerDiale
 
         var bulkCopy = new MySqlBulkCopy(connection, mySqlTransaction);
         bulkCopy.DestinationTableName = tableName;
-        bulkCopy.BulkCopyTimeout = 60;
+        bulkCopy.BulkCopyTimeout = options.GetCopyTimeoutInSeconds();
 
         var sourceOrdinal = 0;
         foreach (var prop in properties)

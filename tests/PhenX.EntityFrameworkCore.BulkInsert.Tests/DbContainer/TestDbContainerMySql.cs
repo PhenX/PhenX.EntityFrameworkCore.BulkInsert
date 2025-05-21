@@ -15,9 +15,8 @@ public class TestDbContainerMySql<TDbContext> : TestDbContainer<TDbContext>
     protected override IDatabaseContainer? GetDbContainer()
     {
         return new MySqlBuilder()
-            .WithReuse(true)
             .WithCommand("--log-bin-trust-function-creators=1", "--local-infile=1", "--innodb-print-all-deadlocks=ON")
-            .WithName(GetRandomContainerName())
+            .WithReuse(true)
             .Build();
     }
 

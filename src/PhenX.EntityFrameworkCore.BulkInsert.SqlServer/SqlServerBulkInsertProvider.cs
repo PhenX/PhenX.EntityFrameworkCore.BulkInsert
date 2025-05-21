@@ -22,7 +22,7 @@ internal class SqlServerBulkInsertProvider : BulkInsertProviderBase<SqlServerDia
 
     //language=sql
     /// <inheritdoc />
-    protected override string AddTableCopyBulkInsertId => $"ALTER TABLE {{0}} ADD {BulkInsertId} INT;";
+    protected override string AddTableCopyBulkInsertId => $"ALTER TABLE {{0}} ADD {BulkInsertId} INT IDENTITY PRIMARY KEY;";
 
     /// <inheritdoc />
     protected override string GetTempTableName(string tableName) => $"#_temp_bulk_insert_{tableName}";

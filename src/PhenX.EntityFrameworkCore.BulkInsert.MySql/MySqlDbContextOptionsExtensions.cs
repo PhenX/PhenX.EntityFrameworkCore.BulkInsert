@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 namespace PhenX.EntityFrameworkCore.BulkInsert.MySql;
 
 /// <summary>
-/// DbContext options extension for SQL Server.
+/// DbContext options extension for MySql.
 /// </summary>
 public static class MySqlDbContextOptionsExtensions
 {

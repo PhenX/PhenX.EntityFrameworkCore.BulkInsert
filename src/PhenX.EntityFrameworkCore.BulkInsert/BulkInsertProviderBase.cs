@@ -155,6 +155,7 @@ internal abstract class BulkInsertProviderBase<TDialect>(ILogger<BulkInsertProvi
 
             result = await CopyFromTempTableAsync<T>(sync, context, tableInfo, tableName, true, options, onConflict, cancellationToken: ctk);
 
+            // Commit the transaction if we own them.
             await Commit(sync, connectionInfo, ctk);
         }
         finally
@@ -232,6 +233,8 @@ internal abstract class BulkInsertProviderBase<TDialect>(ILogger<BulkInsertProvi
                 var (tableName, _) = await PerformBulkInsertAsync(sync, context, tableInfo, entities, options, tempTableRequired: true, ctk: ctk);
 
                 await CopyFromTempTableAsync<T>(sync, context, tableInfo, tableName, false, options, onConflict, ctk);
+
+                // Commit the transaction if we own them.
                 await Commit(sync, connectionInfo, ctk);
             }
             finally
@@ -267,9 +270,17 @@ internal abstract class BulkInsertProviderBase<TDialect>(ILogger<BulkInsertProvi
 
         var properties = tableInfo.GetProperties(options.CopyGeneratedColumns);
 
-        await BulkInsert(false, context, tableInfo, entities, tableName, properties, options, ctk);
+        try
+        {
+            await BulkInsert(false, context, tableInfo, entities, tableName, properties, options, ctk);
 
-        await Finish(sync, connectionInfo, ctk);
+            // Commit the transaction if we own them.
+            await Commit(sync, connectionInfo, ctk);
+        }
+        finally
+        {
+            await Finish(sync, connectionInfo, ctk);
+        }
 
         return (tableName, connectionInfo.Connection);
     }

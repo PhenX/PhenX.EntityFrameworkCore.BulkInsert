@@ -6,7 +6,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-using PhenX.EntityFrameworkCore.BulkInsert.Extensions;
+using PhenX.EntityFrameworkCore.BulkInsert.Metadata;
 using PhenX.EntityFrameworkCore.BulkInsert.Options;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Sqlite;
@@ -81,17 +81,17 @@ internal class SqliteBulkInsertProvider : BulkInsertProviderBase<SqliteDialectBu
         throw new InvalidOperationException("Unknown Sqlite type for " + clrType);
     }
 
-    private DbCommand GetInsertCommand(DbContext context, Type entityType, string tableName,
+    private DbCommand GetInsertCommand(DbContext context, TableMetadata tableInfo, string tableName,
         int batchSize)
     {
-        var columns = context.GetProperties(entityType, false);
+        var columns = tableInfo.GetProperties(false);
         var cmd = context.Database.GetDbConnection().CreateCommand();
 
         var sqliteColumns = columns
             .Select(c => new
             {
-                Name = c.GetColumnName(),
-                Type = GetSqliteType(c.GetProviderClrType() ?? c.ClrType)
+                Name = c.ColumnName,
+                Type = GetSqliteType(c.ProviderClrType ?? c.ClrType)
             })
             .ToArray();
 
@@ -125,18 +125,19 @@ internal class SqliteBulkInsertProvider : BulkInsertProviderBase<SqliteDialectBu
     protected override async Task BulkInsert<T>(
         bool sync,
         DbContext context,
+        TableMetadata tableInfo,
         IEnumerable<T> entities,
         string tableName,
-        PropertyAccessor[] properties,
+        IReadOnlyList<PropertyMetadata> properties,
         BulkInsertOptions options,
         CancellationToken ctk
     ) where T : class
     {
         const int maxParams = 1000;
         var batchSize = options.BatchSize ?? 5;
-        batchSize = Math.Min(batchSize, maxParams / properties.Length);
+        batchSize = Math.Min(batchSize, maxParams / properties.Count);
 
-        await using var insertCommand = GetInsertCommand(context, typeof(T), tableName, batchSize);
+        await using var insertCommand = GetInsertCommand(context, tableInfo, tableName, batchSize);
 
         foreach (var chunk in entities.Chunk(batchSize))
         {
@@ -149,7 +150,7 @@ internal class SqliteBulkInsertProvider : BulkInsertProviderBase<SqliteDialectBu
             // Last chunk
             else
             {
-                var partialInsertCommand = GetInsertCommand(context, typeof(T), tableName, chunk.Length);
+                var partialInsertCommand = GetInsertCommand(context, tableInfo, tableName, chunk.Length);
 
                 FillValues(chunk, partialInsertCommand.Parameters, properties);
                 await ExecuteCommand(sync, partialInsertCommand, ctk);
@@ -170,7 +171,7 @@ internal class SqliteBulkInsertProvider : BulkInsertProviderBase<SqliteDialectBu
         }
     }
 
-    private static void FillValues<T>(T[] chunk, DbParameterCollection parameters, PropertyAccessor[] properties) where T : class
+    private static void FillValues<T>(T[] chunk, DbParameterCollection parameters, IReadOnlyList<PropertyMetadata> properties) where T : class
     {
         var index = 0;
         foreach (var entity in chunk)

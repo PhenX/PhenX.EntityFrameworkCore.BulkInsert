@@ -1,10 +1,7 @@
-using System.Linq.Expressions;
 using System.Text;
 
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata;
-
 using PhenX.EntityFrameworkCore.BulkInsert.Dialect;
+using PhenX.EntityFrameworkCore.BulkInsert.Metadata;
 using PhenX.EntityFrameworkCore.BulkInsert.Options;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.SqlServer;
@@ -17,16 +14,18 @@ internal class SqlServerDialectBuilder : SqlDialectBuilder
 
     protected override bool SupportsMoveRows => false;
 
-    public override string BuildMoveDataSql<T>(DbContext context, string source,
+    public override string BuildMoveDataSql<T>(
+        TableMetadata source,
         string target,
-        IProperty[] insertedProperties,
-        IProperty[] properties,
-        BulkInsertOptions options, OnConflictOptions? onConflict = null)
+        IReadOnlyList<PropertyMetadata> insertedProperties,
+        IReadOnlyList<PropertyMetadata> properties,
+        BulkInsertOptions options,
+        OnConflictOptions? onConflict = null)
     {
-        var insertedColumns = insertedProperties.Select(p => Quote(p.GetColumnName())).ToArray();
+        var insertedColumns = insertedProperties.Select(x => x.QuotedColumName);
         var insertedColumnList = string.Join(", ", insertedColumns);
 
-        var returnedColumns = properties.Select(p => $"INSERTED.{p.GetColumnName()} AS {p.GetColumnName()}");
+        var returnedColumns = properties.Select(p => $"INSERTED.{p.ColumnName} AS {p.ColumnName}");
         var columnList = string.Join(", ", returnedColumns);
 
         var q = new StringBuilder();
@@ -34,12 +33,12 @@ internal class SqlServerDialectBuilder : SqlDialectBuilder
         // Merge handling
         if (onConflict is OnConflictOptions<T> onConflictTyped && onConflictTyped.Match != null)
         {
-            var matchColumns = GetColumns(context, onConflictTyped.Match);
+            var matchColumns = GetColumns(source, onConflictTyped.Match);
             var matchOn = string.Join(" AND ",
                 matchColumns.Select(col => $"TARGET.{col} = SOURCE.{col}"));
 
             var updateSet = onConflictTyped.Update != null
-                ? string.Join(", ", GetUpdates(context, insertedProperties, onConflictTyped.Update))
+                ? string.Join(", ", GetUpdates(source, insertedProperties, onConflictTyped.Update))
                 : null;
 
             q.AppendLine($"MERGE INTO {target} AS TARGET");

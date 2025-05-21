@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 
 using Npgsql;
 
+using PhenX.EntityFrameworkCore.BulkInsert.Metadata;
 using PhenX.EntityFrameworkCore.BulkInsert.Options;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.PostgreSql;
@@ -24,9 +25,9 @@ internal class PostgreSqlBulkInsertProvider : BulkInsertProviderBase<PostgreSqlD
     /// <inheritdoc />
     protected override string AddTableCopyBulkInsertId => $"ALTER TABLE {{0}} ADD COLUMN {BulkInsertId} SERIAL PRIMARY KEY;";
 
-    private string GetBinaryImportCommand(DbContext context, Type entityType, string tableName)
+    private static string GetBinaryImportCommand(TableMetadata tableInfo, string tableName)
     {
-        var columns = GetQuotedColumns(context, entityType, false);
+        var columns = tableInfo.GetProperties(false).Select(X => X.QuotedColumName);
 
         return $"COPY {tableName} ({string.Join(", ", columns)}) FROM STDIN (FORMAT BINARY)";
     }
@@ -35,15 +36,16 @@ internal class PostgreSqlBulkInsertProvider : BulkInsertProviderBase<PostgreSqlD
     protected override async Task BulkInsert<T>(
         bool sync,
         DbContext context,
+        TableMetadata tableInfo,
         IEnumerable<T> entities,
         string tableName,
-        PropertyAccessor[] properties,
+        IReadOnlyList<PropertyMetadata> properties,
         BulkInsertOptions options,
-        CancellationToken ctk) where T : class
+        CancellationToken ctk)
     {
         var connection = (NpgsqlConnection)context.Database.GetDbConnection();
 
-        var importCommand = GetBinaryImportCommand(context, typeof(T), tableName);
+        var importCommand = GetBinaryImportCommand(tableInfo, tableName);
 
         var writer = sync
             // ReSharper disable once MethodHasAsyncOverloadWithCancellation

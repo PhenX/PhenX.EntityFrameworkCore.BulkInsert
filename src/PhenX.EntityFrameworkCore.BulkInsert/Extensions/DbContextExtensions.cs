@@ -1,28 +1,22 @@
 using System.Data;
-using System.Data.Common;
 
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+
+using PhenX.EntityFrameworkCore.BulkInsert.Metadata;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Extensions;
 
 internal static class DbContextExtensions
 {
-    /// <summary>
-    /// Gets cached properties for an entity type, using reflection if not already cached.
-    /// </summary>
-    internal static IProperty[] GetProperties(this DbContext context, Type entityType, bool includeGenerated = true)
+    public static TableMetadata GetTableInfo<T>(this DbContext context)
     {
-        var entityTypeInfo = context.Model.FindEntityType(entityType) ?? throw new InvalidOperationException($"Could not determine entity type for type {entityType.Name}");
+        var provider = context.GetService<MetadataProvider>();
 
-        return entityTypeInfo
-            .GetProperties()
-            .Where(p => !p.IsShadowProperty() && (includeGenerated || p.ValueGenerated != ValueGenerated.OnAdd))
-            .ToArray();
+        return provider.GetTableInfo<T>(context);
     }
 
-    internal static async Task<(DbConnection connection, bool wasClosed, IDbContextTransaction transaction, bool wasBegan)> GetConnection(
+    internal static async Task<ConnectionInfo> GetConnection(
             this DbContext context, bool sync, CancellationToken ctk = default)
     {
         var connection = context.Database.GetDbConnection();
@@ -59,6 +53,6 @@ internal static class DbContextExtensions
             }
         }
 
-        return (connection, wasClosed, transaction, wasBegan);
+        return new ConnectionInfo(connection, wasClosed, transaction, wasBegan);
     }
 }

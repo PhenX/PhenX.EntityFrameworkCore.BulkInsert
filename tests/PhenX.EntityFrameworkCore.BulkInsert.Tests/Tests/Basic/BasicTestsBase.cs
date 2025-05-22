@@ -93,7 +93,7 @@ public abstract class BasicTestsBase<TFixture> : IClassFixture<TFixture>, IAsync
     }
 
     [SkippableFact]
-    public async Task InsertsEntitiesAndReturnAsyncENumerable()
+    public async Task InsertsEntitiesAndReturnAsyncEnumerable()
     {
         Skip.If(_context.Database.ProviderName!.Contains("Mysql", StringComparison.InvariantCultureIgnoreCase));
 

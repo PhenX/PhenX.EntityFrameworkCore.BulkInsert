@@ -138,16 +138,17 @@ internal abstract class SqlDialectBuilder
     /// <summary>
     /// Quotes a column name using database-specific delimiters.
     /// </summary>
-    public string Quote(string entity) => $"{OpenDelimiter}{entity}{CloseDelimiter}";
+    public string Quote(string entity)
+    {
+        return $"{OpenDelimiter}{entity}{CloseDelimiter}";
+    }
 
     /// <summary>
     /// Quotes a schema and table name using database-specific delimiters.
     /// </summary>
     public string QuoteTableName(string? schema, string tableName)
     {
-        return schema != null
-            ? $"{Quote(schema)}.{Quote(tableName)}"
-            : Quote(tableName);
+        return schema != null ? $"{Quote(schema)}.{Quote(tableName)}" : Quote(tableName);
     }
 
     /// <summary>
@@ -157,12 +158,11 @@ internal abstract class SqlDialectBuilder
     {
         return columns.Body switch
         {
-            NewExpression newExpression => newExpression.Arguments.OfType<MemberExpression>()
-                .Select(m => table.GetQuotedColumnName(m.Member.Name))
-                .ToArray(),
-            MemberExpression memberExpression => [
-                table.GetQuotedColumnName(memberExpression.Member.Name)
-            ],
+            NewExpression newExpression =>
+                newExpression.Arguments.OfType<MemberExpression>()
+                    .Select(m => table.GetQuotedColumnName(m.Member.Name)).ToArray(),
+            MemberExpression memberExpression =>
+                [table.GetQuotedColumnName(memberExpression.Member.Name)],
             _ => throw new NotSupportedException("Unsupported expression type")
         };
     }
@@ -228,85 +228,95 @@ internal abstract class SqlDialectBuilder
     {
         switch (expr)
         {
-            case MemberExpression m:
-                return GetExcludedColumnName(table.GetColumnName(m.Member.Name));
+            case MemberExpression memberExpr:
+                return GetExcludedColumnName(table.GetColumnName(memberExpr.Member.Name));
 
-            case BinaryExpression b:
-                var left = ToSqlExpression<TEntity>(table, b.Left);
-                var right = ToSqlExpression<TEntity>(table, b.Right);
-                var op = b.NodeType switch
+            case BinaryExpression binaryExpr:
                 {
-                    ExpressionType.Add => b.Type == typeof(string) ? ConcatOperator : "+",
-                    ExpressionType.Subtract => "-",
-                    ExpressionType.Multiply => "*",
-                    ExpressionType.Divide => "/",
-                    ExpressionType.Modulo => "%",
-                    ExpressionType.AndAlso => "AND",
-                    ExpressionType.OrElse => "OR",
-                    ExpressionType.Equal => "=",
-                    ExpressionType.NotEqual => "<>",
-                    ExpressionType.LessThan => "<",
-                    ExpressionType.LessThanOrEqual => "<=",
-                    ExpressionType.GreaterThan => ">",
-                    ExpressionType.GreaterThanOrEqual => ">=",
-                    _ => throw new NotSupportedException($"Unsupported operator: {b.NodeType}")
-                };
-                return $"({left} {op} {right})";
+                    var op = binaryExpr.NodeType switch
+                    {
+                        ExpressionType.Add => binaryExpr.Type == typeof(string) ? ConcatOperator : "+",
+                        ExpressionType.Subtract => "-",
+                        ExpressionType.Multiply => "*",
+                        ExpressionType.Divide => "/",
+                        ExpressionType.Modulo => "%",
+                        ExpressionType.AndAlso => "AND",
+                        ExpressionType.OrElse => "OR",
+                        ExpressionType.Equal => "=",
+                        ExpressionType.NotEqual => "<>",
+                        ExpressionType.LessThan => "<",
+                        ExpressionType.LessThanOrEqual => "<=",
+                        ExpressionType.GreaterThan => ">",
+                        ExpressionType.GreaterThanOrEqual => ">=",
+                        _ => throw new NotSupportedException($"Unsupported operator: {binaryExpr.NodeType}")
+                    };
 
-            case ConstantExpression c:
-                if (c.Type == typeof(RawSqlValue) && c.Value != null)
-                {
-                    return ((RawSqlValue)c.Value!).Sql;
+                    var lhs = ToSqlExpression<TEntity>(table, binaryExpr.Left);
+                    var rhs = ToSqlExpression<TEntity>(table, binaryExpr.Right);
+
+                    return $"({lhs} {op} {rhs})";
                 }
 
-                if (c.Type == typeof(string) ||
-                    c.Type == typeof(Guid))
+            case ConstantExpression contantExpr:
+                if (contantExpr.Type == typeof(RawSqlValue) && contantExpr.Value != null)
                 {
-                    return $"'{c.Value}'";
+                    return ((RawSqlValue)contantExpr.Value!).Sql;
                 }
 
-                if (c.Type == typeof(bool))
+                if (contantExpr.Type == typeof(string) ||
+                    contantExpr.Type == typeof(Guid))
                 {
-                    return (bool)c.Value! ? "TRUE" : "FALSE";
+                    return $"'{contantExpr.Value}'";
                 }
 
-                return c.Value?.ToString() ?? "NULL";
-
-            case UnaryExpression u:
-                if (u.NodeType == ExpressionType.Convert)
+                if (contantExpr.Type == typeof(bool))
                 {
-                    return ToSqlExpression<TEntity>(table, u.Operand);
-                }
-                if (u.NodeType == ExpressionType.Not)
-                {
-                    return $"NOT ({ToSqlExpression<TEntity>(table, u.Operand)})";
-                }
-                throw new NotSupportedException($"Unary operator not supported: {u.NodeType}");
-
-            case MethodCallExpression mce:
-                // Supporte quelques méthodes courantes (ToLower, ToUpper, Trim, etc.)
-                var objSql = mce.Object != null ? ToSqlExpression<TEntity>(table, mce.Object) : null;
-                var argsSql = mce.Arguments.Select(expr1 => ToSqlExpression<TEntity>(table, expr1)).ToArray();
-                switch (mce.Method.Name)
-                {
-                    case "ToLower":
-                        return $"LOWER({objSql})";
-                    case "ToUpper":
-                        return $"UPPER({objSql})";
-                    case "Trim":
-                        return $"BTRIM({objSql})";
-                    case "Contains" when mce is { Object: not null, Arguments.Count: 1 }:
-                        return $"{objSql} LIKE '%' || {argsSql[0]} || '%'";
-                    case "StartsWith" when mce is { Object: not null, Arguments.Count: 1 }:
-                        return $"{objSql} LIKE {argsSql[0]} || '%'";
-                    case "EndsWith" when mce is { Object: not null, Arguments.Count: 1 }:
-                        return $"{objSql} LIKE '%' || {argsSql[0]}";
-                    default:
-                        throw new NotSupportedException($"Method not supported: {mce.Method.Name}");
+                    return (bool)contantExpr.Value! ? "TRUE" : "FALSE";
                 }
 
-            case ParameterExpression p:
-                return Quote(p.Name ?? "param");
+                return contantExpr.Value?.ToString() ?? "NULL";
+
+            case UnaryExpression unaryExpr:
+                if (unaryExpr.NodeType == ExpressionType.Convert)
+                {
+                    return ToSqlExpression<TEntity>(table, unaryExpr.Operand);
+                }
+                if (unaryExpr.NodeType == ExpressionType.Not)
+                {
+                    return $"NOT ({ToSqlExpression<TEntity>(table, unaryExpr.Operand)})";
+                }
+                throw new NotSupportedException($"Unary operator not supported: {unaryExpr.NodeType}");
+
+            case MethodCallExpression methodExpr:
+                {
+                    var lhs = methodExpr.Object != null ? ToSqlExpression<TEntity>(table, methodExpr.Object) : null;
+
+                    string Rhs()
+                    {
+                        return ToSqlExpression<TEntity>(table, methodExpr.Arguments[0]);
+                    }
+
+                    switch (methodExpr.Method.Name)
+                    {
+                        case "ToLower":
+                            return $"LOWER({lhs})";
+                        case "ToUpper":
+                            return $"UPPER({lhs})";
+                        case "Trim":
+                            return $"BTRIM({lhs})";
+                        case "Contains" when methodExpr is { Object: not null, Arguments.Count: 1 }:
+                            return $"{lhs} LIKE '%' || {Rhs()} || '%'";
+                        case "EndsWith" when methodExpr is { Object: not null, Arguments.Count: 1 }:
+                            return $"{lhs} LIKE '%' || {Rhs()}";
+                        case "StartsWith" when methodExpr is { Object: not null, Arguments.Count: 1 }:
+                            return $"{lhs} LIKE {Rhs()} || '%'";
+                        default:
+                            throw new NotSupportedException($"Method not supported: {methodExpr.Method.Name}");
+                    }
+                }
+
+            case ParameterExpression parameterExpr:
+                return Quote(parameterExpr.Name ?? "param");
 
             default:
                 throw new NotSupportedException($"Expression not supported: {expr.NodeType}");

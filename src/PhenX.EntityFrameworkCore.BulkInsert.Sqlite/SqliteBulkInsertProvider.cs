@@ -30,6 +30,12 @@ internal class SqliteBulkInsertProvider : BulkInsertProviderBase<SqliteDialectBu
     protected override string AddTableCopyBulkInsertId => "--"; // No need to add an ID column in SQLite
 
     /// <inheritdoc />
+    public override BulkInsertOptions GetDefaultOptions() => new()
+    {
+        BatchSize = 5,
+    };
+
+    /// <inheritdoc />
     protected override Task AddBulkInsertIdColumn<T>(
         bool sync,
         DbContext context,
@@ -134,7 +140,7 @@ internal class SqliteBulkInsertProvider : BulkInsertProviderBase<SqliteDialectBu
     ) where T : class
     {
         const int maxParams = 1000;
-        var batchSize = options.BatchSize ?? 5;
+        var batchSize = options.BatchSize;
         batchSize = Math.Min(batchSize, maxParams / properties.Length);
 
         await using var insertCommand = GetInsertCommand(context, typeof(T), tableName, options, batchSize);

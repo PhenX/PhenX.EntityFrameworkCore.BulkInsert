@@ -32,4 +32,9 @@ internal interface IBulkInsertProvider
         OnConflictOptions? onConflict = null,
         CancellationToken ctk = default
     ) where T : class;
+
+    /// <summary>
+    /// Make the default options for the provider, can be a subclass of <see cref="BulkInsertOptions"/>.
+    /// </summary>
+    internal BulkInsertOptions GetDefaultOptions();
 }

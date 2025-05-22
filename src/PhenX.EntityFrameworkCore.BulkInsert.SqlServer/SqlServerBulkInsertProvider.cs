@@ -27,6 +27,11 @@ internal class SqlServerBulkInsertProvider : BulkInsertProviderBase<SqlServerDia
     /// <inheritdoc />
     protected override string GetTempTableName(string tableName) => $"#_temp_bulk_insert_{tableName}";
 
+    public override BulkInsertOptions GetDefaultOptions() => new SqlServerBulkInsertOptions
+    {
+        BatchSize = 50_000,
+    };
+
     /// <inheritdoc />
     protected override async Task BulkInsert<T>(
         bool sync,
@@ -43,7 +48,7 @@ internal class SqlServerBulkInsertProvider : BulkInsertProviderBase<SqlServerDia
 
         using var bulkCopy = new SqlBulkCopy(connection, SqlBulkCopyOptions.TableLock, sqlTransaction);
         bulkCopy.DestinationTableName = tableName;
-        bulkCopy.BatchSize = options.BatchSize ?? 50_000;
+        bulkCopy.BatchSize = options.BatchSize;
         bulkCopy.BulkCopyTimeout = options.GetCopyTimeoutInSeconds();
 
         foreach (var prop in properties)

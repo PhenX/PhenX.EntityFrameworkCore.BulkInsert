@@ -32,6 +32,12 @@ internal class PostgreSqlBulkInsertProvider : BulkInsertProviderBase<PostgreSqlD
     }
 
     /// <inheritdoc />
+    public override BulkInsertOptions GetDefaultOptions() => new()
+    {
+        BatchSize = 50_000,
+    };
+
+    /// <inheritdoc />
     protected override async Task BulkInsert<T>(
         bool sync,
         DbContext context,

@@ -216,6 +216,8 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
         }
     }
 
+    public abstract BulkInsertOptions GetDefaultOptions();
+
     private async Task<(string TableName, DbConnection Connection)> PerformBulkInsertAsync<T>(
         bool sync,
         DbContext context,

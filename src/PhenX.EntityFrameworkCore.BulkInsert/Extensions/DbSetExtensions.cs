@@ -12,15 +12,18 @@ namespace PhenX.EntityFrameworkCore.BulkInsert.Extensions;
 public static class DbSetExtensions
 {
     /// <summary>
-    /// Executes a bulk insert operation returning the inserted/updated entities, from the DbSet.
+    /// Executes a bulk insert operation returning the inserted/updated entities, from the DbSet, with options which
+    /// can be a subclass of <see cref="BulkInsertOptions"/>.
     /// </summary>
-    public static async Task<List<T>> ExecuteBulkInsertReturnEntitiesAsync<T>(
+    public static async Task<List<T>> ExecuteBulkInsertReturnEntitiesAsync<T, TOptions>(
         this DbSet<T> dbSet,
         IEnumerable<T> entities,
-        Action<BulkInsertOptions>? configure = null,
+        Action<TOptions> configure,
         OnConflictOptions? onConflict = null,
         CancellationToken ctk = default
-    ) where T : class
+    )
+        where T : class
+        where TOptions : BulkInsertOptions
     {
         var provider = InitProvider(dbSet, configure, out var context, out var options);
 
@@ -28,9 +31,41 @@ public static class DbSetExtensions
     }
 
     /// <summary>
+    /// Executes a bulk insert operation returning the inserted/updated entities, from the DbSet without options.
+    /// </summary>
+    public static async Task<List<T>> ExecuteBulkInsertReturnEntitiesAsync<T>(
+        this DbSet<T> dbSet,
+        IEnumerable<T> entities,
+        Action<BulkInsertOptions> configure,
+        OnConflictOptions? onConflict = null,
+        CancellationToken ctk = default
+    ) where T : class
+        => await ExecuteBulkInsertReturnEntitiesAsync<T, BulkInsertOptions>(dbSet, entities, configure, onConflict, ctk);
+
+
+    /// <summary>
+    /// Executes a bulk insert operation returning the inserted/updated entities, from the DbSet without options.
+    /// </summary>
+    public static async Task<List<T>> ExecuteBulkInsertReturnEntitiesAsync<T>(
+        this DbSet<T> dbSet,
+        IEnumerable<T> entities,
+        OnConflictOptions? onConflict = null,
+        CancellationToken ctk = default
+    ) where T : class
+        => await ExecuteBulkInsertReturnEntitiesAsync<T, BulkInsertOptions>(dbSet, entities, _ => { }, onConflict, ctk);
+
+    /// <summary>
     /// Executes a bulk insert operation returning the inserted/updated entities, from the DbContext.
     /// </summary>
-    public static async Task<List<T>> ExecuteBulkInsertReturnEntitiesAsync<T>(this DbContext dbContext, IEnumerable<T> entities, Action<BulkInsertOptions>? configure = null, OnConflictOptions? onConflict = null, CancellationToken cancellationToken = default) where T : class
+    public static async Task<List<T>> ExecuteBulkInsertReturnEntitiesAsync<T, TOptions>(
+        this DbContext dbContext,
+        IEnumerable<T> entities,
+        Action<TOptions> configure,
+        OnConflictOptions? onConflict = null,
+        CancellationToken cancellationToken = default
+    )
+        where T : class
+        where TOptions : BulkInsertOptions
     {
         var dbSet = dbContext.Set<T>();
         if (dbSet == null)
@@ -42,15 +77,40 @@ public static class DbSetExtensions
     }
 
     /// <summary>
+    /// Executes a bulk insert operation returning the inserted/updated entities, from the DbContext, with generic options.
+    /// </summary>
+    public static async Task<List<T>> ExecuteBulkInsertReturnEntitiesAsync<T>(
+        this DbContext dbContext,
+        IEnumerable<T> entities,
+        Action<BulkInsertOptions> configure,
+        OnConflictOptions? onConflict = null,
+        CancellationToken cancellationToken = default
+    ) where T : class
+        => await ExecuteBulkInsertReturnEntitiesAsync<T, BulkInsertOptions>(dbContext, entities, configure, onConflict, cancellationToken);
+
+    /// <summary>
+    /// Executes a bulk insert operation returning the inserted/updated entities, from the DbContext, with generic options.
+    /// </summary>
+    public static async Task<List<T>> ExecuteBulkInsertReturnEntitiesAsync<T>(
+        this DbContext dbContext,
+        IEnumerable<T> entities,
+        OnConflictOptions? onConflict = null,
+        CancellationToken cancellationToken = default
+    ) where T : class =>
+        await dbContext.ExecuteBulkInsertReturnEntitiesAsync<T, BulkInsertOptions>(entities, _ => { }, onConflict, cancellationToken);
+
+    /// <summary>
     /// Executes a bulk insert operation without returning the inserted/updated entities, from the DbSet.
     /// </summary>
-    public static async Task ExecuteBulkInsertAsync<T>(
+    public static async Task ExecuteBulkInsertAsync<T, TOptions>(
         this DbSet<T> dbSet,
         IEnumerable<T> entities,
-        Action<BulkInsertOptions>? configure = null,
+        Action<TOptions> configure,
         OnConflictOptions? onConflict = null,
         CancellationToken ctk = default
-    ) where T : class
+    )
+        where T : class
+        where TOptions : BulkInsertOptions
     {
         var provider = InitProvider(dbSet, configure, out var context, out var options);
 
@@ -60,7 +120,14 @@ public static class DbSetExtensions
     /// <summary>
     /// Executes a bulk insert operation without returning the inserted/updated entities, from the DbContext.
     /// </summary>
-    public static async Task ExecuteBulkInsertAsync<T>(this DbContext dbContext, IEnumerable<T> entities, Action<BulkInsertOptions>? configure = null, OnConflictOptions? onConflict = null, CancellationToken cancellationToken = default) where T : class
+    public static async Task ExecuteBulkInsertAsync<T>(
+        this DbContext dbContext,
+        IEnumerable<T> entities,
+        Action<BulkInsertOptions> configure,
+        OnConflictOptions? onConflict = null,
+        CancellationToken cancellationToken = default
+    )
+        where T : class
     {
         var dbSet = dbContext.Set<T>();
         if (dbSet == null)
@@ -69,6 +136,25 @@ public static class DbSetExtensions
         }
 
         await dbSet.ExecuteBulkInsertAsync(entities, configure, onConflict, cancellationToken);
+    }
+
+    /// <summary>
+    /// Executes a bulk insert operation without returning the inserted/updated entities, from the DbContext.
+    /// </summary>
+    public static async Task ExecuteBulkInsertAsync<T>(
+        this DbContext dbContext,
+        IEnumerable<T> entities,
+        OnConflictOptions? onConflict = null,
+        CancellationToken cancellationToken = default
+    ) where T : class
+    {
+        var dbSet = dbContext.Set<T>();
+        if (dbSet == null)
+        {
+            throw new InvalidOperationException($"DbSet of type {typeof(T).Name} not found in DbContext.");
+        }
+
+        await dbSet.ExecuteBulkInsertAsync<T, BulkInsertOptions>(entities, _ => { }, onConflict, cancellationToken);
     }
 
     /// <summary>
@@ -145,14 +231,22 @@ public static class DbSetExtensions
         return (infrastructure.Instance.GetService(typeof(ICurrentDbContext)) as ICurrentDbContext)!.Context;
     }
 
-    private static IBulkInsertProvider InitProvider<T>(DbSet<T> dbSet, Action<BulkInsertOptions>? configure, out DbContext context,
-        out BulkInsertOptions options) where T : class
+    private static IBulkInsertProvider InitProvider<T, TOptions>(DbSet<T> dbSet, Action<TOptions>? configure, out DbContext context,
+        out TOptions options) where T : class where TOptions : BulkInsertOptions
     {
         context = dbSet.GetDbContext();
         var provider = context.GetService<IBulkInsertProvider>();
 
-        options = new BulkInsertOptions();
+        var defaultOptions = provider.GetDefaultOptions();
+
+        if (defaultOptions is not TOptions castedOptions)
+        {
+            throw new InvalidOperationException($"Options type mismatch. Expected {defaultOptions.GetType().Name}, but got {typeof(TOptions).Name}.");
+        }
+
+        options = castedOptions;
         configure?.Invoke(options);
+
         return provider;
     }
 }

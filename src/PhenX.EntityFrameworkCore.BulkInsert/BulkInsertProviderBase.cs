@@ -13,7 +13,7 @@ using PhenX.EntityFrameworkCore.BulkInsert.Options;
 namespace PhenX.EntityFrameworkCore.BulkInsert;
 
 #pragma warning disable CS9113 // Parameter is unread.
-internal abstract class BulkInsertProviderBase<TDialect, TOptions>(ILogger<BulkInsertProviderBase<TDialect>>? logger = null) : IBulkInsertProvider
+internal abstract class BulkInsertProviderBase<TDialect, TOptions>(ILogger<BulkInsertProviderBase<TDialect, TOptions>>? logger = null) : IBulkInsertProvider
 #pragma warning restore CS9113 // Parameter is unread.
     where TDialect : SqlDialectBuilder, new()
     where TOptions : BulkInsertOptions, new()
@@ -24,7 +24,7 @@ internal abstract class BulkInsertProviderBase<TDialect, TOptions>(ILogger<BulkI
 
     protected abstract string CreateTableCopySql { get; }
     protected abstract string AddTableCopyBulkInsertId { get; }
-    
+
     SqlDialectBuilder IBulkInsertProvider.SqlDialect => SqlDialect;
 
     protected async Task<string> CreateTableCopyAsync<T>(
@@ -151,10 +151,8 @@ internal abstract class BulkInsertProviderBase<TDialect, TOptions>(ILogger<BulkI
         {
             throw new InvalidOperationException($"Invalid options type: {options.GetType().Name}. Expected: {typeof(TOptions).Name}");
         }
-        
-        List<T> result;
 
-        var (connection, wasClosed, transaction, wasBegan) = await context.GetConnection(sync, ctk);
+        List<T> result;
 
         var connectionInfo = await context.GetConnection(sync, ctk);
         try
@@ -243,7 +241,7 @@ internal abstract class BulkInsertProviderBase<TDialect, TOptions>(ILogger<BulkI
             var connectionInfo = await context.GetConnection(sync, ctk);
             try
             {
-                var (tableName, _) = await PerformBulkInsertAsync(sync, context, tableInfo, entities, options, tempTableRequired: true, ctk: ctk);
+                var (tableName, _) = await PerformBulkInsertAsync(sync, context, tableInfo, entities, providerOptions, tempTableRequired: true, ctk: ctk);
 
                 await CopyFromTempTableAsync<T>(sync, context, tableInfo, tableName, false, providerOptions, onConflict, ctk);
 

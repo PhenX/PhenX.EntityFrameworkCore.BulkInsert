@@ -291,11 +291,6 @@ internal abstract class SqlDialectBuilder
                 {
                     var lhs = methodExpr.Object != null ? ToSqlExpression<TEntity>(table, methodExpr.Object) : null;
 
-                    string Rhs()
-                    {
-                        return ToSqlExpression<TEntity>(table, methodExpr.Arguments[0]);
-                    }
-
                     switch (methodExpr.Method.Name)
                     {
                         case "ToLower":
@@ -305,11 +300,11 @@ internal abstract class SqlDialectBuilder
                         case "Trim":
                             return $"BTRIM({lhs})";
                         case "Contains" when methodExpr is { Object: not null, Arguments.Count: 1 }:
-                            return $"{lhs} LIKE '%' || {Rhs()} || '%'";
+                            return $"{lhs} LIKE '%' || {ToSqlExpression<TEntity>(table, methodExpr.Arguments[0])} || '%'";
                         case "EndsWith" when methodExpr is { Object: not null, Arguments.Count: 1 }:
-                            return $"{lhs} LIKE '%' || {Rhs()}";
+                            return $"{lhs} LIKE '%' || {ToSqlExpression<TEntity>(table, methodExpr.Arguments[0])}";
                         case "StartsWith" when methodExpr is { Object: not null, Arguments.Count: 1 }:
-                            return $"{lhs} LIKE {Rhs()} || '%'";
+                            return $"{lhs} LIKE {ToSqlExpression<TEntity>(table, methodExpr.Arguments[0])} || '%'";
                         default:
                             throw new NotSupportedException($"Method not supported: {methodExpr.Method.Name}");
                     }

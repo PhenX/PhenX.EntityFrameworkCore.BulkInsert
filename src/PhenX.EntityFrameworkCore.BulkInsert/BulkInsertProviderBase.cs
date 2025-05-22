@@ -1,4 +1,5 @@
 using System.Data.Common;
+using System.Runtime.CompilerServices;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -73,7 +74,7 @@ internal abstract class BulkInsertProviderBase<TDialect>(ILogger<BulkInsertProvi
         }
     }
 
-    public async Task<List<T>> CopyFromTempTableAsync<T>(
+    public async Task<IAsyncEnumerable<T>?> CopyFromTempTableAsync<T>(
         bool sync,
         DbContext context,
         TableMetadata tableInfo,
@@ -94,7 +95,7 @@ internal abstract class BulkInsertProviderBase<TDialect>(ILogger<BulkInsertProvi
             cancellationToken: cancellationToken);
     }
 
-    private async Task<List<TResult>> CopyFromTempTableWithoutKeysAsync<T, TResult>(
+    private async Task<IAsyncEnumerable<TResult>?> CopyFromTempTableWithoutKeysAsync<T, TResult>(
         bool sync,
         DbContext context,
         TableMetadata tableInfo,
@@ -113,47 +114,46 @@ internal abstract class BulkInsertProviderBase<TDialect>(ILogger<BulkInsertProvi
 
         if (returnData)
         {
-            return await QueryAsync(sync, context, query, cancellationToken);
+            return Query(context, query);
         }
 
         // If not returning data, just execute the command
         await ExecuteAsync(sync, context, query, cancellationToken);
-        return [];
+        return null;
 
-        static async Task<List<TResult>> QueryAsync(bool sync, DbContext context, string query, CancellationToken cancellationToken)
+        static IAsyncEnumerable<TResult> Query(DbContext context, string query)
         {
             // Use EF to execute the query and return the results
             IQueryable<TResult> queryable = context
                 .Set<TResult>()
                 .FromSqlRaw(query);
 
-            if (sync)
-            {
-                return queryable.ToList();
-            }
-
-            return await queryable.ToListAsync(cancellationToken: cancellationToken);
+            return queryable.AsAsyncEnumerable();
         }
     }
 
-    public virtual async Task<List<T>> BulkInsertReturnEntities<T>(
+    public virtual async IAsyncEnumerable<T> BulkInsertReturnEntities<T>(
         bool sync,
         DbContext context,
         TableMetadata tableInfo,
         IEnumerable<T> entities,
         BulkInsertOptions options,
         OnConflictOptions? onConflict = null,
-        CancellationToken ctk = default
+        [EnumeratorCancellation] CancellationToken ctk = default
     ) where T : class
     {
-        List<T> result;
-
         var connectionInfo = await context.GetConnection(sync, ctk);
         try
         {
             var (tableName, _) = await PerformBulkInsertAsync(sync, context, tableInfo, entities, options, tempTableRequired: true, ctk: ctk);
 
-            result = await CopyFromTempTableAsync<T>(sync, context, tableInfo, tableName, true, options, onConflict, cancellationToken: ctk);
+            var result = await CopyFromTempTableAsync<T>(sync, context, tableInfo, tableName, true, options, onConflict, cancellationToken: ctk)
+                ?? throw new InvalidOperationException("Failed to get async enumerable.");
+
+            await foreach (var item in result)
+            {
+                yield return item;
+            }
 
             // Commit the transaction if we own them.
             await Commit(sync, connectionInfo, ctk);
@@ -162,8 +162,6 @@ internal abstract class BulkInsertProviderBase<TDialect>(ILogger<BulkInsertProvi
         {
             await Finish(sync, connectionInfo, ctk);
         }
-
-        return result;
     }
 
     private static async Task Commit(bool sync, ConnectionInfo connectionInfo, CancellationToken ctk)

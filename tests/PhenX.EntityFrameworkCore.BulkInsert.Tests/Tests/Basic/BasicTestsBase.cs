@@ -93,6 +93,32 @@ public abstract class BasicTestsBase<TFixture> : IClassFixture<TFixture>, IAsync
     }
 
     [SkippableFact]
+    public async Task InsertsEntitiesAndReturnAsyncENumerable()
+    {
+        Skip.If(_context.Database.ProviderName!.Contains("Mysql", StringComparison.InvariantCultureIgnoreCase));
+
+        // Arrange
+        var entities = new List<TestEntity>
+        {
+            new TestEntity { TestRun = _run, Name = $"{_run}_Entity1" },
+            new TestEntity { TestRun = _run, Name = $"{_run}_Entity2" }
+        };
+
+        // Act
+        var enumerable = _context.ExecuteBulkInsertReturnEnumerableAsync(entities);
+        var insertedEntities = new List<TestEntity>();
+        await foreach (var item in enumerable)
+        {
+            insertedEntities.Add(item);
+        }
+
+        // Assert
+        Assert.Equal(2, insertedEntities.Count);
+        Assert.Contains(insertedEntities, e => e.Name == $"{_run}_Entity1");
+        Assert.Contains(insertedEntities, e => e.Name == $"{_run}_Entity2");
+    }
+
+    [SkippableFact]
     public void InsertsEntitiesAndReturn_Sync()
     {
         Skip.If(_context.Database.ProviderName!.Contains("Mysql", StringComparison.InvariantCultureIgnoreCase));

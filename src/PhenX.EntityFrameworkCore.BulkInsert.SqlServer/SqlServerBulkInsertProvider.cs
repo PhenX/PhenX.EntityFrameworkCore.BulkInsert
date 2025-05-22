@@ -1,5 +1,3 @@
-using System.Text;
-
 using JetBrains.Annotations;
 
 using Microsoft.Data.SqlClient;

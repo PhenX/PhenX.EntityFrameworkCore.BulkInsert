@@ -12,7 +12,7 @@ using PhenX.EntityFrameworkCore.BulkInsert.Options;
 namespace PhenX.EntityFrameworkCore.BulkInsert.Sqlite;
 
 [UsedImplicitly]
-internal class SqliteBulkInsertProvider : BulkInsertProviderBase<SqliteDialectBuilder>
+internal class SqliteBulkInsertProvider : BulkInsertProviderBase<SqliteDialectBuilder, BulkInsertOptions>
 {
     public SqliteBulkInsertProvider(ILogger<SqliteBulkInsertProvider>? logger = null) : base(logger)
     {
@@ -30,7 +30,7 @@ internal class SqliteBulkInsertProvider : BulkInsertProviderBase<SqliteDialectBu
     protected override string AddTableCopyBulkInsertId => "--"; // No need to add an ID column in SQLite
 
     /// <inheritdoc />
-    public override BulkInsertOptions GetDefaultOptions() => new()
+    protected override BulkInsertOptions GetDefaultOptions() => new()
     {
         BatchSize = 5,
     };

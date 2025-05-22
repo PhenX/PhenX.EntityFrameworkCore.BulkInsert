@@ -10,7 +10,7 @@ using PhenX.EntityFrameworkCore.BulkInsert.Options;
 namespace PhenX.EntityFrameworkCore.BulkInsert.SqlServer;
 
 [UsedImplicitly]
-internal class SqlServerBulkInsertProvider : BulkInsertProviderBase<SqlServerDialectBuilder>
+internal class SqlServerBulkInsertProvider : BulkInsertProviderBase<SqlServerDialectBuilder, SqlServerBulkInsertOptions>
 {
     public SqlServerBulkInsertProvider(ILogger<SqlServerBulkInsertProvider>? logger = null) : base(logger)
     {
@@ -27,7 +27,7 @@ internal class SqlServerBulkInsertProvider : BulkInsertProviderBase<SqlServerDia
     /// <inheritdoc />
     protected override string GetTempTableName(string tableName) => $"#_temp_bulk_insert_{tableName}";
 
-    public override BulkInsertOptions GetDefaultOptions() => new SqlServerBulkInsertOptions
+    protected override SqlServerBulkInsertOptions GetDefaultOptions() => new()
     {
         BatchSize = 50_000,
     };
@@ -39,17 +39,19 @@ internal class SqlServerBulkInsertProvider : BulkInsertProviderBase<SqlServerDia
         IEnumerable<T> entities,
         string tableName,
         PropertyAccessor[] properties,
-        BulkInsertOptions options,
+        SqlServerBulkInsertOptions options,
         CancellationToken ctk
     )
     {
         var connection = (SqlConnection) context.Database.GetDbConnection();
         var sqlTransaction = context.Database.CurrentTransaction!.GetDbTransaction() as SqlTransaction;
 
-        using var bulkCopy = new SqlBulkCopy(connection, SqlBulkCopyOptions.TableLock, sqlTransaction);
+        using var bulkCopy = new SqlBulkCopy(connection, options.CopyOptions, sqlTransaction);
+
         bulkCopy.DestinationTableName = tableName;
         bulkCopy.BatchSize = options.BatchSize;
         bulkCopy.BulkCopyTimeout = options.GetCopyTimeoutInSeconds();
+        bulkCopy.EnableStreaming = options.EnableStreaming;
 
         foreach (var prop in properties)
         {

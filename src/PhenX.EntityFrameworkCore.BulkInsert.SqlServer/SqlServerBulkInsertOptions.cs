@@ -10,6 +10,9 @@ namespace PhenX.EntityFrameworkCore.BulkInsert.SqlServer;
 public class SqlServerBulkInsertOptions : BulkInsertOptions
 {
     /// <inheritdoc cref="SqlBulkCopyOptions"/>
-    public SqlBulkCopyOptions CopyOptions { get; init; } = SqlBulkCopyOptions.Default;
+    public SqlBulkCopyOptions CopyOptions { get; set; } = SqlBulkCopyOptions.Default;
+
+    /// <inheritdoc cref="SqlBulkCopy.EnableStreaming"/>
+    public bool EnableStreaming { get; set; } = false;
 
 }

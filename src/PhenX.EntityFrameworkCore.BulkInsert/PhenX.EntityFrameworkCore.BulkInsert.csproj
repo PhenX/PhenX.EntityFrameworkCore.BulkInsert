@@ -6,6 +6,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="PhenX.EntityFrameworkCore.BulkInsert.Tests"/>
     <InternalsVisibleTo Include="PhenX.EntityFrameworkCore.BulkInsert.MySql"/>
     <InternalsVisibleTo Include="PhenX.EntityFrameworkCore.BulkInsert.PostgreSql"/>
     <InternalsVisibleTo Include="PhenX.EntityFrameworkCore.BulkInsert.SqlServer"/>

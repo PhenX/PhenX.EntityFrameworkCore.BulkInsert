@@ -5,6 +5,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage;
 
+using PhenX.EntityFrameworkCore.BulkInsert.Enums;
+
 namespace PhenX.EntityFrameworkCore.BulkInsert.Extensions;
 
 internal static class DbContextExtensions
@@ -60,5 +62,18 @@ internal static class DbContextExtensions
         }
 
         return (connection, wasClosed, transaction, wasBegan);
+    }
+
+    /// <summary>
+    /// Tells if the current provider is the specified provider type.
+    /// </summary>
+    internal static bool IsProvider(this DbContext context, ProviderType providerType)
+    {
+        if (context.Database.ProviderName == null)
+        {
+            throw new InvalidOperationException("Database provider name is null.");
+        }
+
+        return context.Database.ProviderName.Contains(providerType.ToString(), StringComparison.OrdinalIgnoreCase);
     }
 }

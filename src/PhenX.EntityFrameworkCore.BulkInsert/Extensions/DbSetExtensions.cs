@@ -126,17 +126,8 @@ public static class DbSetExtensions
         Action<BulkInsertOptions> configure,
         OnConflictOptions? onConflict = null,
         CancellationToken cancellationToken = default
-    )
-        where T : class
-    {
-        var dbSet = dbContext.Set<T>();
-        if (dbSet == null)
-        {
-            throw new InvalidOperationException($"DbSet of type {typeof(T).Name} not found in DbContext.");
-        }
-
-        await dbSet.ExecuteBulkInsertAsync(entities, configure, onConflict, cancellationToken);
-    }
+    ) where T : class
+        => await ExecuteBulkInsertAsync<T, BulkInsertOptions>(dbContext, entities, configure, onConflict, cancellationToken);
 
     /// <summary>
     /// Executes a bulk insert operation without returning the inserted/updated entities, from the DbContext.
@@ -147,6 +138,20 @@ public static class DbSetExtensions
         OnConflictOptions? onConflict = null,
         CancellationToken cancellationToken = default
     ) where T : class
+        => await ExecuteBulkInsertAsync<T, BulkInsertOptions>(dbContext, entities, _ => { }, onConflict, cancellationToken);
+
+    /// <summary>
+    /// Executes a bulk insert operation without returning the inserted/updated entities, from the DbContext.
+    /// </summary>
+    public static async Task ExecuteBulkInsertAsync<T, TOptions>(
+        this DbContext dbContext,
+        IEnumerable<T> entities,
+        Action<TOptions> configure,
+        OnConflictOptions? onConflict = null,
+        CancellationToken cancellationToken = default
+    )
+        where T : class
+        where TOptions : BulkInsertOptions
     {
         var dbSet = dbContext.Set<T>();
         if (dbSet == null)
@@ -154,7 +159,7 @@ public static class DbSetExtensions
             throw new InvalidOperationException($"DbSet of type {typeof(T).Name} not found in DbContext.");
         }
 
-        await dbSet.ExecuteBulkInsertAsync<T, BulkInsertOptions>(entities, _ => { }, onConflict, cancellationToken);
+        await dbSet.ExecuteBulkInsertAsync(entities, configure, onConflict, cancellationToken);
     }
 
     /// <summary>
@@ -237,7 +242,7 @@ public static class DbSetExtensions
         context = dbSet.GetDbContext();
         var provider = context.GetService<IBulkInsertProvider>();
 
-        var defaultOptions = provider.GetDefaultOptions();
+        var defaultOptions = provider.InternalGetDefaultOptions();
 
         if (defaultOptions is not TOptions castedOptions)
         {

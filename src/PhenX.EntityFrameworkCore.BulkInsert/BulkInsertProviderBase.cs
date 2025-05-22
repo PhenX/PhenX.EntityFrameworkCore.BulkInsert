@@ -12,18 +12,19 @@ using PhenX.EntityFrameworkCore.BulkInsert.Options;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert;
 
-internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
+internal abstract class BulkInsertProviderBase<TDialect, TOptions> : IBulkInsertProvider
     where TDialect : SqlDialectBuilder, new()
+    where TOptions : BulkInsertOptions, new()
 {
     protected readonly TDialect SqlDialect = new();
-    private readonly ILogger<BulkInsertProviderBase<TDialect>>? Logger;
+    private readonly ILogger<BulkInsertProviderBase<TDialect, TOptions>>? Logger;
 
     protected virtual string BulkInsertId => "_bulk_insert_id";
 
     protected abstract string CreateTableCopySql { get; }
     protected abstract string AddTableCopyBulkInsertId { get; }
 
-    protected BulkInsertProviderBase(ILogger<BulkInsertProviderBase<TDialect>>? logger = null)
+    protected BulkInsertProviderBase(ILogger<BulkInsertProviderBase<TDialect, TOptions>>? logger = null)
     {
         Logger = logger;
     }
@@ -31,7 +32,7 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
     protected async Task<string> CreateTableCopyAsync<T>(
         bool sync,
         DbContext context,
-        BulkInsertOptions options,
+        TOptions options,
         CancellationToken cancellationToken = default) where T : class
     {
         var tableInfo = GetTableInfo(context, typeof(T));
@@ -148,11 +149,16 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
         CancellationToken ctk = default
     ) where T : class
     {
+        if (options is not TOptions providerOptions)
+        {
+            throw new InvalidOperationException($"Invalid options type: {options.GetType().Name}. Expected: {typeof(TOptions).Name}");
+        }
+
         var (connection, wasClosed, transaction, wasBegan) = await context.GetConnection(sync, ctk);
 
-        var (tableName, _) = await PerformBulkInsertAsync(sync, context, entities, options, tempTableRequired: true, ctk: ctk);
+        var (tableName, _) = await PerformBulkInsertAsync(sync, context, entities, providerOptions, tempTableRequired: true, ctk: ctk);
 
-        var result = await CopyFromTempTableAsync<T>(sync, context, tableName, true, options, onConflict, cancellationToken: ctk);
+        var result = await CopyFromTempTableAsync<T>(sync, context, tableName, true, providerOptions, onConflict, cancellationToken: ctk);
 
         await Finish(sync, connection, wasClosed, transaction, wasBegan, ctk);
 
@@ -200,11 +206,16 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
         CancellationToken ctk = default
     ) where T : class
     {
+        if (options is not TOptions providerOptions)
+        {
+            throw new InvalidOperationException($"Invalid options type: {options.GetType().Name}. Expected: {typeof(TOptions).Name}");
+        }
+
         if (onConflict != null)
         {
             var (connection, wasClosed, transaction, wasBegan) = await context.GetConnection(sync, ctk);
 
-            var (tableName, _) = await PerformBulkInsertAsync(sync, context, entities, options, tempTableRequired: true, ctk: ctk);
+            var (tableName, _) = await PerformBulkInsertAsync(sync, context, entities, providerOptions, tempTableRequired: true, ctk: ctk);
 
             await CopyFromTempTableAsync<T>(sync, context, tableName, false, options, onConflict, ctk);
 
@@ -212,17 +223,19 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
         }
         else
         {
-            await PerformBulkInsertAsync(sync, context, entities, options, tempTableRequired: false, ctk: ctk);
+            await PerformBulkInsertAsync(sync, context, entities, providerOptions, tempTableRequired: false, ctk: ctk);
         }
     }
 
-    public abstract BulkInsertOptions GetDefaultOptions();
+    public BulkInsertOptions InternalGetDefaultOptions() => GetDefaultOptions();
+
+    protected abstract TOptions GetDefaultOptions();
 
     private async Task<(string TableName, DbConnection Connection)> PerformBulkInsertAsync<T>(
         bool sync,
         DbContext context,
         IEnumerable<T> entities,
-        BulkInsertOptions options,
+        TOptions options,
         bool tempTableRequired,
         CancellationToken ctk = default) where T : class
     {
@@ -258,7 +271,7 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
         IEnumerable<T> entities,
         string tableName,
         PropertyAccessor[] properties,
-        BulkInsertOptions options,
+        TOptions options,
         CancellationToken ctk
     ) where T : class;
 

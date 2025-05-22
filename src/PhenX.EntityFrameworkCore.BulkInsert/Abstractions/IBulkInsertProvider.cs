@@ -19,7 +19,8 @@ internal interface IBulkInsertProvider
         BulkInsertOptions options,
         OnConflictOptions? onConflict = null,
         CancellationToken ctk = default
-    ) where T : class;
+    )
+        where T : class;
 
     /// <summary>
     /// Calls the provider to perform a bulk insert operation without returning the inserted entities.
@@ -31,10 +32,11 @@ internal interface IBulkInsertProvider
         BulkInsertOptions options,
         OnConflictOptions? onConflict = null,
         CancellationToken ctk = default
-    ) where T : class;
+    )
+        where T : class;
 
     /// <summary>
     /// Make the default options for the provider, can be a subclass of <see cref="BulkInsertOptions"/>.
     /// </summary>
-    internal BulkInsertOptions GetDefaultOptions();
+    internal BulkInsertOptions InternalGetDefaultOptions();
 }

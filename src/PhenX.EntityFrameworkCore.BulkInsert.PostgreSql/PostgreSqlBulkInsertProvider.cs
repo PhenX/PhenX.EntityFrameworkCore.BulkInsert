@@ -10,7 +10,7 @@ using PhenX.EntityFrameworkCore.BulkInsert.Options;
 namespace PhenX.EntityFrameworkCore.BulkInsert.PostgreSql;
 
 [UsedImplicitly]
-internal class PostgreSqlBulkInsertProvider : BulkInsertProviderBase<PostgreSqlDialectBuilder>
+internal class PostgreSqlBulkInsertProvider : BulkInsertProviderBase<PostgreSqlDialectBuilder, BulkInsertOptions>
 {
     public PostgreSqlBulkInsertProvider(ILogger<PostgreSqlBulkInsertProvider>? logger = null) : base(logger)
     {
@@ -32,7 +32,7 @@ internal class PostgreSqlBulkInsertProvider : BulkInsertProviderBase<PostgreSqlD
     }
 
     /// <inheritdoc />
-    public override BulkInsertOptions GetDefaultOptions() => new()
+    protected override BulkInsertOptions GetDefaultOptions() => new()
     {
         BatchSize = 50_000,
     };

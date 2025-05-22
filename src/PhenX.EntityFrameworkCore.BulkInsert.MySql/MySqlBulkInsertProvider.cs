@@ -8,7 +8,7 @@ using PhenX.EntityFrameworkCore.BulkInsert.Options;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.MySql;
 
-internal class MySqlBulkInsertProvider : BulkInsertProviderBase<MySqlServerDialectBuilder>
+internal class MySqlBulkInsertProvider : BulkInsertProviderBase<MySqlServerDialectBuilder, MySqlBulkInsertOptions>
 {
     public MySqlBulkInsertProvider(ILogger<MySqlBulkInsertProvider>? logger = null) : base(logger)
     {
@@ -26,7 +26,7 @@ internal class MySqlBulkInsertProvider : BulkInsertProviderBase<MySqlServerDiale
     protected override string GetTempTableName(string tableName) => $"#_temp_bulk_insert_{tableName}";
 
     /// <inheritdoc />
-    public override BulkInsertOptions GetDefaultOptions() => new();
+    protected override MySqlBulkInsertOptions GetDefaultOptions() => new();
 
     /// <inheritdoc />
     public override Task<List<T>> BulkInsertReturnEntities<T>(
@@ -47,21 +47,25 @@ internal class MySqlBulkInsertProvider : BulkInsertProviderBase<MySqlServerDiale
         IEnumerable<T> entities,
         string tableName,
         PropertyAccessor[] properties,
-        BulkInsertOptions options,
+        MySqlBulkInsertOptions options,
         CancellationToken ctk
     )
     {
         var connection = (MySqlConnection)context.Database.GetDbConnection();
-        var sqlTransaction = context.Database.CurrentTransaction!.GetDbTransaction()
+
+        var sqlTransaction = context.Database.CurrentTransaction?.GetDbTransaction()
             ?? throw new InvalidOperationException("No open transaction found.");
+
         if (sqlTransaction is not MySqlTransaction mySqlTransaction)
         {
             throw new InvalidOperationException($"Invalid transaction foud, got {sqlTransaction.GetType()}.");
         }
 
-        var bulkCopy = new MySqlBulkCopy(connection, mySqlTransaction);
-        bulkCopy.DestinationTableName = tableName;
-        bulkCopy.BulkCopyTimeout = options.GetCopyTimeoutInSeconds();
+        var bulkCopy = new MySqlBulkCopy(connection, mySqlTransaction)
+        {
+            DestinationTableName = tableName,
+            BulkCopyTimeout = options.GetCopyTimeoutInSeconds(),
+        };
 
         var sourceOrdinal = 0;
         foreach (var prop in properties)

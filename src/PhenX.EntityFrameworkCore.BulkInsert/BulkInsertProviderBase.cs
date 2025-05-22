@@ -35,7 +35,7 @@ internal abstract class BulkInsertProviderBase<TDialect>(ILogger<BulkInsertProvi
     {
         using var activity = Telemetry.ActivitySource.StartActivity("BulkInsertReturnEntities");
         activity?.AddTag("tableName", tableInfo.TableName);
-        activity?.AddTag("synchronous", true);
+        activity?.AddTag("synchronous", sync);
 
         var connection = await context.GetConnection(sync, ctk);
         try
@@ -76,7 +76,7 @@ internal abstract class BulkInsertProviderBase<TDialect>(ILogger<BulkInsertProvi
     {
         using var activity = Telemetry.ActivitySource.StartActivity("BulkInsert");
         activity?.AddTag("tableName", tableInfo.TableName);
-        activity?.AddTag("synchronous", true);
+        activity?.AddTag("synchronous", sync);
 
         var connection = await context.GetConnection(sync, ctk);
         try
@@ -133,7 +133,7 @@ internal abstract class BulkInsertProviderBase<TDialect>(ILogger<BulkInsertProvi
 
         using var activity = Telemetry.ActivitySource.StartActivity("Insert");
         activity?.AddTag("tempTable", tempTableRequired);
-        activity?.AddTag("synchronous", true);
+        activity?.AddTag("synchronous", sync);
 
         await BulkInsert(false, context, tableInfo, entities, tableName, properties, options, ctk);
         return tableName;

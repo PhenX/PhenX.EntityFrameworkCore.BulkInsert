@@ -19,10 +19,6 @@ internal class SqlServerBulkInsertProvider : BulkInsertProviderBase<SqlServerDia
 
     //language=sql
     /// <inheritdoc />
-    protected override string CreateTableCopySql => "SELECT {2} INTO {0} FROM {1} WHERE 1 = 0;";
-
-    //language=sql
-    /// <inheritdoc />
     protected override string AddTableCopyBulkInsertId => $"ALTER TABLE {{0}} ADD {BulkInsertId} INT IDENTITY PRIMARY KEY;";
 
     /// <inheritdoc />

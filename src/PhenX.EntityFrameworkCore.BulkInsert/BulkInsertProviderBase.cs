@@ -1,4 +1,5 @@
 using System.Data.Common;
+using System.Reflection;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -21,7 +22,6 @@ internal abstract class BulkInsertProviderBase<TDialect>(ILogger<BulkInsertProvi
 
     protected virtual string BulkInsertId => "_bulk_insert_id";
 
-    protected abstract string CreateTableCopySql { get; }
     protected abstract string AddTableCopyBulkInsertId { get; }
 
     SqlDialectBuilder IBulkInsertProvider.SqlDialect => SqlDialect;
@@ -34,15 +34,17 @@ internal abstract class BulkInsertProviderBase<TDialect>(ILogger<BulkInsertProvi
         CancellationToken cancellationToken = default) where T : class
     {
         var tempTableName = SqlDialect.QuoteTableName(null, GetTempTableName(tableInfo.TableName));
-        var tempColumns = string.Join(", ", tableInfo.GetProperties(options.CopyGeneratedColumns).Select(x => x.QuotedColumName));
+        var tempColumns = tableInfo.GetProperties(options.CopyGeneratedColumns);
 
-        var query = string.Format(CreateTableCopySql, tempTableName, tableInfo.QuotedTableName, tempColumns);
+        var query = CreateTableCopySql(tempTableName, tableInfo, tempColumns);
 
         await ExecuteAsync(sync, context, query, cancellationToken);
         await AddBulkInsertIdColumn<T>(sync, context, tempTableName, cancellationToken);
 
         return tempTableName;
     }
+
+    protected abstract string CreateTableCopySql(string tempNameName, TableMetadata tableInfo, IReadOnlyList<PropertyMetadata> columns);
 
     protected virtual async Task AddBulkInsertIdColumn<T>(bool sync, DbContext context,
         string tempTableName, CancellationToken cancellationToken) where T : class
@@ -106,10 +108,14 @@ internal abstract class BulkInsertProviderBase<TDialect>(ILogger<BulkInsertProvi
         where T : class
         where TResult : class
     {
-        var movedProperties = tableInfo.GetProperties(options.CopyGeneratedColumns);
-        var returnedProperties = returnData ? tableInfo.GetProperties() : [];
-
-        var query = SqlDialect.BuildMoveDataSql<T>(tableInfo, tempTableName, movedProperties, returnedProperties, options, onConflict);
+        var query =
+            SqlDialect.BuildMoveDataSql<T>(
+                tableInfo,
+                tempTableName,
+                tableInfo.GetProperties(options.CopyGeneratedColumns),
+                returnData ? tableInfo.GetProperties() : [],
+                options,
+                onConflict);
 
         if (returnData)
         {

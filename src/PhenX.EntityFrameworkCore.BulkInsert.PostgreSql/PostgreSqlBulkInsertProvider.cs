@@ -1,3 +1,5 @@
+using System.Text;
+
 using JetBrains.Annotations;
 
 using Microsoft.EntityFrameworkCore;
@@ -19,17 +21,23 @@ internal class PostgreSqlBulkInsertProvider : BulkInsertProviderBase<PostgreSqlD
 
     //language=sql
     /// <inheritdoc />
-    protected override string CreateTableCopySql => "CREATE TEMPORARY TABLE {0} AS TABLE {1} WITH NO DATA;";
-
-    //language=sql
-    /// <inheritdoc />
     protected override string AddTableCopyBulkInsertId => $"ALTER TABLE {{0}} ADD COLUMN {BulkInsertId} SERIAL PRIMARY KEY;";
+
+    /// <inheritdoc />
+    protected override string CreateTableCopySql(string tempNameName, TableMetadata tableInfo, IReadOnlyList<PropertyMetadata> columns)
+    {
+        return $"CREATE TEMPORARY TABLE {tempNameName} AS TABLE {tableInfo.QuotedTableName} WITH NO DATA;";
+    }
 
     private static string GetBinaryImportCommand(TableMetadata tableInfo, string tableName)
     {
         var columns = tableInfo.GetProperties(false).Select(X => X.QuotedColumName);
 
-        return $"COPY {tableName} ({string.Join(", ", columns)}) FROM STDIN (FORMAT BINARY)";
+        var sql = new StringBuilder();
+        sql.Append($"COPY {tableName} (");
+        sql.AppendColumns(tableInfo.GetProperties(false));
+        sql.Append(") FROM STDIN (FORMAT BINARY)");
+        return sql.ToString();
     }
 
     /// <inheritdoc />

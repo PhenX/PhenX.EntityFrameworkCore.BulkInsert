@@ -1,3 +1,5 @@
+using System.Text;
+
 using JetBrains.Annotations;
 
 using Microsoft.Data.SqlClient;
@@ -19,14 +21,20 @@ internal class SqlServerBulkInsertProvider : BulkInsertProviderBase<SqlServerDia
 
     //language=sql
     /// <inheritdoc />
-    protected override string CreateTableCopySql => "SELECT {2} INTO {0} FROM {1} WHERE 1 = 0;";
-
-    //language=sql
-    /// <inheritdoc />
     protected override string AddTableCopyBulkInsertId => $"ALTER TABLE {{0}} ADD {BulkInsertId} INT IDENTITY PRIMARY KEY;";
 
     /// <inheritdoc />
     protected override string GetTempTableName(string tableName) => $"#_temp_bulk_insert_{tableName}";
+
+    protected override string CreateTableCopySql(string templNameName, TableMetadata tableInfo, IReadOnlyList<PropertyMetadata> columns)
+    {
+        var sb = new StringBuilder();
+        sb.Append("SELECT");
+        sb.AppendJoin(", ", columns.Select(x => x.QuotedColumName));
+        sb.Append($"INTO {templNameName} FROM {tableInfo.QuotedTableName} WHERE 1 = 0;");
+
+        return sb.ToString();
+    }
 
     /// <inheritdoc />
     protected override async Task BulkInsert<T>(

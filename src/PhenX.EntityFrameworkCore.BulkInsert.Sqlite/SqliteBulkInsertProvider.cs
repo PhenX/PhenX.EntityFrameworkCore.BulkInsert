@@ -1,10 +1,12 @@
 using System.Data.Common;
+using System.Text;
 
 using JetBrains.Annotations;
 
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Primitives;
 
 using PhenX.EntityFrameworkCore.BulkInsert.Metadata;
 using PhenX.EntityFrameworkCore.BulkInsert.Options;
@@ -23,11 +25,13 @@ internal class SqliteBulkInsertProvider : BulkInsertProviderBase<SqliteDialectBu
 
     //language=sql
     /// <inheritdoc />
-    protected override string CreateTableCopySql => "CREATE TEMP TABLE {0} AS SELECT * FROM {1} WHERE 0;";
-
-    //language=sql
-    /// <inheritdoc />
     protected override string AddTableCopyBulkInsertId => "--"; // No need to add an ID column in SQLite
+
+    /// <inheritdoc />
+    protected override string CreateTableCopySql(string tempNameName, TableMetadata tableInfo, IReadOnlyList<PropertyMetadata> columns)
+    {
+        return $"CREATE TEMP TABLE {tempNameName} AS SELECT * FROM {tableInfo.QuotedTableName} WHERE 0;";
+    }
 
     /// <inheritdoc />
     protected override Task AddBulkInsertIdColumn<T>(
@@ -78,48 +82,58 @@ internal class SqliteBulkInsertProvider : BulkInsertProviderBase<SqliteDialectBu
             return sqliteType;
         }
 
-        throw new InvalidOperationException("Unknown Sqlite type for " + clrType);
+        throw new InvalidOperationException($"Unknown Sqlite type for {clrType}");
     }
 
-    private DbCommand GetInsertCommand(DbContext context, TableMetadata tableInfo, string tableName,
-        BulkInsertOptions options,
+    private static DbCommand GetInsertCommand(
+        DbContext context,
+        string tableName,
+        IReadOnlyList<PropertyMetadata> columns,
+        SqliteType[] columnTypes,
+        StringBuilder sb,
         int batchSize)
     {
-        var columns = tableInfo.GetProperties(options.CopyGeneratedColumns);
-        var cmd = context.Database.GetDbConnection().CreateCommand();
+        var command = context.Database.GetDbConnection().CreateCommand();
 
-        var sqliteColumns = columns
-            .Select(c => new
-            {
-                Name = c.ColumnName,
-                Type = GetSqliteType(c.ProviderClrType ?? c.ClrType)
-            })
-            .ToArray();
+        sb.Clear();
+        sb.AppendLine($"INSERT INTO {tableName} (");
+        sb.AppendColumns(columns);
+        sb.AppendLine(")");
+        sb.AppendLine("VALUES");
 
-        var i = 0;
-        var batches = Enumerable
-            .Repeat(0, batchSize)
-            .Select(_ =>
+        var p = 0;
+        for (var i = 0; i < batchSize; i++)
+        {
+            if (i > 0)
             {
-                var cols = sqliteColumns.Select(column =>
+                sb.Append(',');
+            }
+
+            sb.Append('(');
+
+            var columnIndex = 0;
+            foreach (var column in columns)
+            {
+                var parameterName = $"@p{p++}";
+                command.Parameters.Add(new SqliteParameter(parameterName, columnTypes[columnIndex]));
+
+                if (columnIndex > 0)
                 {
-                    var paramName = $"@p{i++}";
+                    sb.Append(", ");
+                }
 
-                    cmd.Parameters.Add(new SqliteParameter(paramName, column.Type));
+                sb.Append(parameterName);
+                columnIndex++;
+            }
 
-                    return paramName;
-                });
+            sb.Append(')');
+            sb.AppendLine();
+        }
 
-                return $"({string.Join(",", cols)})";
-            });
+        command.CommandText = sb.ToString();
+        command.Prepare();
 
-        var sql = $"INSERT INTO {tableName} ({string.Join(",", sqliteColumns.Select(c => Quote(c.Name)))}) VALUES {string.Join(",", batches)}";
-
-        cmd.CommandText = sql;
-
-        cmd.Prepare();
-
-        return cmd;
+        return command;
     }
 
     /// <inheritdoc />
@@ -138,7 +152,20 @@ internal class SqliteBulkInsertProvider : BulkInsertProviderBase<SqliteDialectBu
         var batchSize = options.BatchSize ?? 5;
         batchSize = Math.Min(batchSize, maxParams / properties.Count);
 
-        await using var insertCommand = GetInsertCommand(context, tableInfo, tableName, options, batchSize);
+        // The StringBuilder can be resuse between the batches. 
+        var sb = new StringBuilder();
+
+        var columnList = tableInfo.GetProperties(options.CopyGeneratedColumns);
+        var columnTypes = columnList.Select(c => GetSqliteType(c.ProviderClrType ?? c.ClrType)).ToArray();
+
+        await using var insertCommand =
+            GetInsertCommand(
+                context,
+                tableName,
+                columnList,
+                columnTypes,
+                sb,
+                batchSize);
 
         foreach (var chunk in entities.Chunk(batchSize))
         {
@@ -151,7 +178,14 @@ internal class SqliteBulkInsertProvider : BulkInsertProviderBase<SqliteDialectBu
             // Last chunk
             else
             {
-                var partialInsertCommand = GetInsertCommand(context, tableInfo, tableName, options, chunk.Length);
+                await using var partialInsertCommand =
+                GetInsertCommand(
+                    context,
+                    tableName,
+                    columnList,
+                    columnTypes,
+                    sb,
+                    chunk.Length);
 
                 FillValues(chunk, partialInsertCommand.Parameters, properties);
                 await ExecuteCommand(sync, partialInsertCommand, ctk);
@@ -174,15 +208,14 @@ internal class SqliteBulkInsertProvider : BulkInsertProviderBase<SqliteDialectBu
 
     private static void FillValues<T>(T[] chunk, DbParameterCollection parameters, IReadOnlyList<PropertyMetadata> properties) where T : class
     {
-        var index = 0;
+        var p = 0;
         foreach (var entity in chunk)
         {
             foreach (var property in properties)
             {
                 var value = property.GetValue(entity);
-                parameters[index].Value = value;
-
-                index++;
+                parameters[p].Value = value;
+                p++;
             }
         }
     }

@@ -19,8 +19,8 @@ internal abstract class SqlDialectBuilder
     /// </summary>
     /// <param name="source">Source table</param>
     /// <param name="target">Target table name</param>
-    /// <param name="insertedProperties">Properties to be copied</param>
-    /// <param name="properties">Properties to be returned</param>
+    /// <param name="insertedProperties">Properties to be inserted</param>
+    /// <param name="returnedProperties">Properties to be returned</param>
     /// <param name="options">Bulk insert options</param>
     /// <param name="onConflict">On conflict options</param>
     /// <typeparam name="T">Entity type</typeparam>
@@ -29,34 +29,29 @@ internal abstract class SqlDialectBuilder
         TableMetadata target,
         string source,
         IReadOnlyList<PropertyMetadata> insertedProperties,
-        IReadOnlyList<PropertyMetadata> properties,
+        IReadOnlyList<PropertyMetadata> returnedProperties,
         BulkInsertOptions options, OnConflictOptions? onConflict = null)
     {
-        var insertedColumns = insertedProperties.Select(p => p.QuotedColumName);
-        var insertedColumnList = string.Join(", ", insertedColumns);
-
-        var returnedColumns = properties.Select(p => p.QuotedColumName);
-        var columnList = string.Join(", ", returnedColumns);
-
         var q = new StringBuilder();
 
         if (SupportsMoveRows && options.MoveRows)
         {
-            q.AppendLine($"""
-                    WITH moved_rows AS (
-                       DELETE FROM {source}
-                           RETURNING {insertedColumnList}
-                    )
-                    """);
+            // WITH moved_rows AS (DELETE FROM {source) RETURNING {insertedProperties})
+            q.Append($"WITH moved_rows AS (DELETE FROM {source} RETURNING ");
+            q.AppendColumns(insertedProperties);
+            q.AppendLine(")");
+
             source = "moved_rows";
         }
 
-        q.AppendLine($"""
-                      INSERT INTO {target.QuotedTableName} ({insertedColumnList})
-                      SELECT {insertedColumnList}
-                      FROM {source}
-                      WHERE TRUE
-                      """);
+        // INSERT INTO {target} ({columns}) SELECT {columns} FROM {source} WHERE TRUE
+        q.Append($"INSERT INTO {target.QuotedTableName} (");
+        q.AppendColumns(insertedProperties);
+        q.AppendLine(")");
+        q.Append("SELECT ");
+        q.AppendColumns(insertedProperties);
+        q.AppendLine();
+        q.AppendLine($"FROM {source} WHERE TRUE");
 
         if (onConflict is OnConflictOptions<T> onConflictTyped)
         {
@@ -89,9 +84,11 @@ internal abstract class SqlDialectBuilder
             }
         }
 
-        if (columnList.Length != 0)
+        if (returnedProperties.Count != 0)
         {
-            q.AppendLine($"RETURNING {columnList}");
+            q.Append("RETURNING ");
+            q.AppendJoin(", ", returnedProperties.Select(p => p.QuotedColumName));
+            q.AppendLine();
         }
 
         q.AppendLine(";");
@@ -107,36 +104,13 @@ internal abstract class SqlDialectBuilder
     protected virtual void AppendOnConflictUpdate(StringBuilder sql, IEnumerable<string> updates)
     {
         sql.AppendLine("DO UPDATE SET");
-
-        var i = 0;
-        foreach (var update in updates)
-        {
-            if (i > 0)
-            {
-                sql.Append(", ");
-            }
-
-            sql.Append(update);
-            i++;
-        };
+        sql.AppendJoin(", ", updates);
     }
 
     protected virtual void AppendConflictMatch(StringBuilder sql, IEnumerable<string> columns)
     {
         sql.AppendLine("(");
-
-        var i = 0;
-        foreach (var column in columns)
-        {
-            if (i > 0)
-            {
-                sql.Append(", ");
-            }
-
-            sql.Append(column);
-            i++;
-        }
-
+        sql.AppendJoin(", ", columns);
         sql.AppendLine(")");
     }
 

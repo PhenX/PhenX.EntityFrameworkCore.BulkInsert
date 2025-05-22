@@ -17,14 +17,15 @@ internal class MySqlBulkInsertProvider : BulkInsertProviderBase<MySqlServerDiale
 
     //language=sql
     /// <inheritdoc />
-    protected override string CreateTableCopySql => "CREATE TEMPORARY TABLE {0} SELECT * FROM {1} WHERE 1 = 0;";
-
-    //language=sql
-    /// <inheritdoc />
     protected override string AddTableCopyBulkInsertId => $"ALTER TABLE {{0}} ADD {BulkInsertId} INT AUTO_INCREMENT PRIMARY KEY;";
 
     /// <inheritdoc />
     protected override string GetTempTableName(string tableName) => $"#_temp_bulk_insert_{tableName}";
+
+    protected override string CreateTableCopySql(string tempNameName, TableMetadata tableInfo, IReadOnlyList<PropertyMetadata> columns)
+    {
+        return $"CREATE TEMPORARY TABLE {tempNameName} SELECT * FROM {tableInfo.QuotedTableName} WHERE 1 = 0;";
+    }
 
     /// <inheritdoc />
     public override Task<List<T>> BulkInsertReturnEntities<T>(

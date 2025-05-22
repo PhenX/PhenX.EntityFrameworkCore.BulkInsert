@@ -153,7 +153,7 @@ internal abstract class BulkInsertProviderBase<TDialect>(ILogger<BulkInsertProvi
     {
         List<T> result;
 
-        var connectionInfo = await context.GetConnection(sync, ctk);
+        var connection = await context.GetConnection(sync, ctk);
         try
         {
             var (tableName, _) = await PerformBulkInsertAsync(sync, context, tableInfo, entities, options, tempTableRequired: true, ctk: ctk);
@@ -161,11 +161,11 @@ internal abstract class BulkInsertProviderBase<TDialect>(ILogger<BulkInsertProvi
             result = await CopyFromTempTableAsync<T>(sync, context, tableInfo, tableName, true, options, onConflict, ctk: ctk);
 
             // Commit the transaction if we own them.
-            await connectionInfo.Commit(sync, ctk);
+            await connection.Commit(sync, ctk);
         }
         finally
         {
-            await connectionInfo.Close(sync, ctk);
+            await connection.Close(sync, ctk);
         }
 
         return result;
@@ -182,7 +182,7 @@ internal abstract class BulkInsertProviderBase<TDialect>(ILogger<BulkInsertProvi
     {
         if (onConflict != null)
         {
-            var connectionInfo = await context.GetConnection(sync, ctk);
+            var connection = await context.GetConnection(sync, ctk);
             try
             {
                 var (tableName, _) = await PerformBulkInsertAsync(sync, context, tableInfo, entities, options, tempTableRequired: true, ctk: ctk);
@@ -190,11 +190,11 @@ internal abstract class BulkInsertProviderBase<TDialect>(ILogger<BulkInsertProvi
                 await CopyFromTempTableAsync<T>(sync, context, tableInfo, tableName, false, options, onConflict, ctk);
 
                 // Commit the transaction if we own them.
-                await connectionInfo.Commit(sync, ctk);
+                await connection.Commit(sync, ctk);
             }
             finally
             {
-                await connectionInfo.Close(sync, ctk);
+                await connection.Close(sync, ctk);
             }
         }
         else
@@ -217,7 +217,7 @@ internal abstract class BulkInsertProviderBase<TDialect>(ILogger<BulkInsertProvi
             throw new InvalidOperationException("No entities to insert.");
         }
 
-        var connectionInfo = await context.GetConnection(sync, ctk);
+        var connection = await context.GetConnection(sync, ctk);
 
         var tableName = tempTableRequired
             ? await CreateTableCopyAsync<T>(sync, context, options, tableInfo, ctk)
@@ -230,14 +230,14 @@ internal abstract class BulkInsertProviderBase<TDialect>(ILogger<BulkInsertProvi
             await BulkInsert(false, context, tableInfo, entities, tableName, properties, options, ctk);
 
             // Commit the transaction if we own them.
-            await connectionInfo.Commit(sync, ctk);
+            await connection.Commit(sync, ctk);
         }
         finally
         {
-            await connectionInfo.Close(sync, ctk);
+            await connection.Close(sync, ctk);
         }
 
-        return (tableName, connectionInfo.Connection);
+        return (tableName, connection.Connection);
     }
 
     /// <summary>

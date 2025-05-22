@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 
 using PhenX.EntityFrameworkCore.BulkInsert.Abstractions;
@@ -23,8 +23,9 @@ public static class DbSetExtensions
     ) where T : class
     {
         var provider = InitProvider(dbSet, configure, out var context, out var options);
+        var tableInfo = dbSet.GetDbContext().GetTableInfo<T>();
 
-        return await provider.BulkInsertReturnEntities(false, context, entities, options, onConflict, ctk);
+        return await provider.BulkInsertReturnEntities(false, context, tableInfo, entities, options, onConflict, ctk);
     }
 
     /// <summary>
@@ -53,8 +54,9 @@ public static class DbSetExtensions
     ) where T : class
     {
         var provider = InitProvider(dbSet, configure, out var context, out var options);
+        var tableInfo = dbSet.GetDbContext().GetTableInfo<T>();
 
-        await provider.BulkInsert(false, context, entities, options, onConflict, ctk);
+        await provider.BulkInsert(false, context, tableInfo, entities, options, onConflict, ctk);
     }
 
     /// <summary>
@@ -82,8 +84,9 @@ public static class DbSetExtensions
     ) where T : class
     {
         var provider = InitProvider(dbSet, configure, out var context, out var options);
+        var tableInfo = dbSet.GetDbContext().GetTableInfo<T>();
 
-        return provider.BulkInsertReturnEntities(true, context, entities, options, onConflict).GetAwaiter().GetResult();
+        return provider.BulkInsertReturnEntities(true, context, tableInfo, entities, options, onConflict).GetAwaiter().GetResult();
     }
 
     /// <summary>
@@ -116,8 +119,9 @@ public static class DbSetExtensions
     ) where T : class
     {
         var provider = InitProvider(dbSet, configure, out var context, out var options);
+        var tableInfo = dbSet.GetDbContext().GetTableInfo<T>();
 
-        provider.BulkInsert(true, context, entities, options, onConflict).GetAwaiter().GetResult();
+        provider.BulkInsert(true, context, tableInfo, entities, options, onConflict).GetAwaiter().GetResult();
     }
 
     /// <summary>

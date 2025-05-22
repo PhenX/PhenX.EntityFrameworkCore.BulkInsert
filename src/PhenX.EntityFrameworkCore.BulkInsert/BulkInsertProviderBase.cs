@@ -1,48 +1,44 @@
 using System.Data.Common;
 
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
 
 using PhenX.EntityFrameworkCore.BulkInsert.Abstractions;
 using PhenX.EntityFrameworkCore.BulkInsert.Dialect;
 using PhenX.EntityFrameworkCore.BulkInsert.Extensions;
+using PhenX.EntityFrameworkCore.BulkInsert.Metadata;
 using PhenX.EntityFrameworkCore.BulkInsert.Options;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert;
 
-internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
+#pragma warning disable CS9113 // Parameter is unread.
+internal abstract class BulkInsertProviderBase<TDialect>(ILogger<BulkInsertProviderBase<TDialect>>? logger = null) : IBulkInsertProvider
+#pragma warning restore CS9113 // Parameter is unread.
     where TDialect : SqlDialectBuilder, new()
 {
     protected readonly TDialect SqlDialect = new();
-    private readonly ILogger<BulkInsertProviderBase<TDialect>>? Logger;
 
     protected virtual string BulkInsertId => "_bulk_insert_id";
 
     protected abstract string CreateTableCopySql { get; }
     protected abstract string AddTableCopyBulkInsertId { get; }
 
-    protected BulkInsertProviderBase(ILogger<BulkInsertProviderBase<TDialect>>? logger = null)
-    {
-        Logger = logger;
-    }
+    SqlDialectBuilder IBulkInsertProvider.SqlDialect => SqlDialect;
 
     protected async Task<string> CreateTableCopyAsync<T>(
         bool sync,
         DbContext context,
         BulkInsertOptions options,
+        TableMetadata tableInfo,
         CancellationToken cancellationToken = default) where T : class
     {
-        var tableInfo = GetTableInfo(context, typeof(T));
-        var tableName = QuoteTableName(tableInfo.SchemaName, tableInfo.TableName);
-        var tempTableName = QuoteTableName(null, GetTempTableName(tableInfo.TableName));
+        var tempTableName = SqlDialect.QuoteTableName(null, GetTempTableName(tableInfo.TableName));
+        var tempColumns = string.Join(", ", tableInfo.GetProperties(options.CopyGeneratedColumns).Select(x => x.QuotedColumName));
 
-        var keptColumns = string.Join(", ", GetQuotedColumns(context, typeof(T), options.CopyGeneratedColumns));
-        var query = string.Format(CreateTableCopySql, tempTableName, tableName, keptColumns);
+        var query = string.Format(CreateTableCopySql, tempTableName, tableInfo.QuotedTableName, tempColumns);
 
         await ExecuteAsync(sync, context, query, cancellationToken);
-
         await AddBulkInsertIdColumn<T>(sync, context, tempTableName, cancellationToken);
 
         return tempTableName;
@@ -80,6 +76,7 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
     public async Task<List<T>> CopyFromTempTableAsync<T>(
         bool sync,
         DbContext context,
+        TableMetadata tableInfo,
         string tempTableName,
         bool returnData,
         BulkInsertOptions options,
@@ -89,6 +86,7 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
         return await CopyFromTempTableWithoutKeysAsync<T, T>(
             sync,
             context,
+            tableInfo,
             tempTableName,
             returnData,
             options,
@@ -99,6 +97,7 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
     private async Task<List<TResult>> CopyFromTempTableWithoutKeysAsync<T, TResult>(
         bool sync,
         DbContext context,
+        TableMetadata tableInfo,
         string tempTableName,
         bool returnData,
         BulkInsertOptions options,
@@ -107,12 +106,10 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
         where T : class
         where TResult : class
     {
-        var (schemaName, tableName, _) = GetTableInfo(context, typeof(T));
-        var quotedTableName = QuoteTableName(schemaName, tableName);
-        var movedProperties = context.GetProperties(typeof(T), options.CopyGeneratedColumns);
-        var returnedProperties = returnData ? context.GetProperties(typeof(T)) : [];
+        var movedProperties = tableInfo.GetProperties(options.CopyGeneratedColumns);
+        var returnedProperties = returnData ? tableInfo.GetProperties() : [];
 
-        var query = SqlDialect.BuildMoveDataSql<T>(context, tempTableName, quotedTableName, movedProperties, returnedProperties, options, onConflict);
+        var query = SqlDialect.BuildMoveDataSql<T>(tableInfo, tempTableName, movedProperties, returnedProperties, options, onConflict);
 
         if (returnData)
         {
@@ -142,37 +139,64 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
     public virtual async Task<List<T>> BulkInsertReturnEntities<T>(
         bool sync,
         DbContext context,
+        TableMetadata tableInfo,
         IEnumerable<T> entities,
         BulkInsertOptions options,
         OnConflictOptions? onConflict = null,
         CancellationToken ctk = default
     ) where T : class
     {
-        var (connection, wasClosed, transaction, wasBegan) = await context.GetConnection(sync, ctk);
+        List<T> result;
 
-        var (tableName, _) = await PerformBulkInsertAsync(sync, context, entities, options, tempTableRequired: true, ctk: ctk);
+        var connectionInfo = await context.GetConnection(sync, ctk);
+        try
+        {
+            var (tableName, _) = await PerformBulkInsertAsync(sync, context, tableInfo, entities, options, tempTableRequired: true, ctk: ctk);
 
-        var result = await CopyFromTempTableAsync<T>(sync, context, tableName, true, options, onConflict, cancellationToken: ctk);
+            result = await CopyFromTempTableAsync<T>(sync, context, tableInfo, tableName, true, options, onConflict, cancellationToken: ctk);
 
-        await Finish(sync, connection, wasClosed, transaction, wasBegan, ctk);
+            // Commit the transaction if we own them.
+            await Commit(sync, connectionInfo, ctk);
+        }
+        finally
+        {
+            await Finish(sync, connectionInfo, ctk);
+        }
 
         return result;
     }
 
-    private static async Task Finish(bool sync, DbConnection connection, bool wasClosed,
-        IDbContextTransaction transaction, bool wasBegan, CancellationToken ctk)
+    private static async Task Commit(bool sync, ConnectionInfo connectionInfo, CancellationToken ctk)
     {
+        var (_, _, transaction, wasBegan) = connectionInfo;
+
         if (!wasBegan)
         {
             if (sync)
             {
                 // ReSharper disable once MethodHasAsyncOverloadWithCancellation
                 transaction.Commit();
-                transaction.Dispose();
             }
             else
             {
                 await transaction.CommitAsync(ctk);
+            }
+        }
+    }
+
+    private static async Task Finish(bool sync, ConnectionInfo connectionInfo, CancellationToken ctk)
+    {
+        var (connection, wasClosed, transaction, wasBegan) = connectionInfo;
+
+        if (!wasBegan)
+        {
+            if (sync)
+            {
+                // ReSharper disable once MethodHasAsyncOverloadWithCancellation
+                transaction.Dispose();
+            }
+            else
+            {
                 await transaction.DisposeAsync();
             }
         }
@@ -194,6 +218,7 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
     public virtual async Task BulkInsert<T>(
         bool sync,
         DbContext context,
+        TableMetadata tableInfo,
         IEnumerable<T> entities,
         BulkInsertOptions options,
         OnConflictOptions? onConflict = null,
@@ -202,23 +227,31 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
     {
         if (onConflict != null)
         {
-            var (connection, wasClosed, transaction, wasBegan) = await context.GetConnection(sync, ctk);
+            var connectionInfo = await context.GetConnection(sync, ctk);
+            try
+            {
+                var (tableName, _) = await PerformBulkInsertAsync(sync, context, tableInfo, entities, options, tempTableRequired: true, ctk: ctk);
 
-            var (tableName, _) = await PerformBulkInsertAsync(sync, context, entities, options, tempTableRequired: true, ctk: ctk);
+                await CopyFromTempTableAsync<T>(sync, context, tableInfo, tableName, false, options, onConflict, ctk);
 
-            await CopyFromTempTableAsync<T>(sync, context, tableName, false, options, onConflict, ctk);
-
-            await Finish(sync, connection, wasClosed, transaction, wasBegan, ctk);
+                // Commit the transaction if we own them.
+                await Commit(sync, connectionInfo, ctk);
+            }
+            finally
+            {
+                await Finish(sync, connectionInfo, ctk);
+            }
         }
         else
         {
-            await PerformBulkInsertAsync(sync, context, entities, options, tempTableRequired: false, ctk: ctk);
+            await PerformBulkInsertAsync(sync, context, tableInfo, entities, options, tempTableRequired: false, ctk: ctk);
         }
     }
 
     private async Task<(string TableName, DbConnection Connection)> PerformBulkInsertAsync<T>(
         bool sync,
         DbContext context,
+        TableMetadata tableInfo,
         IEnumerable<T> entities,
         BulkInsertOptions options,
         bool tempTableRequired,
@@ -229,22 +262,27 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
             throw new InvalidOperationException("No entities to insert.");
         }
 
-        var (connection, wasClosed, transaction, wasBegan) = await context.GetConnection(sync, ctk);
+        var connectionInfo = await context.GetConnection(sync, ctk);
 
         var tableName = tempTableRequired
-            ? await CreateTableCopyAsync<T>(sync, context, options, ctk)
-            : GetQuotedTableName(context, typeof(T));
+            ? await CreateTableCopyAsync<T>(sync, context, options, tableInfo, ctk)
+            : tableInfo.QuotedTableName;
 
-        var properties = context
-            .GetProperties(typeof(T), options.CopyGeneratedColumns)
-            .Select(p => new PropertyAccessor(p))
-            .ToArray();
+        var properties = tableInfo.GetProperties(options.CopyGeneratedColumns);
 
-        await BulkInsert(false, context, entities, tableName, properties, options, ctk);
+        try
+        {
+            await BulkInsert(false, context, tableInfo, entities, tableName, properties, options, ctk);
 
-        await Finish(sync, connection, wasClosed, transaction, wasBegan, ctk);
+            // Commit the transaction if we own them.
+            await Commit(sync, connectionInfo, ctk);
+        }
+        finally
+        {
+            await Finish(sync, connectionInfo, ctk);
+        }
 
-        return (tableName, connection);
+        return (tableName, connectionInfo.Connection);
     }
 
     /// <summary>
@@ -253,43 +291,11 @@ internal abstract class BulkInsertProviderBase<TDialect> : IBulkInsertProvider
     protected abstract Task BulkInsert<T>(
         bool sync,
         DbContext context,
+        TableMetadata tableInfo,
         IEnumerable<T> entities,
         string tableName,
-        PropertyAccessor[] properties,
+        IReadOnlyList<PropertyMetadata> properties,
         BulkInsertOptions options,
         CancellationToken ctk
     ) where T : class;
-
-    /// <summary>
-    /// Get table information for the given entity type : schema name, table name and primary key.
-    /// </summary>
-    public static (string? SchemaName, string TableName, IKey PrimaryKey) GetTableInfo(DbContext context, Type entityType)
-    {
-        var entityTypeInfo = context.Model.FindEntityType(entityType);
-        var schema = (entityTypeInfo ?? throw new InvalidOperationException($"Could not determine entity type for type {entityType.Name}")).GetSchema();
-        var tableName = entityTypeInfo.GetTableName();
-
-        if (string.IsNullOrWhiteSpace(tableName))
-        {
-            throw new InvalidOperationException($"Could not determine table name for type {entityType.Name}");
-        }
-
-        return (schema, tableName, entityTypeInfo.FindPrimaryKey()!);
-    }
-
-    protected string GetQuotedTableName(DbContext context, Type entityType)
-    {
-        var (schema, tableName, _) = GetTableInfo(context, entityType);
-
-        return QuoteTableName(schema, tableName);
-    }
-
-    protected string QuoteTableName(string? schema, string table) => SqlDialect.QuoteTableName(schema, table);
-
-    protected string[] GetQuotedColumns(DbContext context, Type entityType, bool includeGenerated = true)
-    {
-        return context.GetProperties(entityType, includeGenerated)
-            .Select(p => Quote(p.GetColumnName()))
-            .ToArray();
-    }
 }

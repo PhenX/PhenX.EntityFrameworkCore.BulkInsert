@@ -1,14 +1,16 @@
 using System.Data;
 
+using PhenX.EntityFrameworkCore.BulkInsert.Metadata;
+
 namespace PhenX.EntityFrameworkCore.BulkInsert;
 
 internal class EnumerableDataReader<T> : IDataReader
 {
     private readonly IEnumerator<T> _enumerator;
-    private readonly PropertyAccessor[] _properties;
+    private readonly IReadOnlyList<PropertyMetadata> _properties;
     private readonly Dictionary<string, int> _ordinalMap;
 
-    public EnumerableDataReader(IEnumerable<T> rows, PropertyAccessor[] properties)
+    public EnumerableDataReader(IEnumerable<T> rows, IReadOnlyList<PropertyMetadata> properties)
     {
         _enumerator = rows.GetEnumerator();
         _properties = properties;
@@ -32,7 +34,7 @@ internal class EnumerableDataReader<T> : IDataReader
             return DBNull.Value;
         }
 
-        return _properties[i].GetValue(current);
+        return _properties[i].GetValue(current)!;
     }
 
     public int GetValues(object[] values)
@@ -43,18 +45,18 @@ internal class EnumerableDataReader<T> : IDataReader
             return 0;
         }
 
-        for (var i = 0; i < _properties.Length; i++)
+        for (var i = 0; i < _properties.Count; i++)
         {
-            values[i] = _properties[i].GetValue(current);
+            values[i] = _properties[i].GetValue(current)!;
         }
 
-        return _properties.Length;
+        return _properties.Count;
     }
 
     public bool Read() => _enumerator.MoveNext();
 
-    public int FieldCount => _properties.Length;
-    public Type GetFieldType(int i) => _properties[i].ProviderClrType;
+    public int FieldCount => _properties.Count;
+    public Type GetFieldType(int i) => _properties[i].ClrType;
 
     public int GetOrdinal(string name) => _ordinalMap.GetValueOrDefault(name, -1);
 

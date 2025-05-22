@@ -1,9 +1,7 @@
 using System.Text;
 
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata;
-
 using PhenX.EntityFrameworkCore.BulkInsert.Dialect;
+using PhenX.EntityFrameworkCore.BulkInsert.Metadata;
 using PhenX.EntityFrameworkCore.BulkInsert.Options;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.MySql;
@@ -43,9 +41,9 @@ internal class MySqlServerDialectBuilder : SqlDialectBuilder
         sql.Append("ON DUPLICATE KEY");
     }
 
-    protected override void AppendDoNothing(StringBuilder sql, IProperty[] insertedProperties)
+    protected override void AppendDoNothing(StringBuilder sql, IEnumerable<PropertyMetadata> insertedProperties)
     {
-        var columnName = insertedProperties[0].GetColumnName();
+        var columnName = insertedProperties.First().ColumnName;
 
         sql.Append($"UPDATE {Quote(columnName)} = {GetExcludedColumnName(columnName)}");
     }

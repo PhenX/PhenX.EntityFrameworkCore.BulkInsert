@@ -18,7 +18,7 @@ public static class DbSetExtensions
         this DbSet<T> dbSet,
         IEnumerable<T> entities,
         Action<BulkInsertOptions>? configure = null,
-        OnConflictOptions? onConflict = null
+        OnConflictOptions<T>? onConflict = null
     ) where T : class
     {
         return dbSet.ExecuteBulkInsertReturnEntitiesCoreAsync(true, entities, configure, onConflict, default).GetAwaiter().GetResult();
@@ -31,7 +31,7 @@ public static class DbSetExtensions
         this DbContext dbContext,
         IEnumerable<T> entities,
         Action<BulkInsertOptions>? configure = null,
-        OnConflictOptions? onConflict = null
+        OnConflictOptions<T>? onConflict = null
     ) where T : class
     {
         var dbSet = dbContext.Set<T>() ?? throw new InvalidOperationException($"DbSet of type {typeof(T).Name} not found in DbContext.");
@@ -46,7 +46,7 @@ public static class DbSetExtensions
         this DbContext dbContext,
         IEnumerable<T> entities,
         Action<BulkInsertOptions>? configure = null,
-        OnConflictOptions? onConflict = null,
+        OnConflictOptions<T>? onConflict = null,
         CancellationToken ctk = default
     ) where T : class
     {
@@ -62,7 +62,7 @@ public static class DbSetExtensions
         this DbSet<T> dbSet,
         IEnumerable<T> entities,
         Action<BulkInsertOptions>? configure = null,
-        OnConflictOptions? onConflict = null,
+        OnConflictOptions<T>? onConflict = null,
         CancellationToken ctk = default
     ) where T : class
     {
@@ -74,7 +74,7 @@ public static class DbSetExtensions
         bool sync,
         IEnumerable<T> entities,
         Action<BulkInsertOptions>? configure,
-        OnConflictOptions? onConflict,
+        OnConflictOptions<T>? onConflict,
         CancellationToken ctk
     ) where T : class
     {
@@ -98,7 +98,7 @@ public static class DbSetExtensions
         this DbContext dbContext,
         IEnumerable<T> entities,
         Action<BulkInsertOptions>? configure = null,
-        OnConflictOptions? onConflict = null,
+        OnConflictOptions<T>? onConflict = null,
         CancellationToken ctk = default
     ) where T : class
     {
@@ -114,7 +114,7 @@ public static class DbSetExtensions
         this DbSet<T> dbSet,
         IEnumerable<T> entities,
         Action<BulkInsertOptions>? configure = null,
-        OnConflictOptions? onConflict = null,
+        OnConflictOptions<T>? onConflict = null,
         CancellationToken ctk = default
     ) where T : class
     {
@@ -130,7 +130,7 @@ public static class DbSetExtensions
         this DbContext dbContext,
         IEnumerable<T> entities,
         Action<BulkInsertOptions>? configure = null,
-        OnConflictOptions? onConflict = null,
+        OnConflictOptions<T>? onConflict = null,
         CancellationToken ctk = default
     ) where T : class
     {
@@ -146,7 +146,7 @@ public static class DbSetExtensions
         this DbSet<T> dbSet,
         IEnumerable<T> entities,
         Action<BulkInsertOptions>? configure = null,
-        OnConflictOptions? onConflict = null,
+        OnConflictOptions<T>? onConflict = null,
         CancellationToken ctk = default
     ) where T : class
     {
@@ -162,7 +162,7 @@ public static class DbSetExtensions
         this DbContext dbContext,
         IEnumerable<T> entities,
         Action<BulkInsertOptions>? configure = null,
-        OnConflictOptions? onConflict = null
+        OnConflictOptions<T>? onConflict = null
     ) where T : class
     {
         var dbSet = dbContext.Set<T>() ?? throw new InvalidOperationException($"DbSet of type {typeof(T).Name} not found in DbContext.");
@@ -177,7 +177,7 @@ public static class DbSetExtensions
         this DbSet<T> dbSet,
         IEnumerable<T> entities,
         Action<BulkInsertOptions>? configure = null,
-        OnConflictOptions? onConflict = null
+        OnConflictOptions<T>? onConflict = null
     ) where T : class
     {
         var provider = InitProvider(dbSet, configure, out var context, out var options);

@@ -15,6 +15,8 @@ internal sealed class PropertyMetadata(IProperty property,  SqlDialectBuilder di
 
     public string QuotedColumName { get; } = dialect.Quote(property.GetColumnName());
 
+    public string StoreDefinition { get; } = GetStoreDefinition(property);
+
     public Type ClrType { get; } = property.ClrType;
 
     public Type? ProviderClrType { get; } = property.GetProviderClrType();
@@ -52,6 +54,15 @@ internal sealed class PropertyMetadata(IProperty property,  SqlDialectBuilder di
         }
 
         return result;
+    }
+
+    private static string GetStoreDefinition(IProperty property)
+    {
+        var typeMapping = property.GetRelationalTypeMapping();
+
+        var nullability = property.IsNullable ? "NULL" : "NOT NULL";
+
+        return $"{typeMapping.StoreType} {nullability}";
     }
 
     public override string ToString()

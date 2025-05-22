@@ -1,7 +1,5 @@
 using System.Text;
 
-using Microsoft.Extensions.Primitives;
-
 using PhenX.EntityFrameworkCore.BulkInsert.Dialect;
 using PhenX.EntityFrameworkCore.BulkInsert.Metadata;
 using PhenX.EntityFrameworkCore.BulkInsert.Options;

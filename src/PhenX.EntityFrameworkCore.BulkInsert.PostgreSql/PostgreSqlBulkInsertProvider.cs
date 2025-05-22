@@ -29,13 +29,11 @@ internal class PostgreSqlBulkInsertProvider : BulkInsertProviderBase<PostgreSqlD
         return $"CREATE TEMPORARY TABLE {tempNameName} AS TABLE {tableInfo.QuotedTableName} WITH NO DATA;";
     }
 
-    private static string GetBinaryImportCommand(TableMetadata tableInfo, string tableName)
+    private static string GetBinaryImportCommand(IReadOnlyList<PropertyMetadata> properties, string tableName)
     {
-        var columns = tableInfo.GetProperties(false).Select(X => X.QuotedColumName);
-
         var sql = new StringBuilder();
         sql.Append($"COPY {tableName} (");
-        sql.AppendColumns(tableInfo.GetProperties(false));
+        sql.AppendColumns(properties);
         sql.Append(") FROM STDIN (FORMAT BINARY)");
         return sql.ToString();
     }
@@ -53,7 +51,7 @@ internal class PostgreSqlBulkInsertProvider : BulkInsertProviderBase<PostgreSqlD
     {
         var connection = (NpgsqlConnection)context.Database.GetDbConnection();
 
-        var importCommand = GetBinaryImportCommand(tableInfo, tableName);
+        var importCommand = GetBinaryImportCommand(properties, tableName);
 
         var writer = sync
             // ReSharper disable once MethodHasAsyncOverloadWithCancellation

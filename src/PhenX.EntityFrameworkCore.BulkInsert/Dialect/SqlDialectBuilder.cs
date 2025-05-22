@@ -59,11 +59,7 @@ internal abstract class SqlDialectBuilder
 
             if (onConflictTyped.Update != null)
             {
-                if (onConflictTyped.Match != null)
-                {
-                    q.Append(' ');
-                    AppendConflictMatch(q, GetColumns(target, onConflictTyped.Match));
-                }
+                AppendConflictMatch(q, target, onConflictTyped);
 
                 if (onConflictTyped.Update != null)
                 {
@@ -93,7 +89,8 @@ internal abstract class SqlDialectBuilder
 
         q.AppendLine(";");
 
-        return q.ToString();
+        var result = q.ToString();
+        return result;
     }
 
     protected virtual void AppendDoNothing(StringBuilder sql, IEnumerable<PropertyMetadata> insertedProperties)
@@ -107,11 +104,15 @@ internal abstract class SqlDialectBuilder
         sql.AppendJoin(", ", updates);
     }
 
-    protected virtual void AppendConflictMatch(StringBuilder sql, IEnumerable<string> columns)
+    protected virtual void AppendConflictMatch<T>(StringBuilder sql, TableMetadata target, OnConflictOptions<T> conflict)
     {
-        sql.AppendLine("(");
-        sql.AppendJoin(", ", columns);
-        sql.AppendLine(")");
+        if (conflict.Match != null)
+        {
+            sql.Append(' ');
+            sql.AppendLine("(");
+            sql.AppendJoin(", ", GetColumns(target, conflict.Match));
+            sql.AppendLine(")");
+        }
     }
 
     protected virtual void AppendOnConflictStatement(StringBuilder sql)

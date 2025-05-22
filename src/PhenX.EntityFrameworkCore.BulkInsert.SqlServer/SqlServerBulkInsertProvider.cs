@@ -29,9 +29,20 @@ internal class SqlServerBulkInsertProvider : BulkInsertProviderBase<SqlServerDia
     protected override string CreateTableCopySql(string templNameName, TableMetadata tableInfo, IReadOnlyList<PropertyMetadata> columns)
     {
         var sb = new StringBuilder();
-        sb.Append("SELECT");
-        sb.AppendJoin(", ", columns.Select(x => x.QuotedColumName));
-        sb.Append($"INTO {templNameName} FROM {tableInfo.QuotedTableName} WHERE 1 = 0;");
+        sb.Append($"CREATE TABLE {templNameName}");
+        sb.AppendLine("(");
+
+        foreach (var column in columns)
+        {
+            sb.Append($"   {column.QuotedColumName} {column.StoreDefinition}");
+            if (column != columns[^1])
+            {
+                sb.Append(',');
+            }
+            sb.AppendLine();
+        }
+
+        sb.AppendLine(")");
 
         return sb.ToString();
     }

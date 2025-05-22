@@ -1,5 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore;
+
+using PhenX.EntityFrameworkCore.BulkInsert.Extensions;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.PostgreSql;
 
@@ -13,10 +14,6 @@ public static class PostgreSqlDbContextOptionsExtensions
     /// </summary>
     public static DbContextOptionsBuilder UseBulkInsertPostgreSql(this DbContextOptionsBuilder optionsBuilder)
     {
-        var extension = optionsBuilder.Options.FindExtension<BulkInsertOptionsExtension<PostgreSqlBulkInsertProvider>>() ?? new BulkInsertOptionsExtension<PostgreSqlBulkInsertProvider>();
-
-        ((IDbContextOptionsBuilderInfrastructure)optionsBuilder).AddOrUpdateExtension(extension);
-
-        return optionsBuilder;
+        return optionsBuilder.UseProvider<PostgreSqlBulkInsertProvider>();
     }
 }

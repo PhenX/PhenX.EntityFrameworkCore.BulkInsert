@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
 
+using PhenX.EntityFrameworkCore.BulkInsert.Metadata;
 using PhenX.EntityFrameworkCore.BulkInsert.Options;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.SqlServer;
@@ -36,12 +37,12 @@ internal class SqlServerBulkInsertProvider : BulkInsertProviderBase<SqlServerDia
     protected override async Task BulkInsert<T>(
         bool sync,
         DbContext context,
+        TableMetadata tableInfo,
         IEnumerable<T> entities,
         string tableName,
-        PropertyAccessor[] properties,
+        IReadOnlyList<PropertyMetadata> properties,
         SqlServerBulkInsertOptions options,
-        CancellationToken ctk
-    )
+        CancellationToken ctk)
     {
         var connection = (SqlConnection) context.Database.GetDbConnection();
         var sqlTransaction = context.Database.CurrentTransaction!.GetDbTransaction() as SqlTransaction;

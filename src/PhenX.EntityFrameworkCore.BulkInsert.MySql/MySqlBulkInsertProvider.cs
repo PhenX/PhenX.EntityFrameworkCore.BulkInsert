@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 
 using MySqlConnector;
 
+using PhenX.EntityFrameworkCore.BulkInsert.Metadata;
 using PhenX.EntityFrameworkCore.BulkInsert.Options;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.MySql;
@@ -32,6 +33,7 @@ internal class MySqlBulkInsertProvider : BulkInsertProviderBase<MySqlServerDiale
     public override Task<List<T>> BulkInsertReturnEntities<T>(
         bool sync,
         DbContext context,
+        TableMetadata tableInfo,
         IEnumerable<T> entities,
         BulkInsertOptions options,
         OnConflictOptions? onConflict = null,
@@ -44,9 +46,10 @@ internal class MySqlBulkInsertProvider : BulkInsertProviderBase<MySqlServerDiale
     protected override async Task BulkInsert<T>(
         bool sync,
         DbContext context,
+        TableMetadata tableInfo,
         IEnumerable<T> entities,
         string tableName,
-        PropertyAccessor[] properties,
+        IReadOnlyList<PropertyMetadata> properties,
         MySqlBulkInsertOptions options,
         CancellationToken ctk
     )

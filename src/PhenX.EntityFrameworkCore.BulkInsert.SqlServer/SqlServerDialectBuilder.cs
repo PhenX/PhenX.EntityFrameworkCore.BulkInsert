@@ -1,10 +1,7 @@
-using System.Linq.Expressions;
 using System.Text;
 
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata;
-
 using PhenX.EntityFrameworkCore.BulkInsert.Dialect;
+using PhenX.EntityFrameworkCore.BulkInsert.Metadata;
 using PhenX.EntityFrameworkCore.BulkInsert.Options;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.SqlServer;
@@ -17,37 +14,39 @@ internal class SqlServerDialectBuilder : SqlDialectBuilder
 
     protected override bool SupportsMoveRows => false;
 
-    public override string BuildMoveDataSql<T>(DbContext context, string source,
-        string target,
-        IProperty[] insertedProperties,
-        IProperty[] properties,
-        BulkInsertOptions options, OnConflictOptions? onConflict = null)
+    public override string BuildMoveDataSql<T>(
+        TableMetadata target,
+        string source,
+        IReadOnlyList<PropertyMetadata> insertedProperties,
+        IReadOnlyList<PropertyMetadata> properties,
+        BulkInsertOptions options,
+        OnConflictOptions? onConflict = null)
     {
-        var insertedColumns = insertedProperties.Select(p => Quote(p.GetColumnName())).ToArray();
+        var insertedColumns = insertedProperties.Select(x => x.QuotedColumName);
         var insertedColumnList = string.Join(", ", insertedColumns);
 
-        var returnedColumns = properties.Select(p => $"INSERTED.{p.GetColumnName()} AS {p.GetColumnName()}");
+        var returnedColumns = properties.Select(p => $"INSERTED.{p.ColumnName} AS {p.ColumnName}");
         var columnList = string.Join(", ", returnedColumns);
 
         var q = new StringBuilder();
 
         if (options.CopyGeneratedColumns)
         {
-            q.AppendLine($"SET IDENTITY_INSERT {target} ON;");
+            q.AppendLine($"SET IDENTITY_INSERT {target.QuotedTableName} ON;");
         }
 
         // Merge handling
         if (onConflict is OnConflictOptions<T> onConflictTyped && onConflictTyped.Match != null)
         {
-            var matchColumns = GetColumns(context, onConflictTyped.Match);
+            var matchColumns = GetColumns(target, onConflictTyped.Match);
             var matchOn = string.Join(" AND ",
                 matchColumns.Select(col => $"TARGET.{col} = SOURCE.{col}"));
 
             var updateSet = onConflictTyped.Update != null
-                ? string.Join(", ", GetUpdates(context, insertedProperties, onConflictTyped.Update))
+                ? string.Join(", ", GetUpdates(target, insertedProperties, onConflictTyped.Update))
                 : null;
 
-            q.AppendLine($"MERGE INTO {target} AS TARGET");
+            q.AppendLine($"MERGE INTO {target.QuotedTableName} AS TARGET");
             q.AppendLine(
                 $"USING (SELECT {string.Join(", ", insertedColumns)} FROM {source}) AS SOURCE ({insertedColumnList})");
             q.AppendLine($"ON {matchOn}");
@@ -69,7 +68,7 @@ internal class SqlServerDialectBuilder : SqlDialectBuilder
         // No conflict handling
         else
         {
-            q.AppendLine($"INSERT INTO {target} ({insertedColumnList})");
+            q.AppendLine($"INSERT INTO {target.QuotedTableName} ({insertedColumnList})");
 
             if (columnList.Length != 0)
             {
@@ -86,7 +85,7 @@ internal class SqlServerDialectBuilder : SqlDialectBuilder
 
         if (options.CopyGeneratedColumns)
         {
-            q.AppendLine($"SET IDENTITY_INSERT {target} OFF;");
+            q.AppendLine($"SET IDENTITY_INSERT {target.QuotedTableName} OFF;");
         }
 
         return q.ToString();

@@ -18,7 +18,7 @@ public static class DbSetExtensions
         this DbSet<T> dbSet,
         IEnumerable<T> entities,
         Action<BulkInsertOptions>? configure = null,
-        OnConflictOptions? onConflict = null,
+        OnConflictOptions<T>? onConflict = null,
         CancellationToken ctk = default
     ) where T : class
     {
@@ -31,7 +31,7 @@ public static class DbSetExtensions
     /// <summary>
     /// Executes a bulk insert operation returning the inserted/updated entities, from the DbContext.
     /// </summary>
-    public static async Task<List<T>> ExecuteBulkInsertReturnEntitiesAsync<T>(this DbContext dbContext, IEnumerable<T> entities, Action<BulkInsertOptions>? configure = null, OnConflictOptions? onConflict = null, CancellationToken cancellationToken = default) where T : class
+    public static async Task<List<T>> ExecuteBulkInsertReturnEntitiesAsync<T>(this DbContext dbContext, IEnumerable<T> entities, Action<BulkInsertOptions>? configure = null, OnConflictOptions<T>? onConflict = null, CancellationToken cancellationToken = default) where T : class
     {
         var dbSet = dbContext.Set<T>();
         if (dbSet == null)
@@ -49,7 +49,7 @@ public static class DbSetExtensions
         this DbSet<T> dbSet,
         IEnumerable<T> entities,
         Action<BulkInsertOptions>? configure = null,
-        OnConflictOptions? onConflict = null,
+        OnConflictOptions<T>? onConflict = null,
         CancellationToken ctk = default
     ) where T : class
     {
@@ -62,7 +62,7 @@ public static class DbSetExtensions
     /// <summary>
     /// Executes a bulk insert operation without returning the inserted/updated entities, from the DbContext.
     /// </summary>
-    public static async Task ExecuteBulkInsertAsync<T>(this DbContext dbContext, IEnumerable<T> entities, Action<BulkInsertOptions>? configure = null, OnConflictOptions? onConflict = null, CancellationToken cancellationToken = default) where T : class
+    public static async Task ExecuteBulkInsertAsync<T>(this DbContext dbContext, IEnumerable<T> entities, Action<BulkInsertOptions>? configure = null, OnConflictOptions<T>? onConflict = null, CancellationToken cancellationToken = default) where T : class
     {
         var dbSet = dbContext.Set<T>();
         if (dbSet == null)
@@ -80,7 +80,7 @@ public static class DbSetExtensions
         this DbSet<T> dbSet,
         IEnumerable<T> entities,
         Action<BulkInsertOptions>? configure = null,
-        OnConflictOptions? onConflict = null
+        OnConflictOptions<T>? onConflict = null
     ) where T : class
     {
         var provider = InitProvider(dbSet, configure, out var context, out var options);
@@ -96,7 +96,7 @@ public static class DbSetExtensions
         this DbContext dbContext,
         IEnumerable<T> entities,
         Action<BulkInsertOptions>? configure = null,
-        OnConflictOptions? onConflict = null
+        OnConflictOptions<T>? onConflict = null
     ) where T : class
     {
         var dbSet = dbContext.Set<T>();
@@ -115,7 +115,7 @@ public static class DbSetExtensions
         this DbSet<T> dbSet,
         IEnumerable<T> entities,
         Action<BulkInsertOptions>? configure = null,
-        OnConflictOptions? onConflict = null
+        OnConflictOptions<T>? onConflict = null
     ) where T : class
     {
         var provider = InitProvider(dbSet, configure, out var context, out var options);
@@ -131,7 +131,7 @@ public static class DbSetExtensions
         this DbContext dbContext,
         IEnumerable<T> entities,
         Action<BulkInsertOptions>? configure = null,
-        OnConflictOptions? onConflict = null
+        OnConflictOptions<T>? onConflict = null
     ) where T : class
     {
         var dbSet = dbContext.Set<T>();

@@ -14,12 +14,22 @@ internal class SqlServerDialectBuilder : SqlDialectBuilder
 
     protected override bool SupportsMoveRows => false;
 
-    public override string CreateTableCopySql(string templNameName, TableMetadata tableInfo, IReadOnlyList<PropertyMetadata> columns)
+    public override string CreateTableCopySql(string tempTableName, TableMetadata tableInfo, IReadOnlyList<PropertyMetadata> columns)
     {
         var q = new StringBuilder();
-        q.Append("SELECT");
-        q.AppendColumns(columns);
-        q.Append($"INTO {templNameName} FROM {tableInfo.QuotedTableName} WHERE 1 = 0;");
+        q.Append($"CREATE TABLE {tempTableName} (");
+
+        foreach (var column in columns)
+        {
+            q.Append($"{column.QuotedColumName} {column.StoreDefinition}");
+            if (column != columns[^1])
+            {
+                q.Append(',');
+            }
+            q.AppendLine();
+        }
+
+        q.AppendLine(")");
 
         return q.ToString();
     }
@@ -70,8 +80,10 @@ internal class SqlServerDialectBuilder : SqlDialectBuilder
 
             if (onConflictTyped.Update != null)
             {
+                var properties = target.GetProperties(false);
+
                 q.AppendLine($"WHEN MATCHED THEN UPDATE SET ");
-                q.AppendJoin(", ", GetUpdates(target, insertedProperties, onConflictTyped.Update));
+                q.AppendJoin(", ", GetUpdates(target, properties, onConflictTyped.Update));
                 q.AppendLine();
             }
 

@@ -119,8 +119,8 @@ internal class SqlServerDialectBuilder : SqlDialectBuilder
             q.AppendLine($"SET IDENTITY_INSERT {target.QuotedTableName} OFF;");
         }
 
-        var x = q.ToString();
-        return x;
+        var result = q.ToString();
+        return result;
     }
 
     protected override string GetExcludedColumnName(string columnName)

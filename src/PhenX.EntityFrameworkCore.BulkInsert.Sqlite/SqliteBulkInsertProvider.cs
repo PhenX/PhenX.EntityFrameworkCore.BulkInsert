@@ -28,12 +28,6 @@ internal class SqliteBulkInsertProvider : BulkInsertProviderBase<SqliteDialectBu
     protected override string AddTableCopyBulkInsertId => "--"; // No need to add an ID column in SQLite
 
     /// <inheritdoc />
-    protected override string CreateTableCopySql(string tempNameName, TableMetadata tableInfo, IReadOnlyList<PropertyMetadata> columns)
-    {
-        return $"CREATE TEMP TABLE {tempNameName} AS SELECT * FROM {tableInfo.QuotedTableName} WHERE 0;";
-    }
-
-    /// <inheritdoc />
     protected override Task AddBulkInsertIdColumn<T>(
         bool sync,
         DbContext context,

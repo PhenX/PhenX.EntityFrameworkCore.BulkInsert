@@ -23,12 +23,6 @@ internal class PostgreSqlBulkInsertProvider : BulkInsertProviderBase<PostgreSqlD
     /// <inheritdoc />
     protected override string AddTableCopyBulkInsertId => $"ALTER TABLE {{0}} ADD COLUMN {BulkInsertId} SERIAL PRIMARY KEY;";
 
-    /// <inheritdoc />
-    protected override string CreateTableCopySql(string tempNameName, TableMetadata tableInfo, IReadOnlyList<PropertyMetadata> columns)
-    {
-        return $"CREATE TEMPORARY TABLE {tempNameName} AS TABLE {tableInfo.QuotedTableName} WITH NO DATA;";
-    }
-
     private static string GetBinaryImportCommand(IReadOnlyList<PropertyMetadata> properties, string tableName)
     {
         var sql = new StringBuilder();

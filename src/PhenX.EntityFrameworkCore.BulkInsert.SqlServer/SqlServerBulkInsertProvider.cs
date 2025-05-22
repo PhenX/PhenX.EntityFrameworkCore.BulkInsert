@@ -26,27 +26,6 @@ internal class SqlServerBulkInsertProvider : BulkInsertProviderBase<SqlServerDia
     /// <inheritdoc />
     protected override string GetTempTableName(string tableName) => $"#_temp_bulk_insert_{tableName}";
 
-    protected override string CreateTableCopySql(string templNameName, TableMetadata tableInfo, IReadOnlyList<PropertyMetadata> columns)
-    {
-        var sb = new StringBuilder();
-        sb.Append($"CREATE TABLE {templNameName}");
-        sb.AppendLine("(");
-
-        foreach (var column in columns)
-        {
-            sb.Append($"   {column.QuotedColumName} {column.StoreDefinition}");
-            if (column != columns[^1])
-            {
-                sb.Append(',');
-            }
-            sb.AppendLine();
-        }
-
-        sb.AppendLine(")");
-
-        return sb.ToString();
-    }
-
     /// <inheritdoc />
     protected override async Task BulkInsert<T>(
         bool sync,

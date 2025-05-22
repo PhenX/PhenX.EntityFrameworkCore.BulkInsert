@@ -22,11 +22,6 @@ internal class MySqlBulkInsertProvider : BulkInsertProviderBase<MySqlServerDiale
     /// <inheritdoc />
     protected override string GetTempTableName(string tableName) => $"#_temp_bulk_insert_{tableName}";
 
-    protected override string CreateTableCopySql(string tempNameName, TableMetadata tableInfo, IReadOnlyList<PropertyMetadata> columns)
-    {
-        return $"CREATE TEMPORARY TABLE {tempNameName} SELECT * FROM {tableInfo.QuotedTableName} WHERE 1 = 0;";
-    }
-
     /// <inheritdoc />
     public override Task<List<T>> BulkInsertReturnEntities<T>(
         bool sync,

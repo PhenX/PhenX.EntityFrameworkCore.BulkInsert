@@ -36,15 +36,13 @@ internal abstract class BulkInsertProviderBase<TDialect>(ILogger<BulkInsertProvi
         var tempTableName = SqlDialect.QuoteTableName(null, GetTempTableName(tableInfo.TableName));
         var tempColumns = tableInfo.GetProperties(options.CopyGeneratedColumns);
 
-        var query = CreateTableCopySql(tempTableName, tableInfo, tempColumns);
+        var query = SqlDialect.CreateTableCopySql(tempTableName, tableInfo, tempColumns);
 
         await ExecuteAsync(sync, context, query, cancellationToken);
         await AddBulkInsertIdColumn<T>(sync, context, tempTableName, cancellationToken);
 
         return tempTableName;
     }
-
-    protected abstract string CreateTableCopySql(string tempNameName, TableMetadata tableInfo, IReadOnlyList<PropertyMetadata> columns);
 
     protected virtual async Task AddBulkInsertIdColumn<T>(bool sync, DbContext context,
         string tempTableName, CancellationToken cancellationToken) where T : class

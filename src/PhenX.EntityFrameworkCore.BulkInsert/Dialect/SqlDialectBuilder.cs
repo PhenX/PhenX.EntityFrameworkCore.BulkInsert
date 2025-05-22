@@ -14,6 +14,8 @@ internal abstract class SqlDialectBuilder
     protected virtual string ConcatOperator => "||";
     protected virtual bool SupportsMoveRows => true;
 
+    public abstract string CreateTableCopySql(string tempNameName, TableMetadata tableInfo, IReadOnlyList<PropertyMetadata> columns);
+
     /// <summary>
     /// Builds the SQL for moving data from one table to another.
     /// </summary>

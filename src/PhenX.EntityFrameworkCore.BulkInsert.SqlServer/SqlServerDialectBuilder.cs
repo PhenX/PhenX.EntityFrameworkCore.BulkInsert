@@ -14,6 +14,16 @@ internal class SqlServerDialectBuilder : SqlDialectBuilder
 
     protected override bool SupportsMoveRows => false;
 
+    public override string CreateTableCopySql(string templNameName, TableMetadata tableInfo, IReadOnlyList<PropertyMetadata> columns)
+    {
+        var q = new StringBuilder();
+        q.Append("SELECT");
+        q.AppendColumns(columns);
+        q.Append($"INTO {templNameName} FROM {tableInfo.QuotedTableName} WHERE 1 = 0;");
+
+        return q.ToString();
+    }
+
     public override string BuildMoveDataSql<T>(
         TableMetadata target,
         string source,

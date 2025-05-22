@@ -1,4 +1,5 @@
-﻿using PhenX.EntityFrameworkCore.BulkInsert.Dialect;
+using PhenX.EntityFrameworkCore.BulkInsert.Dialect;
+using PhenX.EntityFrameworkCore.BulkInsert.Metadata;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Sqlite;
 
@@ -8,4 +9,10 @@ internal class SqliteDialectBuilder : SqlDialectBuilder
     protected override string CloseDelimiter => "\"";
 
     protected override bool SupportsMoveRows => false;
+
+    /// <inheritdoc />
+    public override string CreateTableCopySql(string tempNameName, TableMetadata tableInfo, IReadOnlyList<PropertyMetadata> columns)
+    {
+        return $"CREATE TEMP TABLE {tempNameName} AS SELECT * FROM {tableInfo.QuotedTableName} WHERE 0;";
+    }
 }

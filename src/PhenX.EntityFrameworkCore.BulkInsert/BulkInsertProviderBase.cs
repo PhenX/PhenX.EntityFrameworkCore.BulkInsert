@@ -259,9 +259,12 @@ internal abstract class BulkInsertProviderBase<TDialect, TOptions>(ILogger<BulkI
         }
     }
 
-    public BulkInsertOptions InternalGetDefaultOptions() => GetDefaultOptions();
+    public BulkInsertOptions InternalCreateDefaultOptions() => CreateDefaultOptions();
 
-    protected abstract TOptions GetDefaultOptions();
+    /// <summary>
+    /// Create the default options for the provider, can be a subclass of <see cref="BulkInsertOptions"/>.
+    /// </summary>
+    protected abstract TOptions CreateDefaultOptions();
 
     private async Task<(string TableName, DbConnection Connection)> PerformBulkInsertAsync<T>(
         bool sync,

@@ -30,7 +30,7 @@ internal class SqliteBulkInsertProvider : BulkInsertProviderBase<SqliteDialectBu
     protected override string AddTableCopyBulkInsertId => "--"; // No need to add an ID column in SQLite
 
     /// <inheritdoc />
-    protected override BulkInsertOptions GetDefaultOptions() => new()
+    protected override BulkInsertOptions CreateDefaultOptions() => new()
     {
         BatchSize = 5,
     };

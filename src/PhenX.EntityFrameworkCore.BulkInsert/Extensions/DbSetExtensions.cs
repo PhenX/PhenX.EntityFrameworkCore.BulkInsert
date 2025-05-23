@@ -246,7 +246,7 @@ public static class DbSetExtensions
         context = dbSet.GetDbContext();
         var provider = context.GetService<IBulkInsertProvider>();
 
-        var defaultOptions = provider.InternalGetDefaultOptions();
+        var defaultOptions = provider.InternalCreateDefaultOptions();
 
         if (defaultOptions is not TOptions castedOptions)
         {

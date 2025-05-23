@@ -28,7 +28,7 @@ internal class SqlServerBulkInsertProvider : BulkInsertProviderBase<SqlServerDia
     /// <inheritdoc />
     protected override string GetTempTableName(string tableName) => $"#_temp_bulk_insert_{tableName}";
 
-    protected override SqlServerBulkInsertOptions GetDefaultOptions() => new()
+    protected override SqlServerBulkInsertOptions CreateDefaultOptions() => new()
     {
         BatchSize = 50_000,
     };

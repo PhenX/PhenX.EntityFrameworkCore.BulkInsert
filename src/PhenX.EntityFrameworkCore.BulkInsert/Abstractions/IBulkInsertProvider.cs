@@ -42,5 +42,5 @@ internal interface IBulkInsertProvider
     /// <summary>
     /// Make the default options for the provider, can be a subclass of <see cref="BulkInsertOptions"/>.
     /// </summary>
-    internal BulkInsertOptions InternalGetDefaultOptions();
+    internal BulkInsertOptions InternalCreateDefaultOptions();
 }

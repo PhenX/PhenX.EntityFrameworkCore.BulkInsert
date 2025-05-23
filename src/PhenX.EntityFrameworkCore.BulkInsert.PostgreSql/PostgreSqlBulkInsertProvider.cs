@@ -33,7 +33,7 @@ internal class PostgreSqlBulkInsertProvider : BulkInsertProviderBase<PostgreSqlD
     }
 
     /// <inheritdoc />
-    protected override BulkInsertOptions GetDefaultOptions() => new()
+    protected override BulkInsertOptions CreateDefaultOptions() => new()
     {
         BatchSize = 50_000,
     };

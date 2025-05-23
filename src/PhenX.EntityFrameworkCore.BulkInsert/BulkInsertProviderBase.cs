@@ -1,4 +1,4 @@
-using System.Data.Common;
+using System.Runtime.CompilerServices;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -12,52 +12,210 @@ using PhenX.EntityFrameworkCore.BulkInsert.Options;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert;
 
-#pragma warning disable CS9113 // Parameter is unread.
-internal abstract class BulkInsertProviderBase<TDialect, TOptions>(ILogger<BulkInsertProviderBase<TDialect, TOptions>>? logger = null) : IBulkInsertProvider
-#pragma warning restore CS9113 // Parameter is unread.
-    where TDialect : SqlDialectBuilder, new()
-    where TOptions : BulkInsertOptions, new()
+internal abstract class BulkInsertProviderBase<TDialect>(ILogger<BulkInsertProviderBase<TDialect>>? logger = null) : IBulkInsertProvider where TDialect : SqlDialectBuilder, new()
 {
     protected readonly TDialect SqlDialect = new();
 
     protected virtual string BulkInsertId => "_bulk_insert_id";
 
-    protected abstract string CreateTableCopySql { get; }
     protected abstract string AddTableCopyBulkInsertId { get; }
 
+    protected virtual string GetTempTableName(string tableName) => $"_temp_bulk_insert_{tableName}";
+
     SqlDialectBuilder IBulkInsertProvider.SqlDialect => SqlDialect;
+
+    public virtual async IAsyncEnumerable<T> BulkInsertReturnEntities<T>(
+        bool sync,
+        DbContext context,
+        TableMetadata tableInfo,
+        IEnumerable<T> entities,
+        BulkInsertOptions options,
+        OnConflictOptions? onConflict,
+        [EnumeratorCancellation] CancellationToken ctk) where T : class
+    {
+        using var activity = Telemetry.ActivitySource.StartActivity("BulkInsertReturnEntities");
+        activity?.AddTag("tableName", tableInfo.TableName);
+        activity?.AddTag("synchronous", sync);
+
+        var connection = await context.GetConnection(sync, ctk);
+        try
+        {
+            if (logger != null)
+            {
+                Log.UsingTempTablToReturnData(logger);
+            }
+
+            var tableName = await PerformBulkInsertAsync(sync, context, tableInfo, entities, options, tempTableRequired: true, ctk: ctk);
+
+            var result =
+                await CopyFromTempTableAsync<T, T>(sync, context, tableInfo, tableName, true, options, onConflict, ctk: ctk)
+                    ?? throw new InvalidOperationException("Copy returns null enumerable.");
+
+            await foreach (var item in result.WithCancellation(ctk))
+            {
+                yield return item;
+            }
+
+            // Commit the transaction if we own them.
+            await connection.Commit(sync, ctk);
+        }
+        finally
+        {
+            await connection.Close(sync, ctk);
+        }
+    }
+
+    public virtual async Task BulkInsert<T>(
+        bool sync,
+        DbContext context,
+        TableMetadata tableInfo,
+        IEnumerable<T> entities,
+        BulkInsertOptions options,
+        OnConflictOptions? onConflict,
+        CancellationToken ctk) where T : class
+    {
+        using var activity = Telemetry.ActivitySource.StartActivity("BulkInsert");
+        activity?.AddTag("tableName", tableInfo.TableName);
+        activity?.AddTag("synchronous", sync);
+
+        var connection = await context.GetConnection(sync, ctk);
+        try
+        {
+            if (onConflict != null)
+            {
+                if (logger != null)
+                {
+                    Log.UsingTempTableToResolveConflicts(logger);
+                }
+
+                var tableName = await PerformBulkInsertAsync(sync, context, tableInfo, entities, options, tempTableRequired: true, ctk: ctk);
+
+                await CopyFromTempTableAsync<T, T>(sync, context, tableInfo, tableName, false, options, onConflict, ctk);
+            }
+            else
+            {
+                if (logger != null)
+                {
+                    Log.UsingDirectInsert(logger);
+                }
+
+                await PerformBulkInsertAsync(sync, context, tableInfo, entities, options, tempTableRequired: false, ctk: ctk);
+            }
+
+            // Commit the transaction if we own them.
+            await connection.Commit(sync, ctk);
+        }
+        finally
+        {
+            await connection.Close(sync, ctk);
+        }
+    }
+
+    private async Task<string> PerformBulkInsertAsync<T>(
+        bool sync,
+        DbContext context,
+        TableMetadata tableInfo,
+        IEnumerable<T> entities,
+        BulkInsertOptions options,
+        bool tempTableRequired,
+        CancellationToken ctk) where T : class
+    {
+        if (entities.TryGetNonEnumeratedCount(out var count) && count == 0)
+        {
+            throw new InvalidOperationException("No entities to insert.");
+        }
+
+        var tableName = tempTableRequired
+            ? await CreateTableCopyAsync<T>(sync, context, options, tableInfo, ctk)
+            : tableInfo.QuotedTableName;
+
+        var columns = tableInfo.GetColumns(options.CopyGeneratedColumns);
+
+        using var activity = Telemetry.ActivitySource.StartActivity("Insert");
+        activity?.AddTag("tempTable", tempTableRequired);
+        activity?.AddTag("synchronous", sync);
+
+        await BulkInsert(false, context, tableInfo, entities, tableName, columns, options, ctk);
+        return tableName;
+    }
+
+    /// <summary>
+    /// The main bulk insert method: will insert either in a temp table or directly in the target table.
+    /// </summary>
+    protected abstract Task BulkInsert<T>(
+        bool sync,
+        DbContext context,
+        TableMetadata tableInfo,
+        IEnumerable<T> entities,
+        string tableName,
+        IReadOnlyList<ColumnMetadata> columns,
+        BulkInsertOptions options,
+        CancellationToken ctk) where T : class;
 
     protected async Task<string> CreateTableCopyAsync<T>(
         bool sync,
         DbContext context,
-        TOptions options,
+        BulkInsertOptions options,
         TableMetadata tableInfo,
-        CancellationToken cancellationToken = default) where T : class
+        CancellationToken ctk) where T : class
     {
         var tempTableName = SqlDialect.QuoteTableName(null, GetTempTableName(tableInfo.TableName));
-        var tempColumns = string.Join(", ", tableInfo.GetProperties(options.CopyGeneratedColumns).Select(x => x.QuotedColumName));
+        var tempColumns = tableInfo.GetColumns(options.CopyGeneratedColumns);
 
-        var query = string.Format(CreateTableCopySql, tempTableName, tableInfo.QuotedTableName, tempColumns);
+        var query = SqlDialect.CreateTableCopySql(tempTableName, tableInfo, tempColumns);
 
-        await ExecuteAsync(sync, context, query, cancellationToken);
-        await AddBulkInsertIdColumn<T>(sync, context, tempTableName, cancellationToken);
+        await ExecuteAsync(sync, context, query, ctk);
+        await AddBulkInsertIdColumn<T>(sync, context, tempTableName, ctk);
 
         return tempTableName;
     }
 
-    protected virtual async Task AddBulkInsertIdColumn<T>(bool sync, DbContext context,
-        string tempTableName, CancellationToken cancellationToken) where T : class
+    protected virtual async Task AddBulkInsertIdColumn<T>(
+        bool sync,
+        DbContext context,
+        string tempTableName,
+        CancellationToken ctk) where T : class
     {
         var alterQuery = string.Format(AddTableCopyBulkInsertId, tempTableName);
 
-        await ExecuteAsync(sync, context, alterQuery, cancellationToken);
+        await ExecuteAsync(sync, context, alterQuery, ctk);
     }
 
-    protected virtual string GetTempTableName(string tableName) => $"_temp_bulk_insert_{tableName}";
+    private async Task<IAsyncEnumerable<TResult>?> CopyFromTempTableAsync<T, TResult>(
+        bool sync,
+        DbContext context,
+        TableMetadata tableInfo,
+        string tempTableName,
+        bool returnData,
+        BulkInsertOptions options,
+        OnConflictOptions? onConflict,
+        CancellationToken ctk) where T : class where TResult : class
+    {
+        var query =
+            SqlDialect.BuildMoveDataSql<T>(
+                tableInfo,
+                tempTableName,
+                tableInfo.GetColumns(options.CopyGeneratedColumns),
+                returnData ? tableInfo.GetColumns() : [],
+                options,
+                onConflict);
 
-    protected string Quote(string name) => SqlDialect.Quote(name);
+        if (returnData)
+        {
+            // Use EF to execute the query and return the results
+            return context.Set<TResult>().FromSqlRaw(query).AsAsyncEnumerable();
+        }
 
-    protected static async Task ExecuteAsync(bool sync, DbContext context, string query, CancellationToken cancellationToken = default)
+        // If not returning data, just execute the command
+        await ExecuteAsync(sync, context, query, ctk);
+        return null;
+    }
+
+    protected static async Task ExecuteAsync(
+        bool sync,
+        DbContext context,
+        string query,
+        CancellationToken ctk)
     {
         var command = context.Database.GetDbConnection().CreateCommand();
         command.Transaction = context.Database.CurrentTransaction!.GetDbTransaction();
@@ -70,250 +228,7 @@ internal abstract class BulkInsertProviderBase<TDialect, TOptions>(ILogger<BulkI
         }
         else
         {
-            await command.ExecuteNonQueryAsync(cancellationToken);
+            await command.ExecuteNonQueryAsync(ctk);
         }
     }
-
-    public async Task<List<T>> CopyFromTempTableAsync<T>(
-        bool sync,
-        DbContext context,
-        TableMetadata tableInfo,
-        string tempTableName,
-        bool returnData,
-        BulkInsertOptions options,
-        OnConflictOptions? onConflict = null,
-        CancellationToken cancellationToken = default) where T : class
-    {
-        return await CopyFromTempTableWithoutKeysAsync<T, T>(
-            sync,
-            context,
-            tableInfo,
-            tempTableName,
-            returnData,
-            options,
-            onConflict,
-            cancellationToken: cancellationToken);
-    }
-
-    private async Task<List<TResult>> CopyFromTempTableWithoutKeysAsync<T, TResult>(
-        bool sync,
-        DbContext context,
-        TableMetadata tableInfo,
-        string tempTableName,
-        bool returnData,
-        BulkInsertOptions options,
-        OnConflictOptions? onConflict = null,
-        CancellationToken cancellationToken = default)
-        where T : class
-        where TResult : class
-    {
-        var movedProperties = tableInfo.GetProperties(options.CopyGeneratedColumns);
-        var returnedProperties = returnData ? tableInfo.GetProperties() : [];
-
-        var query = SqlDialect.BuildMoveDataSql<T>(tableInfo, tempTableName, movedProperties, returnedProperties, options, onConflict);
-
-        if (returnData)
-        {
-            return await QueryAsync(sync, context, query, cancellationToken);
-        }
-
-        // If not returning data, just execute the command
-        await ExecuteAsync(sync, context, query, cancellationToken);
-        return [];
-
-        static async Task<List<TResult>> QueryAsync(bool sync, DbContext context, string query, CancellationToken cancellationToken)
-        {
-            // Use EF to execute the query and return the results
-            IQueryable<TResult> queryable = context
-                .Set<TResult>()
-                .FromSqlRaw(query);
-
-            if (sync)
-            {
-                return queryable.ToList();
-            }
-
-            return await queryable.ToListAsync(cancellationToken: cancellationToken);
-        }
-    }
-
-    public virtual async Task<List<T>> BulkInsertReturnEntities<T>(
-        bool sync,
-        DbContext context,
-        TableMetadata tableInfo,
-        IEnumerable<T> entities,
-        BulkInsertOptions options,
-        OnConflictOptions? onConflict = null,
-        CancellationToken ctk = default
-    ) where T : class
-    {
-        if (options is not TOptions providerOptions)
-        {
-            throw new InvalidOperationException($"Invalid options type: {options.GetType().Name}. Expected: {typeof(TOptions).Name}");
-        }
-
-        List<T> result;
-
-        var connectionInfo = await context.GetConnection(sync, ctk);
-        try
-        {
-            var (tableName, _) = await PerformBulkInsertAsync(sync, context, tableInfo, entities, providerOptions, tempTableRequired: true, ctk: ctk);
-
-            result = await CopyFromTempTableAsync<T>(sync, context, tableInfo, tableName, true, providerOptions, onConflict, cancellationToken: ctk);
-
-            // Commit the transaction if we own them.
-            await Commit(sync, connectionInfo, ctk);
-        }
-        finally
-        {
-            await Finish(sync, connectionInfo, ctk);
-        }
-
-        return result;
-    }
-
-    private static async Task Commit(bool sync, ConnectionInfo connectionInfo, CancellationToken ctk)
-    {
-        var (_, _, transaction, wasBegan) = connectionInfo;
-
-        if (!wasBegan)
-        {
-            if (sync)
-            {
-                // ReSharper disable once MethodHasAsyncOverloadWithCancellation
-                transaction.Commit();
-            }
-            else
-            {
-                await transaction.CommitAsync(ctk);
-            }
-        }
-    }
-
-    private static async Task Finish(bool sync, ConnectionInfo connectionInfo, CancellationToken ctk)
-    {
-        var (connection, wasClosed, transaction, wasBegan) = connectionInfo;
-
-        if (!wasBegan)
-        {
-            if (sync)
-            {
-                // ReSharper disable once MethodHasAsyncOverloadWithCancellation
-                transaction.Dispose();
-            }
-            else
-            {
-                await transaction.DisposeAsync();
-            }
-        }
-
-        if (wasClosed)
-        {
-            if (sync)
-            {
-                // ReSharper disable once MethodHasAsyncOverload
-                connection.Close();
-            }
-            else
-            {
-                await connection.CloseAsync();
-            }
-        }
-    }
-
-    public virtual async Task BulkInsert<T>(
-        bool sync,
-        DbContext context,
-        TableMetadata tableInfo,
-        IEnumerable<T> entities,
-        BulkInsertOptions options,
-        OnConflictOptions? onConflict = null,
-        CancellationToken ctk = default
-    ) where T : class
-    {
-        if (options is not TOptions providerOptions)
-        {
-            throw new InvalidOperationException($"Invalid options type: {options.GetType().Name}. Expected: {typeof(TOptions).Name}");
-        }
-
-        if (onConflict != null)
-        {
-            var connectionInfo = await context.GetConnection(sync, ctk);
-            try
-            {
-                var (tableName, _) = await PerformBulkInsertAsync(sync, context, tableInfo, entities, providerOptions, tempTableRequired: true, ctk: ctk);
-
-                await CopyFromTempTableAsync<T>(sync, context, tableInfo, tableName, false, providerOptions, onConflict, ctk);
-
-                // Commit the transaction if we own them.
-                await Commit(sync, connectionInfo, ctk);
-            }
-            finally
-            {
-                await Finish(sync, connectionInfo, ctk);
-            }
-        }
-        else
-        {
-            await PerformBulkInsertAsync(sync, context, tableInfo, entities, providerOptions, tempTableRequired: false, ctk: ctk);
-        }
-    }
-
-    public BulkInsertOptions InternalCreateDefaultOptions() => CreateDefaultOptions();
-
-    /// <summary>
-    /// Create the default options for the provider, can be a subclass of <see cref="BulkInsertOptions"/>.
-    /// </summary>
-    protected abstract TOptions CreateDefaultOptions();
-
-    private async Task<(string TableName, DbConnection Connection)> PerformBulkInsertAsync<T>(
-        bool sync,
-        DbContext context,
-        TableMetadata tableInfo,
-        IEnumerable<T> entities,
-        TOptions options,
-        bool tempTableRequired,
-        CancellationToken ctk = default) where T : class
-    {
-        if (entities.TryGetNonEnumeratedCount(out var count) && count == 0)
-        {
-            throw new InvalidOperationException("No entities to insert.");
-        }
-
-        var connectionInfo = await context.GetConnection(sync, ctk);
-
-        var tableName = tempTableRequired
-            ? await CreateTableCopyAsync<T>(sync, context, options, tableInfo, ctk)
-            : tableInfo.QuotedTableName;
-
-        var properties = tableInfo.GetProperties(options.CopyGeneratedColumns);
-
-        try
-        {
-            await BulkInsert(false, context, tableInfo, entities, tableName, properties, options, ctk);
-
-            // Commit the transaction if we own them.
-            await Commit(sync, connectionInfo, ctk);
-        }
-        finally
-        {
-            await Finish(sync, connectionInfo, ctk);
-        }
-
-        return (tableName, connectionInfo.Connection);
-    }
-
-    /// <summary>
-    /// The main bulk insert method: will insert either in a temp table or directly in the target table.
-    /// </summary>
-    protected abstract Task BulkInsert<T>(
-        bool sync,
-        DbContext context,
-        TableMetadata tableInfo,
-        IEnumerable<T> entities,
-        string tableName,
-        IReadOnlyList<PropertyMetadata> properties,
-        TOptions options,
-        CancellationToken ctk
-    ) where T : class;
 }

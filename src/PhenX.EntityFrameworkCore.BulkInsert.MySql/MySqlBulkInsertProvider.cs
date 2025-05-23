@@ -17,10 +17,6 @@ internal class MySqlBulkInsertProvider : BulkInsertProviderBase<MySqlServerDiale
 
     //language=sql
     /// <inheritdoc />
-    protected override string CreateTableCopySql => "CREATE TEMPORARY TABLE {0} SELECT * FROM {1} WHERE 1 = 0;";
-
-    //language=sql
-    /// <inheritdoc />
     protected override string AddTableCopyBulkInsertId => $"ALTER TABLE {{0}} ADD {BulkInsertId} INT AUTO_INCREMENT PRIMARY KEY;";
 
     /// <inheritdoc />
@@ -30,7 +26,7 @@ internal class MySqlBulkInsertProvider : BulkInsertProviderBase<MySqlServerDiale
     protected override MySqlBulkInsertOptions CreateDefaultOptions() => new();
 
     /// <inheritdoc />
-    public override Task<List<T>> BulkInsertReturnEntities<T>(
+    public override IAsyncEnumerable<T> BulkInsertReturnEntities<T>(
         bool sync,
         DbContext context,
         TableMetadata tableInfo,
@@ -49,7 +45,7 @@ internal class MySqlBulkInsertProvider : BulkInsertProviderBase<MySqlServerDiale
         TableMetadata tableInfo,
         IEnumerable<T> entities,
         string tableName,
-        IReadOnlyList<PropertyMetadata> properties,
+        IReadOnlyList<ColumnMetadata> properties,
         MySqlBulkInsertOptions options,
         CancellationToken ctk
     )

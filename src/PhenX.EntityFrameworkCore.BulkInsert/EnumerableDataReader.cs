@@ -4,29 +4,18 @@ using PhenX.EntityFrameworkCore.BulkInsert.Metadata;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert;
 
-internal class EnumerableDataReader<T> : IDataReader
+internal sealed class EnumerableDataReader<T>(IEnumerable<T> rows, IReadOnlyList<ColumnMetadata> columns) : IDataReader
 {
-    private readonly IEnumerator<T> _enumerator;
-    private readonly IReadOnlyList<PropertyMetadata> _properties;
-    private readonly Dictionary<string, int> _ordinalMap;
-
-    public EnumerableDataReader(IEnumerable<T> rows, IReadOnlyList<PropertyMetadata> properties)
-    {
-        _enumerator = rows.GetEnumerator();
-        _properties = properties;
-        _ordinalMap = properties
-            .Select((p, i)  => new
-            {
-                Property = p,
-                Index = i,
-            })
+    private readonly IEnumerator<T> _enumerator = rows.GetEnumerator();
+    private readonly Dictionary<string, int> _ordinalMap =
+        columns
+            .Select((c, i) => (Column: c, Index: i))
             .ToDictionary(
-                p => p.Property.Name,
+                p => p.Column.PropertyName,
                 p => p.Index
             );
-    }
 
-    public virtual object GetValue(int i)
+    public object GetValue(int i)
     {
         var current = _enumerator.Current;
         if (current == null)
@@ -34,7 +23,7 @@ internal class EnumerableDataReader<T> : IDataReader
             return DBNull.Value;
         }
 
-        return _properties[i].GetValue(current)!;
+        return columns[i].GetValue(current)!;
     }
 
     public int GetValues(object[] values)
@@ -45,24 +34,28 @@ internal class EnumerableDataReader<T> : IDataReader
             return 0;
         }
 
-        for (var i = 0; i < _properties.Count; i++)
+        for (var i = 0; i < columns.Count; i++)
         {
-            values[i] = _properties[i].GetValue(current)!;
+            values[i] = columns[i].GetValue(current)!;
         }
 
-        return _properties.Count;
+        return columns.Count;
     }
 
     public bool Read() => _enumerator.MoveNext();
 
-    public int FieldCount => _properties.Count;
-    public Type GetFieldType(int i) => _properties[i].ClrType;
+    public Type GetFieldType(int i) => columns[i].ClrType;
 
     public int GetOrdinal(string name) => _ordinalMap.GetValueOrDefault(name, -1);
 
+    public int FieldCount => columns.Count;
+
     public int Depth => 0;
-    public bool IsClosed => false;
+
     public int RecordsAffected => 0;
+
+    public bool IsClosed => false;
+
 
     public void Close()
     {

@@ -14,13 +14,15 @@ internal abstract class SqlDialectBuilder
     protected virtual string ConcatOperator => "||";
     protected virtual bool SupportsMoveRows => true;
 
+    public abstract string CreateTableCopySql(string tempNameName, TableMetadata tableInfo, IReadOnlyList<ColumnMetadata> columns);
+
     /// <summary>
     /// Builds the SQL for moving data from one table to another.
     /// </summary>
     /// <param name="source">Source table</param>
     /// <param name="target">Target table name</param>
-    /// <param name="insertedProperties">Properties to be copied</param>
-    /// <param name="properties">Properties to be returned</param>
+    /// <param name="insertedColumns">Columns to be inserted</param>
+    /// <param name="returnedColumns">Columns to be returned</param>
     /// <param name="options">Bulk insert options</param>
     /// <param name="onConflict">On conflict options</param>
     /// <typeparam name="T">Entity type</typeparam>
@@ -28,35 +30,30 @@ internal abstract class SqlDialectBuilder
     public virtual string BuildMoveDataSql<T>(
         TableMetadata target,
         string source,
-        IReadOnlyList<PropertyMetadata> insertedProperties,
-        IReadOnlyList<PropertyMetadata> properties,
+        IReadOnlyList<ColumnMetadata> insertedColumns,
+        IReadOnlyList<ColumnMetadata> returnedColumns,
         BulkInsertOptions options, OnConflictOptions? onConflict = null)
     {
-        var insertedColumns = insertedProperties.Select(p => p.QuotedColumName);
-        var insertedColumnList = string.Join(", ", insertedColumns);
-
-        var returnedColumns = properties.Select(p => p.QuotedColumName);
-        var columnList = string.Join(", ", returnedColumns);
-
         var q = new StringBuilder();
 
         if (SupportsMoveRows && options.MoveRows)
         {
-            q.AppendLine($"""
-                    WITH moved_rows AS (
-                       DELETE FROM {source}
-                           RETURNING {insertedColumnList}
-                    )
-                    """);
+            // WITH moved_rows AS (DELETE FROM {source) RETURNING {insertedColumns})
+            q.Append($"WITH moved_rows AS (DELETE FROM {source} RETURNING ");
+            q.AppendColumns(insertedColumns);
+            q.AppendLine(")");
+
             source = "moved_rows";
         }
 
-        q.AppendLine($"""
-                      INSERT INTO {target.QuotedTableName} ({insertedColumnList})
-                      SELECT {insertedColumnList}
-                      FROM {source}
-                      WHERE TRUE
-                      """);
+        // INSERT INTO {target} ({columns}) SELECT {columns} FROM {source} WHERE TRUE
+        q.Append($"INSERT INTO {target.QuotedTableName} (");
+        q.AppendColumns(insertedColumns);
+        q.AppendLine(")");
+        q.Append("SELECT ");
+        q.AppendColumns(insertedColumns);
+        q.AppendLine();
+        q.AppendLine($"FROM {source} WHERE TRUE");
 
         if (onConflict is OnConflictOptions<T> onConflictTyped)
         {
@@ -64,16 +61,12 @@ internal abstract class SqlDialectBuilder
 
             if (onConflictTyped.Update != null)
             {
-                if (onConflictTyped.Match != null)
-                {
-                    q.Append(' ');
-                    AppendConflictMatch(q, GetColumns(target, onConflictTyped.Match));
-                }
+                AppendConflictMatch(q, target, onConflictTyped);
 
                 if (onConflictTyped.Update != null)
                 {
                     q.Append(' ');
-                    AppendOnConflictUpdate(q, GetUpdates(target, insertedProperties, onConflictTyped.Update));
+                    AppendOnConflictUpdate(q, GetUpdates(target, insertedColumns, onConflictTyped.Update));
                 }
 
                 if (onConflictTyped.Condition != null)
@@ -85,21 +78,24 @@ internal abstract class SqlDialectBuilder
             else
             {
                 q.Append(' ');
-                AppendDoNothing(q, insertedProperties);
+                AppendDoNothing(q, insertedColumns);
             }
         }
 
-        if (columnList.Length != 0)
+        if (returnedColumns.Count != 0)
         {
-            q.AppendLine($"RETURNING {columnList}");
+            q.Append("RETURNING ");
+            q.AppendJoin(", ", returnedColumns.Select(p => p.QuotedColumName));
+            q.AppendLine();
         }
 
         q.AppendLine(";");
 
-        return q.ToString();
+        var result = q.ToString();
+        return result;
     }
 
-    protected virtual void AppendDoNothing(StringBuilder sql, IEnumerable<PropertyMetadata> insertedProperties)
+    protected virtual void AppendDoNothing(StringBuilder sql, IEnumerable<ColumnMetadata> insertedColumns)
     {
         sql.AppendLine("DO NOTHING");
     }
@@ -107,37 +103,18 @@ internal abstract class SqlDialectBuilder
     protected virtual void AppendOnConflictUpdate(StringBuilder sql, IEnumerable<string> updates)
     {
         sql.AppendLine("DO UPDATE SET");
-
-        var i = 0;
-        foreach (var update in updates)
-        {
-            if (i > 0)
-            {
-                sql.Append(", ");
-            }
-
-            sql.Append(update);
-            i++;
-        };
+        sql.AppendJoin(", ", updates);
     }
 
-    protected virtual void AppendConflictMatch(StringBuilder sql, IEnumerable<string> columns)
+    protected virtual void AppendConflictMatch<T>(StringBuilder sql, TableMetadata target, OnConflictOptions<T> conflict)
     {
-        sql.AppendLine("(");
-
-        var i = 0;
-        foreach (var column in columns)
+        if (conflict.Match != null)
         {
-            if (i > 0)
-            {
-                sql.Append(", ");
-            }
-
-            sql.Append(column);
-            i++;
+            sql.Append(' ');
+            sql.AppendLine("(");
+            sql.AppendJoin(", ", GetColumns(target, conflict.Match));
+            sql.AppendLine(")");
         }
-
-        sql.AppendLine(")");
     }
 
     protected virtual void AppendOnConflictStatement(StringBuilder sql)
@@ -161,16 +138,17 @@ internal abstract class SqlDialectBuilder
     /// <summary>
     /// Quotes a column name using database-specific delimiters.
     /// </summary>
-    public string Quote(string entity) => $"{OpenDelimiter}{entity}{CloseDelimiter}";
+    public string Quote(string entity)
+    {
+        return $"{OpenDelimiter}{entity}{CloseDelimiter}";
+    }
 
     /// <summary>
     /// Quotes a schema and table name using database-specific delimiters.
     /// </summary>
     public string QuoteTableName(string? schema, string tableName)
     {
-        return schema != null
-            ? $"{Quote(schema)}.{Quote(tableName)}"
-            : Quote(tableName);
+        return schema != null ? $"{Quote(schema)}.{Quote(tableName)}" : Quote(tableName);
     }
 
     /// <summary>
@@ -180,12 +158,11 @@ internal abstract class SqlDialectBuilder
     {
         return columns.Body switch
         {
-            NewExpression newExpression => newExpression.Arguments.OfType<MemberExpression>()
-                .Select(m => table.GetQuotedColumnName(m.Member.Name))
-                .ToArray(),
-            MemberExpression memberExpression => [
-                table.GetQuotedColumnName(memberExpression.Member.Name)
-            ],
+            NewExpression newExpression =>
+                newExpression.Arguments.OfType<MemberExpression>()
+                    .Select(m => table.GetQuotedColumnName(m.Member.Name)).ToArray(),
+            MemberExpression memberExpression =>
+                [table.GetQuotedColumnName(memberExpression.Member.Name)],
             _ => throw new NotSupportedException("Unsupported expression type")
         };
     }
@@ -201,7 +178,7 @@ internal abstract class SqlDialectBuilder
     /// var updates = GetUpdates(context, e => e.Prop1);
     /// </code>
     /// </example>
-    protected IEnumerable<string> GetUpdates<T>(TableMetadata table, IEnumerable<PropertyMetadata> properties, Expression<Func<T, object>> update)
+    protected IEnumerable<string> GetUpdates<T>(TableMetadata table, IEnumerable<ColumnMetadata> columns, Expression<Func<T, object>> update)
     {
         switch (update.Body)
         {
@@ -227,7 +204,7 @@ internal abstract class SqlDialectBuilder
                 yield return $"{table.GetColumnName(memberExpr.Member.Name)} = {ToSqlExpression<T>(table, memberExpr)}";
                 break;
             case ParameterExpression parameterExpr when (parameterExpr.Type == typeof(T)):
-                foreach (var property in properties)
+                foreach (var property in columns)
                 {
                     yield return $"{property.QuotedColumName} = {GetExcludedColumnName(property.ColumnName)}";
                 }
@@ -251,85 +228,90 @@ internal abstract class SqlDialectBuilder
     {
         switch (expr)
         {
-            case MemberExpression m:
-                return GetExcludedColumnName(table.GetColumnName(m.Member.Name));
+            case MemberExpression memberExpr:
+                return GetExcludedColumnName(table.GetColumnName(memberExpr.Member.Name));
 
-            case BinaryExpression b:
-                var left = ToSqlExpression<TEntity>(table, b.Left);
-                var right = ToSqlExpression<TEntity>(table, b.Right);
-                var op = b.NodeType switch
+            case BinaryExpression binaryExpr:
                 {
-                    ExpressionType.Add => b.Type == typeof(string) ? ConcatOperator : "+",
-                    ExpressionType.Subtract => "-",
-                    ExpressionType.Multiply => "*",
-                    ExpressionType.Divide => "/",
-                    ExpressionType.Modulo => "%",
-                    ExpressionType.AndAlso => "AND",
-                    ExpressionType.OrElse => "OR",
-                    ExpressionType.Equal => "=",
-                    ExpressionType.NotEqual => "<>",
-                    ExpressionType.LessThan => "<",
-                    ExpressionType.LessThanOrEqual => "<=",
-                    ExpressionType.GreaterThan => ">",
-                    ExpressionType.GreaterThanOrEqual => ">=",
-                    _ => throw new NotSupportedException($"Unsupported operator: {b.NodeType}")
-                };
-                return $"({left} {op} {right})";
+                    var op = binaryExpr.NodeType switch
+                    {
+                        ExpressionType.Add => binaryExpr.Type == typeof(string) ? ConcatOperator : "+",
+                        ExpressionType.Subtract => "-",
+                        ExpressionType.Multiply => "*",
+                        ExpressionType.Divide => "/",
+                        ExpressionType.Modulo => "%",
+                        ExpressionType.AndAlso => "AND",
+                        ExpressionType.OrElse => "OR",
+                        ExpressionType.Equal => "=",
+                        ExpressionType.NotEqual => "<>",
+                        ExpressionType.LessThan => "<",
+                        ExpressionType.LessThanOrEqual => "<=",
+                        ExpressionType.GreaterThan => ">",
+                        ExpressionType.GreaterThanOrEqual => ">=",
+                        _ => throw new NotSupportedException($"Unsupported operator: {binaryExpr.NodeType}")
+                    };
 
-            case ConstantExpression c:
-                if (c.Type == typeof(RawSqlValue) && c.Value != null)
-                {
-                    return ((RawSqlValue)c.Value!).Sql;
+                    var lhs = ToSqlExpression<TEntity>(table, binaryExpr.Left);
+                    var rhs = ToSqlExpression<TEntity>(table, binaryExpr.Right);
+
+                    return $"({lhs} {op} {rhs})";
                 }
 
-                if (c.Type == typeof(string) ||
-                    c.Type == typeof(Guid))
+            case ConstantExpression contantExpr:
+                if (contantExpr.Type == typeof(RawSqlValue) && contantExpr.Value != null)
                 {
-                    return $"'{c.Value}'";
+                    return ((RawSqlValue)contantExpr.Value!).Sql;
                 }
 
-                if (c.Type == typeof(bool))
+                if (contantExpr.Type == typeof(string) ||
+                    contantExpr.Type == typeof(Guid))
                 {
-                    return (bool)c.Value! ? "TRUE" : "FALSE";
+                    return $"'{contantExpr.Value}'";
                 }
 
-                return c.Value?.ToString() ?? "NULL";
-
-            case UnaryExpression u:
-                if (u.NodeType == ExpressionType.Convert)
+                if (contantExpr.Type == typeof(bool))
                 {
-                    return ToSqlExpression<TEntity>(table, u.Operand);
-                }
-                if (u.NodeType == ExpressionType.Not)
-                {
-                    return $"NOT ({ToSqlExpression<TEntity>(table, u.Operand)})";
-                }
-                throw new NotSupportedException($"Unary operator not supported: {u.NodeType}");
-
-            case MethodCallExpression mce:
-                // Supporte quelques méthodes courantes (ToLower, ToUpper, Trim, etc.)
-                var objSql = mce.Object != null ? ToSqlExpression<TEntity>(table, mce.Object) : null;
-                var argsSql = mce.Arguments.Select(expr1 => ToSqlExpression<TEntity>(table, expr1)).ToArray();
-                switch (mce.Method.Name)
-                {
-                    case "ToLower":
-                        return $"LOWER({objSql})";
-                    case "ToUpper":
-                        return $"UPPER({objSql})";
-                    case "Trim":
-                        return $"BTRIM({objSql})";
-                    case "Contains" when mce is { Object: not null, Arguments.Count: 1 }:
-                        return $"{objSql} LIKE '%' || {argsSql[0]} || '%'";
-                    case "StartsWith" when mce is { Object: not null, Arguments.Count: 1 }:
-                        return $"{objSql} LIKE {argsSql[0]} || '%'";
-                    case "EndsWith" when mce is { Object: not null, Arguments.Count: 1 }:
-                        return $"{objSql} LIKE '%' || {argsSql[0]}";
-                    default:
-                        throw new NotSupportedException($"Method not supported: {mce.Method.Name}");
+                    return (bool)contantExpr.Value! ? "TRUE" : "FALSE";
                 }
 
-            case ParameterExpression p:
-                return Quote(p.Name ?? "param");
+                return contantExpr.Value?.ToString() ?? "NULL";
+
+            case UnaryExpression unaryExpr:
+                if (unaryExpr.NodeType == ExpressionType.Convert)
+                {
+                    return ToSqlExpression<TEntity>(table, unaryExpr.Operand);
+                }
+                if (unaryExpr.NodeType == ExpressionType.Not)
+                {
+                    return $"NOT ({ToSqlExpression<TEntity>(table, unaryExpr.Operand)})";
+                }
+                throw new NotSupportedException($"Unary operator not supported: {unaryExpr.NodeType}");
+
+            case MethodCallExpression methodExpr:
+                {
+                    var lhs = methodExpr.Object != null ? ToSqlExpression<TEntity>(table, methodExpr.Object) : null;
+
+                    switch (methodExpr.Method.Name)
+                    {
+                        case "ToLower":
+                            return $"LOWER({lhs})";
+                        case "ToUpper":
+                            return $"UPPER({lhs})";
+                        case "Trim":
+                            return $"BTRIM({lhs})";
+                        case "Contains" when methodExpr is { Object: not null, Arguments.Count: 1 }:
+                            return $"{lhs} LIKE '%' || {ToSqlExpression<TEntity>(table, methodExpr.Arguments[0])} || '%'";
+                        case "EndsWith" when methodExpr is { Object: not null, Arguments.Count: 1 }:
+                            return $"{lhs} LIKE '%' || {ToSqlExpression<TEntity>(table, methodExpr.Arguments[0])}";
+                        case "StartsWith" when methodExpr is { Object: not null, Arguments.Count: 1 }:
+                            return $"{lhs} LIKE {ToSqlExpression<TEntity>(table, methodExpr.Arguments[0])} || '%'";
+                        default:
+                            throw new NotSupportedException($"Method not supported: {methodExpr.Method.Name}");
+                    }
+                }
+
+            case ParameterExpression parameterExpr:
+                return Quote(parameterExpr.Name ?? "param");
 
             default:
                 throw new NotSupportedException($"Expression not supported: {expr.NodeType}");

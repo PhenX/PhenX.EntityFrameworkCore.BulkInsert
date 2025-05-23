@@ -10,7 +10,6 @@ namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContext;
 [Table("test_entity")]
 public class TestEntity
 {
-
     public int Id { get; set; }
 
     [Column("name")]

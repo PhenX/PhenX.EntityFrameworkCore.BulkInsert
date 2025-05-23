@@ -19,10 +19,6 @@ internal class SqlServerBulkInsertProvider : BulkInsertProviderBase<SqlServerDia
 
     //language=sql
     /// <inheritdoc />
-    protected override string CreateTableCopySql => "SELECT {2} INTO {0} FROM {1} WHERE 1 = 0;";
-
-    //language=sql
-    /// <inheritdoc />
     protected override string AddTableCopyBulkInsertId => $"ALTER TABLE {{0}} ADD {BulkInsertId} INT IDENTITY PRIMARY KEY;";
 
     /// <inheritdoc />
@@ -40,7 +36,7 @@ internal class SqlServerBulkInsertProvider : BulkInsertProviderBase<SqlServerDia
         TableMetadata tableInfo,
         IEnumerable<T> entities,
         string tableName,
-        IReadOnlyList<PropertyMetadata> properties,
+        IReadOnlyList<ColumnMetadata> columns,
         SqlServerBulkInsertOptions options,
         CancellationToken ctk)
     {
@@ -54,19 +50,19 @@ internal class SqlServerBulkInsertProvider : BulkInsertProviderBase<SqlServerDia
         bulkCopy.BulkCopyTimeout = options.GetCopyTimeoutInSeconds();
         bulkCopy.EnableStreaming = options.EnableStreaming;
 
-        foreach (var prop in properties)
+        foreach (var column in columns)
         {
-            bulkCopy.ColumnMappings.Add(prop.Name, prop.ColumnName);
+            bulkCopy.ColumnMappings.Add(column.PropertyName, column.ColumnName);
         }
 
         if (sync)
         {
             // ReSharper disable once MethodHasAsyncOverloadWithCancellation
-            bulkCopy.WriteToServer(new EnumerableDataReader<T>(entities, properties));
+            bulkCopy.WriteToServer(new EnumerableDataReader<T>(entities, columns));
         }
         else
         {
-            await bulkCopy.WriteToServerAsync(new EnumerableDataReader<T>(entities, properties), ctk);
+            await bulkCopy.WriteToServerAsync(new EnumerableDataReader<T>(entities, columns), ctk);
         }
     }
 }

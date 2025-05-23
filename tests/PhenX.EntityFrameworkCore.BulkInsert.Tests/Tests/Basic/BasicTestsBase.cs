@@ -96,6 +96,32 @@ public abstract class BasicTestsBase<TFixture> : IClassFixture<TFixture>, IAsync
     }
 
     [SkippableFact]
+    public async Task InsertsEntitiesAndReturnAsyncEnumerable()
+    {
+        Skip.If(_context.Database.ProviderName!.Contains("Mysql", StringComparison.InvariantCultureIgnoreCase));
+
+        // Arrange
+        var entities = new List<TestEntity>
+        {
+            new TestEntity { TestRun = _run, Name = $"{_run}_Entity1" },
+            new TestEntity { TestRun = _run, Name = $"{_run}_Entity2" }
+        };
+
+        // Act
+        var enumerable = _context.ExecuteBulkInsertReturnEnumerableAsync(entities);
+        var insertedEntities = new List<TestEntity>();
+        await foreach (var item in enumerable)
+        {
+            insertedEntities.Add(item);
+        }
+
+        // Assert
+        Assert.Equal(2, insertedEntities.Count);
+        Assert.Contains(insertedEntities, e => e.Name == $"{_run}_Entity1");
+        Assert.Contains(insertedEntities, e => e.Name == $"{_run}_Entity2");
+    }
+
+    [SkippableFact]
     public void InsertsEntitiesAndReturn_Sync()
     {
         Skip.If(_context.IsProvider(ProviderType.MySql));
@@ -151,11 +177,39 @@ public abstract class BasicTestsBase<TFixture> : IClassFixture<TFixture>, IAsync
     }
 
     [SkippableFact]
+    public async Task InsertsEntities_MultipleTimes_WithGuidId()
+    {
+        // Arrange
+        var entities = new List<TestEntityWithGuidId>
+        {
+            new TestEntityWithGuidId { Id = Guid.NewGuid(), TestRun = _run, Name = $"{_run}_Entity1" },
+            new TestEntityWithGuidId { Id = Guid.NewGuid(), TestRun = _run, Name = $"{_run}_Entity2" }
+        };
+
+        // Act
+        await _context.ExecuteBulkInsertAsync(entities);
+
+        foreach (var entity in entities)
+        {
+            entity.Name = $"Updated_{entity.Name}";
+        }
+
+        await _context.ExecuteBulkInsertAsync(entities,
+            onConflict: new OnConflictOptions<TestEntityWithGuidId>
+            {
+                Update = e => e,
+            });
+
+        // Assert
+        var insertedEntities = _context.TestEntitiesWithGuidIds.Where(x => x.TestRun == _run).ToList();
+        Assert.Equal(2, insertedEntities.Count);
+        Assert.Contains(insertedEntities, e => e.Name == $"Updated_{_run}_Entity1");
+        Assert.Contains(insertedEntities, e => e.Name == $"Updated_{_run}_Entity2");
+    }
+
+    [SkippableFact]
     public async Task InsertsEntities_MultipleTimes_With_Conflict_On_Id()
     {
-        Skip.If(_context.IsProvider(ProviderType.PostgreSql));
-        Skip.If(_context.IsProvider(ProviderType.SqlServer));
-
         // Arrange
         var entities = new List<TestEntity>
         {

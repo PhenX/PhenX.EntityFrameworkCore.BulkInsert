@@ -14,20 +14,34 @@ internal class SqlServerDialectBuilder : SqlDialectBuilder
 
     protected override bool SupportsMoveRows => false;
 
+    public override string CreateTableCopySql(string tempTableName, TableMetadata tableInfo, IReadOnlyList<ColumnMetadata> columns)
+    {
+        var q = new StringBuilder();
+        q.Append($"CREATE TABLE {tempTableName} (");
+
+        foreach (var column in columns)
+        {
+            q.Append($"{column.QuotedColumName} {column.StoreDefinition}");
+            if (column != columns[^1])
+            {
+                q.Append(',');
+            }
+            q.AppendLine();
+        }
+
+        q.AppendLine(")");
+
+        return q.ToString();
+    }
+
     public override string BuildMoveDataSql<T>(
         TableMetadata target,
         string source,
-        IReadOnlyList<PropertyMetadata> insertedProperties,
-        IReadOnlyList<PropertyMetadata> properties,
+        IReadOnlyList<ColumnMetadata> insertedColumns,
+        IReadOnlyList<ColumnMetadata> returnedColumns,
         BulkInsertOptions options,
         OnConflictOptions? onConflict = null)
     {
-        var insertedColumns = insertedProperties.Select(x => x.QuotedColumName);
-        var insertedColumnList = string.Join(", ", insertedColumns);
-
-        var returnedColumns = properties.Select(p => $"INSERTED.{p.ColumnName} AS {p.ColumnName}");
-        var columnList = string.Join(", ", returnedColumns);
-
         var q = new StringBuilder();
 
         if (options.CopyGeneratedColumns)
@@ -36,49 +50,78 @@ internal class SqlServerDialectBuilder : SqlDialectBuilder
         }
 
         // Merge handling
-        if (onConflict is OnConflictOptions<T> onConflictTyped && onConflictTyped.Match != null)
+        if (onConflict is OnConflictOptions<T> onConflictTyped)
         {
-            var matchColumns = GetColumns(target, onConflictTyped.Match);
-            var matchOn = string.Join(" AND ",
-                matchColumns.Select(col => $"TARGET.{col} = SOURCE.{col}"));
-
-            var updateSet = onConflictTyped.Update != null
-                ? string.Join(", ", GetUpdates(target, insertedProperties, onConflictTyped.Update))
-                : null;
-
-            q.AppendLine($"MERGE INTO {target.QuotedTableName} AS TARGET");
-            q.AppendLine(
-                $"USING (SELECT {string.Join(", ", insertedColumns)} FROM {source}) AS SOURCE ({insertedColumnList})");
-            q.AppendLine($"ON {matchOn}");
-
-            if (updateSet != null)
+            IEnumerable<string> matchColumns;
+            if (onConflictTyped.Match != null)
             {
-                q.AppendLine($"WHEN MATCHED THEN UPDATE SET {updateSet}");
+                matchColumns = GetColumns(target, onConflictTyped.Match);
+            }
+            else if (target.PrimaryKey.Count > 0)
+            {
+                matchColumns = target.PrimaryKey.Select(x => x.QuotedColumName);
+            }
+            else
+            {
+                throw new InvalidOperationException("Table has no primary key that can be used for conflict detection.");
             }
 
-            q.AppendLine(
-                $"WHEN NOT MATCHED THEN INSERT ({insertedColumnList}) VALUES ({string.Join(", ", insertedColumns.Select(c => $"SOURCE.{c}"))})");
+            q.AppendLine($"MERGE INTO {target.QuotedTableName} AS TARGET");
 
-            if (columnList.Length != 0)
+            q.Append("USING (SELECT ");
+            q.AppendColumns(insertedColumns);
+            q.Append($" FROM {source}) AS SOURCE (");
+            q.AppendColumns(insertedColumns);
+            q.AppendLine(")");
+
+            q.Append("ON ");
+            q.AppendJoin($" AND ", matchColumns, (b, col) => b.Append($"TARGET.{col} = SOURCE.{col}"));
+            q.AppendLine();
+
+            if (onConflictTyped.Update != null)
             {
-                q.AppendLine($"OUTPUT {columnList}");
+                var columns = target.GetColumns(false);
+
+                q.AppendLine($"WHEN MATCHED THEN UPDATE SET ");
+                q.AppendJoin(", ", GetUpdates(target, columns, onConflictTyped.Update));
+                q.AppendLine();
+            }
+
+            q.Append($"WHEN NOT MATCHED THEN INSERT (");
+            q.AppendColumns(insertedColumns);
+            q.AppendLine(")");
+
+            q.Append("VALUES (");
+            q.AppendJoin(", ", insertedColumns, (b, col) => b.Append($"SOURCE.{col.QuotedColumName}"));
+            q.AppendLine(")");
+
+            if (returnedColumns.Count != 0)
+            {
+                q.Append("OUTPUT ");
+                q.AppendJoin($", ", returnedColumns, (b, col) => b.Append($"INSERTED.{col.QuotedColumName} AS {col.QuotedColumName}"));
+                q.AppendLine();
             }
         }
 
         // No conflict handling
         else
         {
-            q.AppendLine($"INSERT INTO {target.QuotedTableName} ({insertedColumnList})");
+            q.Append($"INSERT INTO {target.QuotedTableName} (");
+            q.AppendColumns(insertedColumns);
+            q.AppendLine(")");
 
-            if (columnList.Length != 0)
+            if (returnedColumns.Count != 0)
             {
-                q.AppendLine($"OUTPUT {columnList}");
+                q.Append("OUTPUT ");
+                q.AppendJoin($", ", returnedColumns, (b, col) => b.Append($"INSERTED.{col.QuotedColumName} AS {col.QuotedColumName}"));
+                q.AppendLine();
             }
 
-            q.AppendLine($"""
-                          SELECT {insertedColumnList}
-                          FROM {source}
-                          """);
+            q.Append("SELECT ");
+            q.AppendColumns(insertedColumns);
+            q.AppendLine();
+            q.Append($"FROM {source}");
+            q.AppendLine();
         }
 
         q.AppendLine(";");
@@ -88,7 +131,8 @@ internal class SqlServerDialectBuilder : SqlDialectBuilder
             q.AppendLine($"SET IDENTITY_INSERT {target.QuotedTableName} OFF;");
         }
 
-        return q.ToString();
+        var result = q.ToString();
+        return result;
     }
 
     protected override string GetExcludedColumnName(string columnName)

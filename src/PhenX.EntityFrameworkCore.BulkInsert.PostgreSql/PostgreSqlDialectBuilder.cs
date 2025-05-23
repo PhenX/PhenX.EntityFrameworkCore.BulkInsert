@@ -11,7 +11,7 @@ internal class PostgreSqlDialectBuilder : SqlDialectBuilder
     protected override string OpenDelimiter => "\"";
     protected override string CloseDelimiter => "\"";
 
-    public override string CreateTableCopySql(string tempNameName, TableMetadata tableInfo, IReadOnlyList<PropertyMetadata> columns)
+    public override string CreateTableCopySql(string tempNameName, TableMetadata tableInfo, IReadOnlyList<ColumnMetadata> columns)
     {
         return $"CREATE TEMPORARY TABLE {tempNameName} AS TABLE {tableInfo.QuotedTableName} WITH NO DATA;";
     }

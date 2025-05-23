@@ -5,11 +5,11 @@ using PhenX.EntityFrameworkCore.BulkInsert.Dialect;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Metadata;
 
-internal sealed class PropertyMetadata(IProperty property,  SqlDialectBuilder dialect)
+internal sealed class ColumnMetadata(IProperty property,  SqlDialectBuilder dialect)
 {
     private readonly PropertyAccessor.Getter<object, object?> _getter = BuildGetter(property);
 
-    public string Name { get; } = property.Name;
+    public string PropertyName { get; } = property.Name;
 
     public string ColumnName { get; } = property.GetColumnName();
 
@@ -67,6 +67,6 @@ internal sealed class PropertyMetadata(IProperty property,  SqlDialectBuilder di
 
     public override string ToString()
     {
-        return $"Name: {Name}, Column: {ColumnName}";
+        return $"Name: {PropertyName}, Column: {ColumnName}";
     }
 }

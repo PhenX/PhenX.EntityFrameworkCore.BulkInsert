@@ -42,7 +42,7 @@ internal class MySqlBulkInsertProvider : BulkInsertProviderBase<MySqlServerDiale
         TableMetadata tableInfo,
         IEnumerable<T> entities,
         string tableName,
-        IReadOnlyList<PropertyMetadata> properties,
+        IReadOnlyList<ColumnMetadata> properties,
         BulkInsertOptions options,
         CancellationToken ctk
     )

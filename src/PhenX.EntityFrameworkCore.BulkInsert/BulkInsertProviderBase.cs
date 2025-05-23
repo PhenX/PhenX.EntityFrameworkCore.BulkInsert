@@ -129,13 +129,13 @@ internal abstract class BulkInsertProviderBase<TDialect>(ILogger<BulkInsertProvi
             ? await CreateTableCopyAsync<T>(sync, context, options, tableInfo, ctk)
             : tableInfo.QuotedTableName;
 
-        var properties = tableInfo.GetProperties(options.CopyGeneratedColumns);
+        var columns = tableInfo.GetColumns(options.CopyGeneratedColumns);
 
         using var activity = Telemetry.ActivitySource.StartActivity("Insert");
         activity?.AddTag("tempTable", tempTableRequired);
         activity?.AddTag("synchronous", sync);
 
-        await BulkInsert(false, context, tableInfo, entities, tableName, properties, options, ctk);
+        await BulkInsert(false, context, tableInfo, entities, tableName, columns, options, ctk);
         return tableName;
     }
 
@@ -148,7 +148,7 @@ internal abstract class BulkInsertProviderBase<TDialect>(ILogger<BulkInsertProvi
         TableMetadata tableInfo,
         IEnumerable<T> entities,
         string tableName,
-        IReadOnlyList<PropertyMetadata> properties,
+        IReadOnlyList<ColumnMetadata> columns,
         BulkInsertOptions options,
         CancellationToken ctk) where T : class;
 
@@ -160,7 +160,7 @@ internal abstract class BulkInsertProviderBase<TDialect>(ILogger<BulkInsertProvi
         CancellationToken ctk) where T : class
     {
         var tempTableName = SqlDialect.QuoteTableName(null, GetTempTableName(tableInfo.TableName));
-        var tempColumns = tableInfo.GetProperties(options.CopyGeneratedColumns);
+        var tempColumns = tableInfo.GetColumns(options.CopyGeneratedColumns);
 
         var query = SqlDialect.CreateTableCopySql(tempTableName, tableInfo, tempColumns);
 
@@ -195,8 +195,8 @@ internal abstract class BulkInsertProviderBase<TDialect>(ILogger<BulkInsertProvi
             SqlDialect.BuildMoveDataSql<T>(
                 tableInfo,
                 tempTableName,
-                tableInfo.GetProperties(options.CopyGeneratedColumns),
-                returnData ? tableInfo.GetProperties() : [],
+                tableInfo.GetColumns(options.CopyGeneratedColumns),
+                returnData ? tableInfo.GetColumns() : [],
                 options,
                 onConflict);
 

@@ -23,7 +23,7 @@ internal static class Helpers
         return sb;
     }
 
-    public static StringBuilder AppendColumns(this StringBuilder sb, IReadOnlyList<PropertyMetadata> columns)
+    public static StringBuilder AppendColumns(this StringBuilder sb, IReadOnlyList<ColumnMetadata> columns)
     {
         return sb.AppendJoin(", ", columns.Select(c => c.QuotedColumName));
     }

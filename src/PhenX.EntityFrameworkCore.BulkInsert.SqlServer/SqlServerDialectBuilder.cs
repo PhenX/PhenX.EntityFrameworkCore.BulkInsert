@@ -14,7 +14,7 @@ internal class SqlServerDialectBuilder : SqlDialectBuilder
 
     protected override bool SupportsMoveRows => false;
 
-    public override string CreateTableCopySql(string tempTableName, TableMetadata tableInfo, IReadOnlyList<PropertyMetadata> columns)
+    public override string CreateTableCopySql(string tempTableName, TableMetadata tableInfo, IReadOnlyList<ColumnMetadata> columns)
     {
         var q = new StringBuilder();
         q.Append($"CREATE TABLE {tempTableName} (");
@@ -37,8 +37,8 @@ internal class SqlServerDialectBuilder : SqlDialectBuilder
     public override string BuildMoveDataSql<T>(
         TableMetadata target,
         string source,
-        IReadOnlyList<PropertyMetadata> insertedProperties,
-        IReadOnlyList<PropertyMetadata> returnedProperties,
+        IReadOnlyList<ColumnMetadata> insertedColumns,
+        IReadOnlyList<ColumnMetadata> returnedColumns,
         BulkInsertOptions options,
         OnConflictOptions? onConflict = null)
     {
@@ -69,9 +69,9 @@ internal class SqlServerDialectBuilder : SqlDialectBuilder
             q.AppendLine($"MERGE INTO {target.QuotedTableName} AS TARGET");
 
             q.Append("USING (SELECT ");
-            q.AppendColumns(insertedProperties);
+            q.AppendColumns(insertedColumns);
             q.Append($" FROM {source}) AS SOURCE (");
-            q.AppendColumns(insertedProperties);
+            q.AppendColumns(insertedColumns);
             q.AppendLine(")");
 
             q.Append("ON ");
@@ -80,25 +80,25 @@ internal class SqlServerDialectBuilder : SqlDialectBuilder
 
             if (onConflictTyped.Update != null)
             {
-                var properties = target.GetProperties(false);
+                var columns = target.GetColumns(false);
 
                 q.AppendLine($"WHEN MATCHED THEN UPDATE SET ");
-                q.AppendJoin(", ", GetUpdates(target, properties, onConflictTyped.Update));
+                q.AppendJoin(", ", GetUpdates(target, columns, onConflictTyped.Update));
                 q.AppendLine();
             }
 
             q.Append($"WHEN NOT MATCHED THEN INSERT (");
-            q.AppendColumns(insertedProperties);
+            q.AppendColumns(insertedColumns);
             q.AppendLine(")");
 
             q.Append("VALUES (");
-            q.AppendJoin(", ", insertedProperties, (b, col) => b.Append($"SOURCE.{col.QuotedColumName}"));
+            q.AppendJoin(", ", insertedColumns, (b, col) => b.Append($"SOURCE.{col.QuotedColumName}"));
             q.AppendLine(")");
 
-            if (returnedProperties.Count != 0)
+            if (returnedColumns.Count != 0)
             {
                 q.Append("OUTPUT ");
-                q.AppendJoin($", ", returnedProperties, (b, col) => b.Append($"INSERTED.{col.QuotedColumName} AS {col.QuotedColumName}"));
+                q.AppendJoin($", ", returnedColumns, (b, col) => b.Append($"INSERTED.{col.QuotedColumName} AS {col.QuotedColumName}"));
                 q.AppendLine();
             }
         }
@@ -107,18 +107,18 @@ internal class SqlServerDialectBuilder : SqlDialectBuilder
         else
         {
             q.Append($"INSERT INTO {target.QuotedTableName} (");
-            q.AppendColumns(insertedProperties);
+            q.AppendColumns(insertedColumns);
             q.AppendLine(")");
 
-            if (returnedProperties.Count != 0)
+            if (returnedColumns.Count != 0)
             {
                 q.Append("OUTPUT ");
-                q.AppendJoin($", ", returnedProperties, (b, col) => b.Append($"INSERTED.{col.QuotedColumName} AS {col.QuotedColumName}"));
+                q.AppendJoin($", ", returnedColumns, (b, col) => b.Append($"INSERTED.{col.QuotedColumName} AS {col.QuotedColumName}"));
                 q.AppendLine();
             }
 
             q.Append("SELECT ");
-            q.AppendColumns(insertedProperties);
+            q.AppendColumns(insertedColumns);
             q.AppendLine();
             q.Append($"FROM {source}");
             q.AppendLine();

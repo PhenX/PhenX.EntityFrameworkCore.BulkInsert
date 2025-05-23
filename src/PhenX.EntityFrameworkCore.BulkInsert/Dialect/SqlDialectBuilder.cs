@@ -14,15 +14,15 @@ internal abstract class SqlDialectBuilder
     protected virtual string ConcatOperator => "||";
     protected virtual bool SupportsMoveRows => true;
 
-    public abstract string CreateTableCopySql(string tempNameName, TableMetadata tableInfo, IReadOnlyList<PropertyMetadata> columns);
+    public abstract string CreateTableCopySql(string tempNameName, TableMetadata tableInfo, IReadOnlyList<ColumnMetadata> columns);
 
     /// <summary>
     /// Builds the SQL for moving data from one table to another.
     /// </summary>
     /// <param name="source">Source table</param>
     /// <param name="target">Target table name</param>
-    /// <param name="insertedProperties">Properties to be inserted</param>
-    /// <param name="returnedProperties">Properties to be returned</param>
+    /// <param name="insertedColumns">Columns to be inserted</param>
+    /// <param name="returnedColumns">Columns to be returned</param>
     /// <param name="options">Bulk insert options</param>
     /// <param name="onConflict">On conflict options</param>
     /// <typeparam name="T">Entity type</typeparam>
@@ -30,17 +30,17 @@ internal abstract class SqlDialectBuilder
     public virtual string BuildMoveDataSql<T>(
         TableMetadata target,
         string source,
-        IReadOnlyList<PropertyMetadata> insertedProperties,
-        IReadOnlyList<PropertyMetadata> returnedProperties,
+        IReadOnlyList<ColumnMetadata> insertedColumns,
+        IReadOnlyList<ColumnMetadata> returnedColumns,
         BulkInsertOptions options, OnConflictOptions? onConflict = null)
     {
         var q = new StringBuilder();
 
         if (SupportsMoveRows && options.MoveRows)
         {
-            // WITH moved_rows AS (DELETE FROM {source) RETURNING {insertedProperties})
+            // WITH moved_rows AS (DELETE FROM {source) RETURNING {insertedColumns})
             q.Append($"WITH moved_rows AS (DELETE FROM {source} RETURNING ");
-            q.AppendColumns(insertedProperties);
+            q.AppendColumns(insertedColumns);
             q.AppendLine(")");
 
             source = "moved_rows";
@@ -48,10 +48,10 @@ internal abstract class SqlDialectBuilder
 
         // INSERT INTO {target} ({columns}) SELECT {columns} FROM {source} WHERE TRUE
         q.Append($"INSERT INTO {target.QuotedTableName} (");
-        q.AppendColumns(insertedProperties);
+        q.AppendColumns(insertedColumns);
         q.AppendLine(")");
         q.Append("SELECT ");
-        q.AppendColumns(insertedProperties);
+        q.AppendColumns(insertedColumns);
         q.AppendLine();
         q.AppendLine($"FROM {source} WHERE TRUE");
 
@@ -66,7 +66,7 @@ internal abstract class SqlDialectBuilder
                 if (onConflictTyped.Update != null)
                 {
                     q.Append(' ');
-                    AppendOnConflictUpdate(q, GetUpdates(target, insertedProperties, onConflictTyped.Update));
+                    AppendOnConflictUpdate(q, GetUpdates(target, insertedColumns, onConflictTyped.Update));
                 }
 
                 if (onConflictTyped.Condition != null)
@@ -78,14 +78,14 @@ internal abstract class SqlDialectBuilder
             else
             {
                 q.Append(' ');
-                AppendDoNothing(q, insertedProperties);
+                AppendDoNothing(q, insertedColumns);
             }
         }
 
-        if (returnedProperties.Count != 0)
+        if (returnedColumns.Count != 0)
         {
             q.Append("RETURNING ");
-            q.AppendJoin(", ", returnedProperties.Select(p => p.QuotedColumName));
+            q.AppendJoin(", ", returnedColumns.Select(p => p.QuotedColumName));
             q.AppendLine();
         }
 
@@ -95,7 +95,7 @@ internal abstract class SqlDialectBuilder
         return result;
     }
 
-    protected virtual void AppendDoNothing(StringBuilder sql, IEnumerable<PropertyMetadata> insertedProperties)
+    protected virtual void AppendDoNothing(StringBuilder sql, IEnumerable<ColumnMetadata> insertedColumns)
     {
         sql.AppendLine("DO NOTHING");
     }
@@ -178,7 +178,7 @@ internal abstract class SqlDialectBuilder
     /// var updates = GetUpdates(context, e => e.Prop1);
     /// </code>
     /// </example>
-    protected IEnumerable<string> GetUpdates<T>(TableMetadata table, IEnumerable<PropertyMetadata> properties, Expression<Func<T, object>> update)
+    protected IEnumerable<string> GetUpdates<T>(TableMetadata table, IEnumerable<ColumnMetadata> columns, Expression<Func<T, object>> update)
     {
         switch (update.Body)
         {
@@ -204,7 +204,7 @@ internal abstract class SqlDialectBuilder
                 yield return $"{table.GetColumnName(memberExpr.Member.Name)} = {ToSqlExpression<T>(table, memberExpr)}";
                 break;
             case ParameterExpression parameterExpr when (parameterExpr.Type == typeof(T)):
-                foreach (var property in properties)
+                foreach (var property in columns)
                 {
                     yield return $"{property.QuotedColumName} = {GetExcludedColumnName(property.ColumnName)}";
                 }

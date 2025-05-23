@@ -35,14 +35,27 @@ internal class SqliteBulkInsertProvider(ILogger<SqliteBulkInsertProvider>? logge
     private static SqliteType GetSqliteType(ColumnMetadata column)
     {
         var storeType = column.Property.GetRelationalTypeMapping().StoreType;
-        return storeType switch
+
+        if (string.Equals(storeType, "INTEGER", StringComparison.OrdinalIgnoreCase))
         {
-            "INTEGER" => SqliteType.Integer,
-            "FLOAT" => SqliteType.Real,
-            "TEXT" => SqliteType.Text,
-            "BLOB" => SqliteType.Blob,
-            _ => throw new NotSupportedException($"Invalid store type '{storeType}' for property '{column.PropertyName}'"),
-        };
+            return SqliteType.Integer;
+        }
+        else if (string.Equals(storeType, "FLOAT", StringComparison.OrdinalIgnoreCase))
+        {
+            return SqliteType.Real;
+        }
+        else if (string.Equals(storeType, "TEXT", StringComparison.OrdinalIgnoreCase))
+        {
+            return SqliteType.Text;
+        }
+        else if (string.Equals(storeType, "BLOB", StringComparison.OrdinalIgnoreCase))
+        {
+            return SqliteType.Blob;
+        }
+        else
+        {
+            throw new NotSupportedException($"Invalid store type '{storeType}' for property '{column.PropertyName}'");
+        }
     }
 
     private static DbCommand GetInsertCommand(

@@ -11,7 +11,6 @@ namespace PhenX.EntityFrameworkCore.BulkInsert.MySql;
 
 internal class MySqlBulkInsertProvider(ILogger<MySqlBulkInsertProvider>? logger = null) : BulkInsertProviderBase<MySqlServerDialectBuilder>(logger)
 {
-
     //language=sql
     /// <inheritdoc />
     protected override string AddTableCopyBulkInsertId => $"ALTER TABLE {{0}} ADD {BulkInsertId} INT AUTO_INCREMENT PRIMARY KEY;";

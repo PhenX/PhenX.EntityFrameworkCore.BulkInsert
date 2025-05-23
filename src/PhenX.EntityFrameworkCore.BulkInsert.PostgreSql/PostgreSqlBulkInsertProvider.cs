@@ -18,7 +18,6 @@ namespace PhenX.EntityFrameworkCore.BulkInsert.PostgreSql;
 [UsedImplicitly]
 internal class PostgreSqlBulkInsertProvider(ILogger<PostgreSqlBulkInsertProvider>? logger = null) : BulkInsertProviderBase<PostgreSqlDialectBuilder>(logger)
 {
-
     //language=sql
     /// <inheritdoc />
     protected override string AddTableCopyBulkInsertId => $"ALTER TABLE {{0}} ADD COLUMN {BulkInsertId} SERIAL PRIMARY KEY;";

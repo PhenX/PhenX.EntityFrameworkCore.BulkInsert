@@ -1,6 +1,3 @@
-using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Engines;
-
 using DotNet.Testcontainers.Containers;
 
 using Microsoft.EntityFrameworkCore;
@@ -11,9 +8,6 @@ using Testcontainers.MySql;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Benchmark;
 
-[MinColumn, MaxColumn, BaselineColumn]
-[MemoryDiagnoser]
-[SimpleJob(RunStrategy.Throughput, launchCount: 1, warmupCount: 0, iterationCount: 5)]
 public class LibComparatorMySql : LibComparator
 {
     protected override void ConfigureDbContext()

@@ -9,6 +9,8 @@ internal sealed class ColumnMetadata(IProperty property,  SqlDialectBuilder dial
 {
     private readonly PropertyAccessor.Getter<object, object?> _getter = BuildGetter(property);
 
+    public IProperty Property { get; } = property;
+
     public string PropertyName { get; } = property.Name;
 
     public string ColumnName { get; } = property.GetColumnName();

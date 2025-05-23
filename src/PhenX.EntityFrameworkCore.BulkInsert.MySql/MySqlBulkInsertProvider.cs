@@ -9,11 +9,8 @@ using PhenX.EntityFrameworkCore.BulkInsert.Options;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.MySql;
 
-internal class MySqlBulkInsertProvider : BulkInsertProviderBase<MySqlServerDialectBuilder>
+internal class MySqlBulkInsertProvider(ILogger<MySqlBulkInsertProvider>? logger = null) : BulkInsertProviderBase<MySqlServerDialectBuilder>(logger)
 {
-    public MySqlBulkInsertProvider(ILogger<MySqlBulkInsertProvider>? logger = null) : base(logger)
-    {
-    }
 
     //language=sql
     /// <inheritdoc />

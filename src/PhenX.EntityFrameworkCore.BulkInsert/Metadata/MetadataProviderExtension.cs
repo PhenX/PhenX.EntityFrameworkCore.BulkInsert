@@ -17,10 +17,8 @@ internal class MetadataProviderExtension : IDbContextOptionsExtension
     {
     }
 
-    private class MetadataProviderExtensionInfo : DbContextOptionsExtensionInfo
+    private class MetadataProviderExtensionInfo(IDbContextOptionsExtension extension) : DbContextOptionsExtensionInfo(extension)
     {
-        public MetadataProviderExtensionInfo(IDbContextOptionsExtension extension)
-            : base(extension) { }
 
         /// <inheritdoc />
         public override int GetServiceProviderHashCode() => 0;

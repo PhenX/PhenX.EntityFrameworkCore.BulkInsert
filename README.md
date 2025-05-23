@@ -1,17 +1,27 @@
 # PhenX.EntityFrameworkCore.BulkInsert
 
-A high-performance, provider-agnostic bulk insert extension for Entity Framework Core 8+. Supports SQL Server, PostgreSQL, SQLite.
+A high-performance, provider-agnostic bulk insert extension for Entity Framework Core 8+. Supports SQL Server, PostgreSQL, SQLite and MySQL.
 
 Its main purpose is to provide a fast way to perform simple bulk inserts in Entity Framework Core applications.
 
 ## Why this library?
 
 - **Performance**: It is designed to be fast and memory efficient, making it suitable for high-performance applications.
-- **Provider-agnostic**: It works with multiple database providers (SQL Server, PostgreSQL, and SQLite), allowing you to use it in different environments without changing your code.
+- **Provider-agnostic**: It works with multiple database providers (SQL Server, PostgreSQL, SQLite and MySQL), allowing you to use it in different environments without changing your code.
 - **Simplicity**: The API is simple and easy to use, making it accessible for developers of all skill levels.
 
 For now, it does not support navigation properties, complex types, owned types, shadow properties, or inheritance,
 but they are in [the roadmap](#roadmap).
+
+## Packages
+
+| Package Name                                      | Description    | NuGet Link                                                                                                                                                                     |
+|---------------------------------------------------|----------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `PhenX.EntityFrameworkCore.BulkInsert.SqlServer`  | For SQL Server | [![NuGet](https://img.shields.io/nuget/v/PhenX.EntityFrameworkCore.BulkInsert.SqlServer.svg)](https://www.nuget.org/packages/PhenX.EntityFrameworkCore.BulkInsert.SqlServer)   |
+| `PhenX.EntityFrameworkCore.BulkInsert.PostgreSql` | For PostgreSQL | [![NuGet](https://img.shields.io/nuget/v/PhenX.EntityFrameworkCore.BulkInsert.PostgreSql.svg)](https://www.nuget.org/packages/PhenX.EntityFrameworkCore.BulkInsert.PostgreSql) |
+| `PhenX.EntityFrameworkCore.BulkInsert.Sqlite`     | For SQLite     | [![NuGet](https://img.shields.io/nuget/v/PhenX.EntityFrameworkCore.BulkInsert.Sqlite.svg)](https://www.nuget.org/packages/PhenX.EntityFrameworkCore.BulkInsert.Sqlite)         |
+| `PhenX.EntityFrameworkCore.BulkInsert.MySql`      | For MySql      | [![NuGet](https://img.shields.io/nuget/v/PhenX.EntityFrameworkCore.BulkInsert.Sqlite.svg)](https://www.nuget.org/packages/PhenX.EntityFrameworkCore.BulkInsert.MySql)          |
+| `PhenX.EntityFrameworkCore.BulkInsert`            | Common library | [![NuGet](https://img.shields.io/nuget/v/PhenX.EntityFrameworkCore.BulkInsert.svg)](https://www.nuget.org/packages/PhenX.EntityFrameworkCore.BulkInsert)                       |
 
 ## Installation
 
@@ -26,6 +36,9 @@ Install-Package PhenX.EntityFrameworkCore.BulkInsert.PostgreSql
 
 # For SQLite
 Install-Package PhenX.EntityFrameworkCore.BulkInsert.Sqlite
+
+# For MySql
+Install-Package PhenX.EntityFrameworkCore.BulkInsert.MySql
 ```
 
 ## Usage
@@ -43,6 +56,8 @@ services.AddDbContext<MyDbContext>(options =>
         .UseBulkInsertSqlServer()
         // OR
         .UseBulkInsertSqlite()
+        // OR
+        .UseBulkInsertMySql()
         ;
 });
 ```
@@ -57,12 +72,34 @@ await dbContext.ExecuteBulkInsertAsync(entities);
 dbContext.ExecuteBulkInsert(entities);
 ```
 
-3. Optionally, you can configure the bulk insert options:
+3. You can also configure the bulk insert options:
 
 ```csharp
+// Common options
 await dbContext.ExecuteBulkInsertAsync(entities, options =>
 {
     options.BatchSize = 1000; // Set the batch size for the insert operation, the default value is different for each provider
+});
+
+// Provider specific options, when available, example for SQL Server
+await dbContext.ExecuteBulkInsertAsync(entities, (SqlServerBulkInsertOptions o) => // <<< here specify the SQL Server options class
+{
+    options.EnableStreaming = true; // Enable streaming for SQL Server
+});
+
+// Provider specific options, supporting multiple providers
+await dbContext.ExecuteBulkInsertAsync(entities, o =>
+{
+    o.MoveRows = true;
+
+    if (o is SqlServerBulkInsertOptions sqlServerOptions)
+    {
+        sqlServerOptions.EnableStreaming = true;
+    }
+    else if (o is MySqlBulkInsertOptions mysqlOptions)
+    {
+        mysqlOptions.BatchSize = 1000;
+    }
 });
 ```
 

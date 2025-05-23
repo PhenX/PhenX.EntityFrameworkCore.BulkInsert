@@ -1,3 +1,5 @@
+using System.Text;
+
 using JetBrains.Annotations;
 
 using Microsoft.EntityFrameworkCore;
@@ -5,6 +7,7 @@ using Microsoft.Extensions.Logging;
 
 using Npgsql;
 
+using PhenX.EntityFrameworkCore.BulkInsert.Metadata;
 using PhenX.EntityFrameworkCore.BulkInsert.Options;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.PostgreSql;
@@ -18,37 +21,35 @@ internal class PostgreSqlBulkInsertProvider : BulkInsertProviderBase<PostgreSqlD
 
     //language=sql
     /// <inheritdoc />
-    protected override string CreateTableCopySql => "CREATE TEMPORARY TABLE {0} AS TABLE {1} WITH NO DATA;";
-
-    //language=sql
-    /// <inheritdoc />
     protected override string AddTableCopyBulkInsertId => $"ALTER TABLE {{0}} ADD COLUMN {BulkInsertId} SERIAL PRIMARY KEY;";
 
-    private string GetBinaryImportCommand(DbContext context, Type entityType, string tableName)
+    private static string GetBinaryImportCommand(IReadOnlyList<ColumnMetadata> properties, string tableName)
     {
-        var columns = GetQuotedColumns(context, entityType, false);
-
-        return $"COPY {tableName} ({string.Join(", ", columns)}) FROM STDIN (FORMAT BINARY)";
+        var sql = new StringBuilder();
+        sql.Append($"COPY {tableName} (");
+        sql.AppendColumns(properties);
+        sql.Append(") FROM STDIN (FORMAT BINARY)");
+        return sql.ToString();
     }
 
     /// <inheritdoc />
     protected override async Task BulkInsert<T>(
         bool sync,
         DbContext context,
+        TableMetadata tableInfo,
         IEnumerable<T> entities,
         string tableName,
-        PropertyAccessor[] properties,
+        IReadOnlyList<ColumnMetadata> columns,
         BulkInsertOptions options,
-        CancellationToken ctk) where T : class
+        CancellationToken ctk)
     {
         var connection = (NpgsqlConnection)context.Database.GetDbConnection();
-
-        var importCommand = GetBinaryImportCommand(context, typeof(T), tableName);
+        var command = GetBinaryImportCommand(columns, tableName);
 
         var writer = sync
             // ReSharper disable once MethodHasAsyncOverloadWithCancellation
-            ? connection.BeginBinaryImport(importCommand)
-            : await connection.BeginBinaryImportAsync(importCommand, ctk);
+            ? connection.BeginBinaryImport(command)
+            : await connection.BeginBinaryImportAsync(command, ctk);
 
         foreach (var entity in entities)
         {
@@ -62,9 +63,9 @@ internal class PostgreSqlBulkInsertProvider : BulkInsertProviderBase<PostgreSqlD
                 await writer.StartRowAsync(ctk);
             }
 
-            foreach (var property in properties)
+            foreach (var column in columns)
             {
-                var value = property.GetValue(entity);
+                var value = column.GetValue(entity);
 
                 if (sync)
                 {

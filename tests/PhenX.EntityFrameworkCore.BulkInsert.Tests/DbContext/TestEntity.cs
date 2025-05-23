@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 using Microsoft.EntityFrameworkCore;
@@ -10,7 +10,6 @@ namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContext;
 [Table("test_entity")]
 public class TestEntity
 {
-
     public int Id { get; set; }
 
     [Column("name")]
@@ -19,6 +18,9 @@ public class TestEntity
 
     [Column("some_price")]
     public decimal Price { get; set; }
+
+    [Column("test_run")]
+    public Guid TestRun { get; set; }
 
     [Column("the_identifier")]
     public Guid Identifier { get; set; }

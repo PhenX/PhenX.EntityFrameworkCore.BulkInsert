@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 
+using PhenX.EntityFrameworkCore.BulkInsert.Dialect;
+using PhenX.EntityFrameworkCore.BulkInsert.Metadata;
 using PhenX.EntityFrameworkCore.BulkInsert.Options;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Abstractions;
@@ -12,9 +14,10 @@ internal interface IBulkInsertProvider
     /// <summary>
     /// Calls the provider to perform a bulk insert operation.
     /// </summary>
-    internal Task<List<T>> BulkInsertReturnEntities<T>(
+    internal IAsyncEnumerable<T> BulkInsertReturnEntities<T>(
         bool sync,
         DbContext context,
+        TableMetadata tableInfo,
         IEnumerable<T> entities,
         BulkInsertOptions options,
         OnConflictOptions? onConflict = null,
@@ -27,9 +30,12 @@ internal interface IBulkInsertProvider
     internal Task BulkInsert<T>(
         bool sync,
         DbContext context,
+        TableMetadata tableInfo,
         IEnumerable<T> entities,
         BulkInsertOptions options,
         OnConflictOptions? onConflict = null,
         CancellationToken ctk = default
     ) where T : class;
+
+    SqlDialectBuilder SqlDialect { get; }
 }

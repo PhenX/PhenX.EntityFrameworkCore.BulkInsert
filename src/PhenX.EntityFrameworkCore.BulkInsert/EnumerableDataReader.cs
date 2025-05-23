@@ -1,49 +1,61 @@
-﻿using System.Data;
+using System.Data;
+
+using PhenX.EntityFrameworkCore.BulkInsert.Metadata;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert;
 
-internal class EnumerableDataReader<T> : IDataReader
+internal sealed class EnumerableDataReader<T>(IEnumerable<T> rows, IReadOnlyList<ColumnMetadata> columns) : IDataReader
 {
-    private readonly IEnumerator<T> _enumerator;
-    private readonly PropertyAccessor[] _properties;
-    private readonly Dictionary<string, int> _ordinalMap;
-
-    public EnumerableDataReader(IEnumerable<T> rows, PropertyAccessor[] properties)
-    {
-        _enumerator = rows.GetEnumerator();
-        _properties = properties;
-        _ordinalMap = properties
-            .Select((p, i)  => new
-            {
-                Property = p,
-                Index = i,
-            })
+    private readonly IEnumerator<T> _enumerator = rows.GetEnumerator();
+    private readonly Dictionary<string, int> _ordinalMap =
+        columns
+            .Select((c, i) => (Column: c, Index: i))
             .ToDictionary(
-                p => p.Property.Name,
+                p => p.Column.PropertyName,
                 p => p.Index
             );
-    }
 
-    public virtual object GetValue(int i)
+    public object GetValue(int i)
     {
-        if (_enumerator.Current != null)
+        var current = _enumerator.Current;
+        if (current == null)
         {
-            return _properties[i].GetValue(_enumerator.Current);
+            return DBNull.Value;
         }
 
-        return DBNull.Value;
+        return columns[i].GetValue(current)!;
+    }
+
+    public int GetValues(object[] values)
+    {
+        var current = _enumerator.Current;
+        if (current == null)
+        {
+            return 0;
+        }
+
+        for (var i = 0; i < columns.Count; i++)
+        {
+            values[i] = columns[i].GetValue(current)!;
+        }
+
+        return columns.Count;
     }
 
     public bool Read() => _enumerator.MoveNext();
 
-    public int FieldCount => _properties.Length;
-    public Type GetFieldType(int i) => _properties[i].ProviderClrType;
+    public Type GetFieldType(int i) => columns[i].ClrType;
 
     public int GetOrdinal(string name) => _ordinalMap.GetValueOrDefault(name, -1);
 
+    public int FieldCount => columns.Count;
+
     public int Depth => 0;
-    public bool IsClosed => false;
+
     public int RecordsAffected => 0;
+
+    public bool IsClosed => false;
+
 
     public void Close()
     {
@@ -57,8 +69,6 @@ internal class EnumerableDataReader<T> : IDataReader
     public DataTable GetSchemaTable() => throw new NotImplementedException();
 
     public bool NextResult() => throw new NotImplementedException();
-
-    public int GetValues(object[] values) => throw new NotImplementedException();
 
     public bool IsDBNull(int i) => GetValue(i) is DBNull;
 

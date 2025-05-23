@@ -3,34 +3,33 @@ using BenchmarkDotNet.Engines;
 
 using DotNet.Testcontainers.Containers;
 
-using LinqToDB.EntityFrameworkCore;
-
 using Microsoft.EntityFrameworkCore;
 
-using PhenX.EntityFrameworkCore.BulkInsert.SqlServer;
+using PhenX.EntityFrameworkCore.BulkInsert.MySql;
 
-using Testcontainers.MsSql;
+using Testcontainers.MySql;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Benchmark;
 
 [MinColumn, MaxColumn, BaselineColumn]
 [MemoryDiagnoser]
 [SimpleJob(RunStrategy.Throughput, launchCount: 1, warmupCount: 0, iterationCount: 5)]
-public class LibComparatorSqlServer : LibComparator
+public class LibComparatorMySql : LibComparator
 {
     protected override void ConfigureDbContext()
     {
-        var connectionString = GetConnectionString();
+        var connectionString = GetConnectionString() + ";AllowLoadLocalInfile=true;";
 
         DbContext = new TestDbContext(p => p
-            .UseSqlServer(connectionString)
-            .UseBulkInsertSqlServer()
-            .UseLinqToDB()
+            .UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
+            .UseBulkInsertMySql()
         );
     }
 
     protected override IDatabaseContainer? GetDbContainer()
     {
-        return new MsSqlBuilder().Build();
+        return new MySqlBuilder()
+            .WithCommand("--log-bin-trust-function-creators=1", "--local-infile=1")
+            .Build();
     }
 }

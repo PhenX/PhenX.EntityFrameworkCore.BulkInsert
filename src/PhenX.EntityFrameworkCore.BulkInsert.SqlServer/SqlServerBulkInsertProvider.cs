@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
 
+using PhenX.EntityFrameworkCore.BulkInsert.Metadata;
 using PhenX.EntityFrameworkCore.BulkInsert.Options;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.SqlServer;
@@ -18,10 +19,6 @@ internal class SqlServerBulkInsertProvider : BulkInsertProviderBase<SqlServerDia
 
     //language=sql
     /// <inheritdoc />
-    protected override string CreateTableCopySql => "SELECT {2} INTO {0} FROM {1} WHERE 1 = 0;";
-
-    //language=sql
-    /// <inheritdoc />
     protected override string AddTableCopyBulkInsertId => $"ALTER TABLE {{0}} ADD {BulkInsertId} INT IDENTITY PRIMARY KEY;";
 
     /// <inheritdoc />
@@ -31,12 +28,12 @@ internal class SqlServerBulkInsertProvider : BulkInsertProviderBase<SqlServerDia
     protected override async Task BulkInsert<T>(
         bool sync,
         DbContext context,
+        TableMetadata tableInfo,
         IEnumerable<T> entities,
         string tableName,
-        PropertyAccessor[] properties,
+        IReadOnlyList<ColumnMetadata> columns,
         BulkInsertOptions options,
-        CancellationToken ctk
-    )
+        CancellationToken ctk)
     {
         var connection = (SqlConnection) context.Database.GetDbConnection();
         var sqlTransaction = context.Database.CurrentTransaction!.GetDbTransaction() as SqlTransaction;
@@ -46,19 +43,19 @@ internal class SqlServerBulkInsertProvider : BulkInsertProviderBase<SqlServerDia
         bulkCopy.BatchSize = options.BatchSize ?? 50_000;
         bulkCopy.BulkCopyTimeout = options.GetCopyTimeoutInSeconds();
 
-        foreach (var prop in properties)
+        foreach (var column in columns)
         {
-            bulkCopy.ColumnMappings.Add(prop.Name, SqlDialect.Quote(prop.ColumnName));
+            bulkCopy.ColumnMappings.Add(column.PropertyName, column.ColumnName);
         }
 
         if (sync)
         {
             // ReSharper disable once MethodHasAsyncOverloadWithCancellation
-            bulkCopy.WriteToServer(new EnumerableDataReader<T>(entities, properties));
+            bulkCopy.WriteToServer(new EnumerableDataReader<T>(entities, columns));
         }
         else
         {
-            await bulkCopy.WriteToServerAsync(new EnumerableDataReader<T>(entities, properties), ctk);
+            await bulkCopy.WriteToServerAsync(new EnumerableDataReader<T>(entities, columns), ctk);
         }
     }
 }

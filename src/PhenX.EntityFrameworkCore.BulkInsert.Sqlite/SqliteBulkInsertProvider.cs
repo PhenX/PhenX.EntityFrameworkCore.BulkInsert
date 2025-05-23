@@ -81,7 +81,7 @@ internal class SqliteBulkInsertProvider : BulkInsertProviderBase<SqliteDialectBu
     private static DbCommand GetInsertCommand(
         DbContext context,
         string tableName,
-        IReadOnlyList<PropertyMetadata> columns,
+        IReadOnlyList<ColumnMetadata> columns,
         SqliteType[] columnTypes,
         StringBuilder sb,
         int batchSize)
@@ -136,19 +136,19 @@ internal class SqliteBulkInsertProvider : BulkInsertProviderBase<SqliteDialectBu
         TableMetadata tableInfo,
         IEnumerable<T> entities,
         string tableName,
-        IReadOnlyList<PropertyMetadata> properties,
+        IReadOnlyList<ColumnMetadata> columns,
         BulkInsertOptions options,
         CancellationToken ctk
     ) where T : class
     {
         const int maxParams = 1000;
         var batchSize = options.BatchSize ?? 5;
-        batchSize = Math.Min(batchSize, maxParams / properties.Count);
+        batchSize = Math.Min(batchSize, maxParams / columns.Count);
 
         // The StringBuilder can be resuse between the batches. 
         var sb = new StringBuilder();
 
-        var columnList = tableInfo.GetProperties(options.CopyGeneratedColumns);
+        var columnList = tableInfo.GetColumns(options.CopyGeneratedColumns);
         var columnTypes = columnList.Select(c => GetSqliteType(c.ProviderClrType ?? c.ClrType)).ToArray();
 
         await using var insertCommand =
@@ -165,7 +165,7 @@ internal class SqliteBulkInsertProvider : BulkInsertProviderBase<SqliteDialectBu
             // Full chunks
             if (chunk.Length == batchSize)
             {
-                FillValues(chunk, insertCommand.Parameters, properties);
+                FillValues(chunk, insertCommand.Parameters, columns);
                 await ExecuteCommand(sync, insertCommand, ctk);
             }
             // Last chunk
@@ -180,7 +180,7 @@ internal class SqliteBulkInsertProvider : BulkInsertProviderBase<SqliteDialectBu
                     sb,
                     chunk.Length);
 
-                FillValues(chunk, partialInsertCommand.Parameters, properties);
+                FillValues(chunk, partialInsertCommand.Parameters, columns);
                 await ExecuteCommand(sync, partialInsertCommand, ctk);
             }
         }
@@ -199,14 +199,14 @@ internal class SqliteBulkInsertProvider : BulkInsertProviderBase<SqliteDialectBu
         }
     }
 
-    private static void FillValues<T>(T[] chunk, DbParameterCollection parameters, IReadOnlyList<PropertyMetadata> properties) where T : class
+    private static void FillValues<T>(T[] chunk, DbParameterCollection parameters, IReadOnlyList<ColumnMetadata> columns) where T : class
     {
         var p = 0;
         foreach (var entity in chunk)
         {
-            foreach (var property in properties)
+            foreach (var column in columns)
             {
-                var value = property.GetValue(entity);
+                var value = column.GetValue(entity);
                 parameters[p].Value = value;
                 p++;
             }

@@ -7,8 +7,8 @@ namespace PhenX.EntityFrameworkCore.BulkInsert.Metadata;
 
 internal sealed class TableMetadata(IEntityType entityType, SqlDialectBuilder dialect)
 {
-    private IReadOnlyList<PropertyMetadata>? _notGeneratedProperties;
-    private IReadOnlyList<PropertyMetadata>? _primaryKeys;
+    private IReadOnlyList<ColumnMetadata>? _notGeneratedColumns;
+    private IReadOnlyList<ColumnMetadata>? _primaryKeys;
 
     public string QuotedTableName { get; } =
         dialect.QuoteTableName(entityType.GetSchema(), entityType.GetTableName()!);
@@ -16,25 +16,25 @@ internal sealed class TableMetadata(IEntityType entityType, SqlDialectBuilder di
     public string TableName { get; } =
         entityType.GetTableName() ?? throw new InvalidOperationException("Canot determine table name.");
 
-    public IReadOnlyList<PropertyMetadata> Properties { get; } =
-        entityType.GetProperties().Where(p => !p.IsShadowProperty()).Select(x => new PropertyMetadata(x, dialect)).ToList();
+    public IReadOnlyList<ColumnMetadata> Columns { get; } =
+        entityType.GetProperties().Where(p => !p.IsShadowProperty()).Select(x => new ColumnMetadata(x, dialect)).ToList();
 
-    public IReadOnlyList<PropertyMetadata> PrimaryKey =>
+    public IReadOnlyList<ColumnMetadata> PrimaryKey =>
         _primaryKeys ??= GetPrimaryKey();
 
-    public IReadOnlyList<PropertyMetadata> GetProperties(bool includeGenerated = true)
+    public IReadOnlyList<ColumnMetadata> GetColumns(bool includeGenerated = true)
     {
         if (includeGenerated)
         {
-            return Properties;
+            return Columns;
         }
 
-        return _notGeneratedProperties ??= Properties.Where(x => !x.IsGenerated).ToList();
+        return _notGeneratedColumns ??= Columns.Where(x => !x.IsGenerated).ToList();
     }
 
     public string GetQuotedColumnName(string propertyName)
     {
-        var property = Properties.FirstOrDefault(x => x.Name == propertyName)
+        var property = Columns.FirstOrDefault(x => x.PropertyName == propertyName)
             ?? throw new InvalidOperationException($"Property {propertyName} not found in entity type {entityType.Name}.");
 
         return property.QuotedColumName;
@@ -42,16 +42,16 @@ internal sealed class TableMetadata(IEntityType entityType, SqlDialectBuilder di
 
     public string GetColumnName(string propertyName)
     {
-        var property = Properties.FirstOrDefault(x => x.Name == propertyName)
+        var property = Columns.FirstOrDefault(x => x.PropertyName == propertyName)
             ?? throw new InvalidOperationException($"Property {propertyName} not found in entity type {entityType.Name}.");
 
         return property.ColumnName;
     }
 
-    private List<PropertyMetadata> GetPrimaryKey()
+    private List<ColumnMetadata> GetPrimaryKey()
     {
         var primaryKey = entityType.FindPrimaryKey()?.Properties ?? [];
 
-        return Properties.Where(x => primaryKey.Any(y => x.Name == y.Name)).ToList();
+        return Columns.Where(x => primaryKey.Any(y => x.PropertyName == y.Name)).ToList();
     }
 }

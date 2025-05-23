@@ -11,7 +11,7 @@ internal class SqliteDialectBuilder : SqlDialectBuilder
     protected override bool SupportsMoveRows => false;
 
     /// <inheritdoc />
-    public override string CreateTableCopySql(string tempNameName, TableMetadata tableInfo, IReadOnlyList<PropertyMetadata> columns)
+    public override string CreateTableCopySql(string tempNameName, TableMetadata tableInfo, IReadOnlyList<ColumnMetadata> columns)
     {
         return $"CREATE TEMP TABLE {tempNameName} AS SELECT * FROM {tableInfo.QuotedTableName} WHERE 0;";
     }

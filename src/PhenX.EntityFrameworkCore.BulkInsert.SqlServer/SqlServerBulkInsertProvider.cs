@@ -31,7 +31,7 @@ internal class SqlServerBulkInsertProvider : BulkInsertProviderBase<SqlServerDia
         TableMetadata tableInfo,
         IEnumerable<T> entities,
         string tableName,
-        IReadOnlyList<PropertyMetadata> properties,
+        IReadOnlyList<ColumnMetadata> columns,
         BulkInsertOptions options,
         CancellationToken ctk)
     {
@@ -43,19 +43,19 @@ internal class SqlServerBulkInsertProvider : BulkInsertProviderBase<SqlServerDia
         bulkCopy.BatchSize = options.BatchSize ?? 50_000;
         bulkCopy.BulkCopyTimeout = options.GetCopyTimeoutInSeconds();
 
-        foreach (var prop in properties)
+        foreach (var column in columns)
         {
-            bulkCopy.ColumnMappings.Add(prop.Name, prop.ColumnName);
+            bulkCopy.ColumnMappings.Add(column.PropertyName, column.ColumnName);
         }
 
         if (sync)
         {
             // ReSharper disable once MethodHasAsyncOverloadWithCancellation
-            bulkCopy.WriteToServer(new EnumerableDataReader<T>(entities, properties));
+            bulkCopy.WriteToServer(new EnumerableDataReader<T>(entities, columns));
         }
         else
         {
-            await bulkCopy.WriteToServerAsync(new EnumerableDataReader<T>(entities, properties), ctk);
+            await bulkCopy.WriteToServerAsync(new EnumerableDataReader<T>(entities, columns), ctk);
         }
     }
 }

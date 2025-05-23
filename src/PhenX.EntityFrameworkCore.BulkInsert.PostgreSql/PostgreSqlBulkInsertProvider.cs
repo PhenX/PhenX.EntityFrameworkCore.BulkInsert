@@ -23,7 +23,7 @@ internal class PostgreSqlBulkInsertProvider : BulkInsertProviderBase<PostgreSqlD
     /// <inheritdoc />
     protected override string AddTableCopyBulkInsertId => $"ALTER TABLE {{0}} ADD COLUMN {BulkInsertId} SERIAL PRIMARY KEY;";
 
-    private static string GetBinaryImportCommand(IReadOnlyList<PropertyMetadata> properties, string tableName)
+    private static string GetBinaryImportCommand(IReadOnlyList<ColumnMetadata> properties, string tableName)
     {
         var sql = new StringBuilder();
         sql.Append($"COPY {tableName} (");
@@ -39,18 +39,17 @@ internal class PostgreSqlBulkInsertProvider : BulkInsertProviderBase<PostgreSqlD
         TableMetadata tableInfo,
         IEnumerable<T> entities,
         string tableName,
-        IReadOnlyList<PropertyMetadata> properties,
+        IReadOnlyList<ColumnMetadata> columns,
         BulkInsertOptions options,
         CancellationToken ctk)
     {
         var connection = (NpgsqlConnection)context.Database.GetDbConnection();
-
-        var importCommand = GetBinaryImportCommand(properties, tableName);
+        var command = GetBinaryImportCommand(columns, tableName);
 
         var writer = sync
             // ReSharper disable once MethodHasAsyncOverloadWithCancellation
-            ? connection.BeginBinaryImport(importCommand)
-            : await connection.BeginBinaryImportAsync(importCommand, ctk);
+            ? connection.BeginBinaryImport(command)
+            : await connection.BeginBinaryImportAsync(command, ctk);
 
         foreach (var entity in entities)
         {
@@ -64,9 +63,9 @@ internal class PostgreSqlBulkInsertProvider : BulkInsertProviderBase<PostgreSqlD
                 await writer.StartRowAsync(ctk);
             }
 
-            foreach (var property in properties)
+            foreach (var column in columns)
             {
-                var value = property.GetValue(entity);
+                var value = column.GetValue(entity);
 
                 if (sync)
                 {

@@ -14,7 +14,7 @@ internal class MySqlServerDialectBuilder : SqlDialectBuilder
 
     protected override bool SupportsMoveRows => false;
 
-    public override string CreateTableCopySql(string tempNameName, TableMetadata tableInfo, IReadOnlyList<PropertyMetadata> columns)
+    public override string CreateTableCopySql(string tempNameName, TableMetadata tableInfo, IReadOnlyList<ColumnMetadata> columns)
     {
         return $"CREATE TEMPORARY TABLE {tempNameName} SELECT * FROM {tableInfo.QuotedTableName} WHERE 1 = 0;";
     }
@@ -46,9 +46,9 @@ internal class MySqlServerDialectBuilder : SqlDialectBuilder
         sql.Append("ON DUPLICATE KEY");
     }
 
-    protected override void AppendDoNothing(StringBuilder sql, IEnumerable<PropertyMetadata> insertedProperties)
+    protected override void AppendDoNothing(StringBuilder sql, IEnumerable<ColumnMetadata> insertedColumns)
     {
-        var columnName = insertedProperties.First().ColumnName;
+        var columnName = insertedColumns.First().ColumnName;
 
         sql.Append($"UPDATE {Quote(columnName)} = {GetExcludedColumnName(columnName)}");
     }

@@ -8,7 +8,7 @@ internal static partial class Log
         EventId = 1000,
         Level = LogLevel.Trace,
         Message = "Using temporary table to return data")]
-    public static partial void UsingTempTablToReturnData(ILogger logger);
+    public static partial void UsingTempTableToReturnData(ILogger logger);
 
     [LoggerMessage(
         EventId = 1001,

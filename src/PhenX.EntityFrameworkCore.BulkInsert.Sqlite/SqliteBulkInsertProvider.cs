@@ -13,11 +13,9 @@ using PhenX.EntityFrameworkCore.BulkInsert.Options;
 namespace PhenX.EntityFrameworkCore.BulkInsert.Sqlite;
 
 [UsedImplicitly]
-internal class SqliteBulkInsertProvider : BulkInsertProviderBase<SqliteDialectBuilder, BulkInsertOptions>
+internal class SqliteBulkInsertProvider(ILogger<SqliteBulkInsertProvider>? logger) : BulkInsertProviderBase<SqliteDialectBuilder, BulkInsertOptions>(logger)
 {
-    public SqliteBulkInsertProvider(ILogger<SqliteBulkInsertProvider>? logger = null) : base(logger)
-    {
-    }
+    private const int MaxParams = 1000;
 
     /// <inheritdoc />
     protected override string BulkInsertId => "rowid";
@@ -40,48 +38,30 @@ internal class SqliteBulkInsertProvider : BulkInsertProviderBase<SqliteDialectBu
         CancellationToken cancellationToken
     ) where T : class => Task.CompletedTask;
 
-    /// <summary>
-    /// Taken from https://github.com/dotnet/efcore/blob/667c569c49a1ab7e142621395d3f14f2af0508b4/src/Microsoft.Data.Sqlite.Core/SqliteValueBinder.cs#L231
-    /// As the method is not exposed in the public API, we need to copy it here.
-    /// </summary>
-    private static readonly Dictionary<Type, SqliteType> SqliteTypeMapping =
-        new()
-        {
-            { typeof(bool), SqliteType.Integer },
-            { typeof(byte), SqliteType.Integer },
-            { typeof(byte[]), SqliteType.Blob },
-            { typeof(char), SqliteType.Text },
-            { typeof(DateTime), SqliteType.Text },
-            { typeof(DateTimeOffset), SqliteType.Text },
-            { typeof(DateOnly), SqliteType.Text },
-            { typeof(TimeOnly), SqliteType.Text },
-            { typeof(DBNull), SqliteType.Text },
-            { typeof(decimal), SqliteType.Text },
-            { typeof(double), SqliteType.Real },
-            { typeof(float), SqliteType.Real },
-            { typeof(Guid), SqliteType.Text },
-            { typeof(int), SqliteType.Integer },
-            { typeof(long), SqliteType.Integer },
-            { typeof(sbyte), SqliteType.Integer },
-            { typeof(short), SqliteType.Integer },
-            { typeof(string), SqliteType.Text },
-            { typeof(TimeSpan), SqliteType.Text },
-            { typeof(uint), SqliteType.Integer },
-            { typeof(ulong), SqliteType.Integer },
-            { typeof(ushort), SqliteType.Integer }
-        };
-
-    private static SqliteType GetSqliteType(Type clrType)
+    private static SqliteType GetSqliteType(ColumnMetadata column)
     {
-        var type = Nullable.GetUnderlyingType(clrType) ?? clrType;
-        type = type.IsEnum ? Enum.GetUnderlyingType(type) : type;
+        var storeType = column.Property.GetRelationalTypeMapping().StoreType;
 
-        if (SqliteTypeMapping.TryGetValue(type, out var sqliteType))
+        if (string.Equals(storeType, "INTEGER", StringComparison.OrdinalIgnoreCase))
         {
-            return sqliteType;
+            return SqliteType.Integer;
         }
-
-        throw new InvalidOperationException($"Unknown Sqlite type for {clrType}");
+        else if (string.Equals(storeType, "FLOAT", StringComparison.OrdinalIgnoreCase))
+        {
+            return SqliteType.Real;
+        }
+        else if (string.Equals(storeType, "TEXT", StringComparison.OrdinalIgnoreCase))
+        {
+            return SqliteType.Text;
+        }
+        else if (string.Equals(storeType, "BLOB", StringComparison.OrdinalIgnoreCase))
+        {
+            return SqliteType.Blob;
+        }
+        else
+        {
+            throw new NotSupportedException($"Invalid store type '{storeType}' for property '{column.PropertyName}'");
+        }
     }
 
     private static DbCommand GetInsertCommand(
@@ -147,15 +127,13 @@ internal class SqliteBulkInsertProvider : BulkInsertProviderBase<SqliteDialectBu
         CancellationToken ctk
     ) where T : class
     {
-        const int maxParams = 1000;
-        var batchSize = options.BatchSize;
-        batchSize = Math.Min(batchSize, maxParams / columns.Count);
+        var batchSize = Math.Min(options.BatchSize, MaxParams / columns.Count);
 
         // The StringBuilder can be resuse between the batches.
         var sb = new StringBuilder();
 
         var columnList = tableInfo.GetColumns(options.CopyGeneratedColumns);
-        var columnTypes = columnList.Select(c => GetSqliteType(c.ProviderClrType ?? c.ClrType)).ToArray();
+        var columnTypes = columnList.Select(GetSqliteType).ToArray();
 
         await using var insertCommand =
             GetInsertCommand(

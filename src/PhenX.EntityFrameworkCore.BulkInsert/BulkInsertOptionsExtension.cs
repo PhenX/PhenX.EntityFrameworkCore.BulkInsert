@@ -1,5 +1,8 @@
-﻿using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 using PhenX.EntityFrameworkCore.BulkInsert.Abstractions;
 
@@ -13,6 +16,7 @@ internal class BulkInsertOptionsExtension<TProvider> : IDbContextOptionsExtensio
 
     public void ApplyServices(IServiceCollection services)
     {
+        services.TryAddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
         services.AddSingleton<IBulkInsertProvider, TProvider>();
     }
 
@@ -20,10 +24,8 @@ internal class BulkInsertOptionsExtension<TProvider> : IDbContextOptionsExtensio
     {
     }
 
-    private class BulkInsertOptionsExtensionInfo : DbContextOptionsExtensionInfo
+    private class BulkInsertOptionsExtensionInfo(IDbContextOptionsExtension extension) : DbContextOptionsExtensionInfo(extension)
     {
-        public BulkInsertOptionsExtensionInfo(IDbContextOptionsExtension extension)
-            : base(extension) { }
 
         /// <inheritdoc />
         public override int GetServiceProviderHashCode() => 0;

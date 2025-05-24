@@ -3,8 +3,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContext;
 
-[Table("test_entity_guids")]
-public class TestEntityWithGuidId
+[Table("test_entity_generated_guids")]
+public class TestEntityWithGeneratedGuidId
 {
     [Key]
     public Guid Id { get; set; }

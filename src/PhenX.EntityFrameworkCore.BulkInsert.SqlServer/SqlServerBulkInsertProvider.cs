@@ -6,17 +6,12 @@ using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
 
 using PhenX.EntityFrameworkCore.BulkInsert.Metadata;
-using PhenX.EntityFrameworkCore.BulkInsert.Options;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.SqlServer;
 
 [UsedImplicitly]
-internal class SqlServerBulkInsertProvider : BulkInsertProviderBase<SqlServerDialectBuilder, SqlServerBulkInsertOptions>
+internal class SqlServerBulkInsertProvider(ILogger<SqlServerBulkInsertProvider>? logger) : BulkInsertProviderBase<SqlServerDialectBuilder, SqlServerBulkInsertOptions>(logger)
 {
-    public SqlServerBulkInsertProvider(ILogger<SqlServerBulkInsertProvider>? logger = null) : base(logger)
-    {
-    }
-
     //language=sql
     /// <inheritdoc />
     protected override string AddTableCopyBulkInsertId => $"ALTER TABLE {{0}} ADD {BulkInsertId} INT IDENTITY PRIMARY KEY;";

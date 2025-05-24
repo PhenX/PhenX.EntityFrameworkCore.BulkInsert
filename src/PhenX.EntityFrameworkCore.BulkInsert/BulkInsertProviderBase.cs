@@ -12,7 +12,7 @@ using PhenX.EntityFrameworkCore.BulkInsert.Options;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert;
 
-internal abstract class BulkInsertProviderBase<TDialect, TOptions>(ILogger<BulkInsertProviderBase<TDialect, TOptions>>? logger = null) : IBulkInsertProvider
+internal abstract class BulkInsertProviderBase<TDialect, TOptions>(ILogger<BulkInsertProviderBase<TDialect, TOptions>> logger) : IBulkInsertProvider
     where TDialect : SqlDialectBuilder, new()
     where TOptions : BulkInsertOptions, new()
 {
@@ -56,7 +56,7 @@ internal abstract class BulkInsertProviderBase<TDialect, TOptions>(ILogger<BulkI
         {
             if (logger != null)
             {
-                Log.UsingTempTablToReturnData(logger);
+                Log.UsingTempTableToReturnData(logger);
             }
 
             var tableName = await PerformBulkInsertAsync(sync, context, tableInfo, entities, providerOptions, tempTableRequired: true, ctk: ctk);

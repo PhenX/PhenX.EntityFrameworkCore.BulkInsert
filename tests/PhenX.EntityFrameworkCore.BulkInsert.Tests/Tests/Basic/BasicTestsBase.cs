@@ -10,16 +10,12 @@ using Xunit;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.Tests.Basic;
 
-public abstract class BasicTestsBase<TFixture> : IClassFixture<TFixture>, IAsyncLifetime
-    where TFixture : TestDbContainer<TestDbContext>
+public abstract class BasicTestsBase<TFixture, TDbContext>(TestDbContainer<TDbContext> dbContainer) : IClassFixture<TFixture>, IAsyncLifetime
+    where TDbContext : TestDbContext, new()
+    where TFixture : TestDbContainer<TDbContext>
 {
     private readonly Guid _run = Guid.NewGuid();
-    private TestDbContext _context = null!;
-
-    protected BasicTestsBase(TestDbContainer<TestDbContext> dbContainer)
-    {
-        DbContainer = dbContainer;
-    }
+    private TDbContext _context = null!;
 
     public async Task InitializeAsync()
     {
@@ -32,10 +28,10 @@ public abstract class BasicTestsBase<TFixture> : IClassFixture<TFixture>, IAsync
         return Task.CompletedTask;
     }
 
-    protected TestDbContainer<TestDbContext> DbContainer { get; }
+    protected TestDbContainer<TDbContext> DbContainer { get; } = dbContainer;
 
     [Fact]
-    public async Task InsertsEntitiesSuccessfully()
+    public async Task InsertsEntities()
     {
         // Arrange
         var entities = new List<TestEntity>
@@ -55,7 +51,7 @@ public abstract class BasicTestsBase<TFixture> : IClassFixture<TFixture>, IAsync
     }
 
     [Fact]
-    public void InsertsEntitiesSuccessfully_Sync()
+    public void InsertsEntities_Sync()
     {
         // Arrange
         var entities = new List<TestEntity>
@@ -75,7 +71,7 @@ public abstract class BasicTestsBase<TFixture> : IClassFixture<TFixture>, IAsync
     }
 
     [SkippableFact]
-    public async Task InsertsEntitiesAndReturn()
+    public async Task InsertsEntities_AndReturn()
     {
         Skip.If(_context.IsProvider(ProviderType.MySql));
 
@@ -96,7 +92,27 @@ public abstract class BasicTestsBase<TFixture> : IClassFixture<TFixture>, IAsync
     }
 
     [SkippableFact]
-    public async Task InsertsEntitiesAndReturnAsyncEnumerable()
+    public async Task InsertsEntities_WithJson()
+    {
+        // Arrange
+        var entities = new List<TestEntityWithJson>
+        {
+            new TestEntityWithJson { TestRun = _run, Json = [1] },
+            new TestEntityWithJson { TestRun = _run, Json = [2] }
+        };
+
+        // Act
+        await _context.ExecuteBulkInsertAsync(entities);
+
+        // Assert
+        var insertedEntities = _context.TestEntitiesWithJson.Where(x => x.TestRun == _run).ToList();
+        Assert.Equal(2, insertedEntities.Count);
+        Assert.Contains(insertedEntities, e => e.Json[0] == 1);
+        Assert.Contains(insertedEntities, e => e.Json[0] == 2);
+    }
+
+    [SkippableFact]
+    public async Task InsertsEntities_AndReturn_AsyncEnumerable()
     {
         Skip.If(_context.Database.ProviderName!.Contains("Mysql", StringComparison.InvariantCultureIgnoreCase));
 
@@ -122,7 +138,7 @@ public abstract class BasicTestsBase<TFixture> : IClassFixture<TFixture>, IAsync
     }
 
     [SkippableFact]
-    public void InsertsEntitiesAndReturn_Sync()
+    public void InsertsEntities_AndReturn_Sync()
     {
         Skip.If(_context.IsProvider(ProviderType.MySql));
 
@@ -241,7 +257,7 @@ public abstract class BasicTestsBase<TFixture> : IClassFixture<TFixture>, IAsync
     }
 
     [Fact]
-    public async Task InsertsEntitiesMoveRowsSuccessfully()
+    public async Task InsertsEntities_MoveRows()
     {
         // Arrange
         var entities = new List<TestEntity>
@@ -264,7 +280,7 @@ public abstract class BasicTestsBase<TFixture> : IClassFixture<TFixture>, IAsync
     }
 
     [SkippableFact]
-    public async Task InsertsEntitiesWithConflict_SingleColumn()
+    public async Task InsertsEntities_WithConflict_SingleColumn()
     {
         Skip.If(_context.IsProvider(ProviderType.MySql));
 
@@ -303,7 +319,7 @@ public abstract class BasicTestsBase<TFixture> : IClassFixture<TFixture>, IAsync
     }
 
     [SkippableFact]
-    public async Task InsertsEntitiesWithConflict_DoNothing()
+    public async Task InsertsEntities_WithConflict_DoNothing()
     {
         Skip.If(_context.IsProvider(ProviderType.MySql));
 
@@ -333,7 +349,7 @@ public abstract class BasicTestsBase<TFixture> : IClassFixture<TFixture>, IAsync
     }
 
     [SkippableFact]
-    public async Task InsertsEntitiesWithConflict_Condition()
+    public async Task InsertsEntities_WithConflict_Condition()
     {
         Skip.If(_context.IsProvider(ProviderType.MySql));
 
@@ -364,7 +380,7 @@ public abstract class BasicTestsBase<TFixture> : IClassFixture<TFixture>, IAsync
     }
 
     [SkippableFact]
-    public async Task InsertsEntitiesWithConflict_MultipleColumns()
+    public async Task InsertsEntities_WithConflict_MultipleColumns()
     {
         Skip.If(_context.IsProvider(ProviderType.MySql));
 
@@ -400,7 +416,7 @@ public abstract class BasicTestsBase<TFixture> : IClassFixture<TFixture>, IAsync
     }
 
     [Fact]
-    public async Task DoesNothingWhenEntitiesAreEmpty()
+    public async Task InsertsEntities_DoesNothing_WhenEntitiesAreEmpty()
     {
         // Arrange
         var entities = new List<TestEntity>();
@@ -442,7 +458,7 @@ public abstract class BasicTestsBase<TFixture> : IClassFixture<TFixture>, IAsync
     }
 
     [Fact]
-    public async Task InsertAndRead_EntityWithValueConverters()
+    public async Task InsertEntities_AndReturn_WithEntityWithValueConverters()
     {
         // Arrange
         var now = DateTime.UtcNow;
@@ -463,7 +479,7 @@ public abstract class BasicTestsBase<TFixture> : IClassFixture<TFixture>, IAsync
     }
 
     [Fact]
-    public async Task BulkInsert_WithOpenTransaction_CommitsSuccessfully()
+    public async Task InsertEntities_WithOpenTransaction_CommitsSuccessfully()
     {
         // Arrange
         var entities = new List<TestEntity>
@@ -485,7 +501,7 @@ public abstract class BasicTestsBase<TFixture> : IClassFixture<TFixture>, IAsync
     }
 
     [Fact]
-    public void BulkInsert_WithOpenTransaction_CommitsSuccessfully_Sync()
+    public void InsertEntities_WithOpenTransaction_CommitsSuccessfully_Sync()
     {
         // Arrange
         var entities = new List<TestEntity>
@@ -507,7 +523,7 @@ public abstract class BasicTestsBase<TFixture> : IClassFixture<TFixture>, IAsync
     }
 
     [Fact]
-    public async Task BulkInsert_WithOpenTransaction_RollsBackOnFailure()
+    public async Task InsertEntities_WithOpenTransaction_RollsBackOnFailure()
     {
         // Arrange
         var entities = new List<TestEntity>
@@ -530,7 +546,7 @@ public abstract class BasicTestsBase<TFixture> : IClassFixture<TFixture>, IAsync
     }
 
     [Fact]
-    public void BulkInsert_WithOpenTransaction_RollsBackOnFailure_Sync()
+    public void InsertEntities_WithOpenTransaction_RollsBackOnFailure_Sync()
     {
         // Arrange
         var entities = new List<TestEntity>

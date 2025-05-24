@@ -9,12 +9,8 @@ using PhenX.EntityFrameworkCore.BulkInsert.Options;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.MySql;
 
-internal class MySqlBulkInsertProvider : BulkInsertProviderBase<MySqlServerDialectBuilder, MySqlBulkInsertOptions>
+internal class MySqlBulkInsertProvider(ILogger<MySqlBulkInsertProvider> logger) : BulkInsertProviderBase<MySqlServerDialectBuilder, MySqlBulkInsertOptions>(logger)
 {
-    public MySqlBulkInsertProvider(ILogger<MySqlBulkInsertProvider>? logger = null) : base(logger)
-    {
-    }
-
     //language=sql
     /// <inheritdoc />
     protected override string AddTableCopyBulkInsertId => $"ALTER TABLE {{0}} ADD {BulkInsertId} INT AUTO_INCREMENT PRIMARY KEY;";
@@ -51,20 +47,16 @@ internal class MySqlBulkInsertProvider : BulkInsertProviderBase<MySqlServerDiale
     )
     {
         var connection = (MySqlConnection)context.Database.GetDbConnection();
-
-        var sqlTransaction = context.Database.CurrentTransaction?.GetDbTransaction()
+        var sqlTransaction = context.Database.CurrentTransaction!.GetDbTransaction()
             ?? throw new InvalidOperationException("No open transaction found.");
-
         if (sqlTransaction is not MySqlTransaction mySqlTransaction)
         {
             throw new InvalidOperationException($"Invalid transaction foud, got {sqlTransaction.GetType()}.");
         }
 
-        var bulkCopy = new MySqlBulkCopy(connection, mySqlTransaction)
-        {
-            DestinationTableName = tableName,
-            BulkCopyTimeout = options.GetCopyTimeoutInSeconds(),
-        };
+        var bulkCopy = new MySqlBulkCopy(connection, mySqlTransaction);
+        bulkCopy.DestinationTableName = tableName;
+        bulkCopy.BulkCopyTimeout = options.GetCopyTimeoutInSeconds();
 
         var sourceOrdinal = 0;
         foreach (var prop in properties)

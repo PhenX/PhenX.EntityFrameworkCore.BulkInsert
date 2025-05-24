@@ -1,10 +1,11 @@
 using System.Data;
 
+using PhenX.EntityFrameworkCore.BulkInsert.Abstractions;
 using PhenX.EntityFrameworkCore.BulkInsert.Metadata;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert;
 
-internal sealed class EnumerableDataReader<T>(IEnumerable<T> rows, IReadOnlyList<ColumnMetadata> columns) : IDataReader
+internal sealed class EnumerableDataReader<T>(IEnumerable<T> rows, IReadOnlyList<ColumnMetadata> columns, List<IBulkValueConverter>? converters) : IDataReader
 {
     private readonly IEnumerator<T> _enumerator = rows.GetEnumerator();
     private readonly Dictionary<string, int> _ordinalMap =
@@ -23,7 +24,7 @@ internal sealed class EnumerableDataReader<T>(IEnumerable<T> rows, IReadOnlyList
             return DBNull.Value;
         }
 
-        return columns[i].GetValue(current)!;
+        return columns[i].GetValue(current, converters)!;
     }
 
     public int GetValues(object[] values)
@@ -36,7 +37,7 @@ internal sealed class EnumerableDataReader<T>(IEnumerable<T> rows, IReadOnlyList
 
         for (var i = 0; i < columns.Count; i++)
         {
-            values[i] = columns[i].GetValue(current)!;
+            values[i] = columns[i].GetValue(current, converters)!;
         }
 
         return columns.Count;

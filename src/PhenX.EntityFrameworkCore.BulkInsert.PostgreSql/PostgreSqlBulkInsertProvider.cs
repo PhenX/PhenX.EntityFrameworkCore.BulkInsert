@@ -11,12 +11,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.Mapping;
 using NpgsqlTypes;
 
 using PhenX.EntityFrameworkCore.BulkInsert.Metadata;
-using PhenX.EntityFrameworkCore.BulkInsert.Options;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.PostgreSql;
 
 [UsedImplicitly]
-internal class PostgreSqlBulkInsertProvider(ILogger<PostgreSqlBulkInsertProvider>? logger) : BulkInsertProviderBase<PostgreSqlDialectBuilder, BulkInsertOptions>(logger)
+internal class PostgreSqlBulkInsertProvider(ILogger<PostgreSqlBulkInsertProvider>? logger) : BulkInsertProviderBase<PostgreSqlDialectBuilder, PostgreSqlBulkInsertOptions>(logger)
 {
     //language=sql
     /// <inheritdoc />
@@ -32,9 +31,11 @@ internal class PostgreSqlBulkInsertProvider(ILogger<PostgreSqlBulkInsertProvider
     }
 
     /// <inheritdoc />
-    protected override BulkInsertOptions CreateDefaultOptions() => new()
+    protected override PostgreSqlBulkInsertOptions CreateDefaultOptions() => new()
     {
         BatchSize = 50_000,
+        Converters = [PostgreSqlGeometryConverter.Instance],
+        TypeProviders = [PostgreSqlGeometryConverter.Instance],
     };
 
     /// <inheritdoc />
@@ -45,7 +46,7 @@ internal class PostgreSqlBulkInsertProvider(ILogger<PostgreSqlBulkInsertProvider
         IEnumerable<T> entities,
         string tableName,
         IReadOnlyList<ColumnMetadata> columns,
-        BulkInsertOptions options,
+        PostgreSqlBulkInsertOptions options,
         CancellationToken ctk)
     {
         var connection = (NpgsqlConnection)context.Database.GetDbConnection();
@@ -57,7 +58,7 @@ internal class PostgreSqlBulkInsertProvider(ILogger<PostgreSqlBulkInsertProvider
             : await connection.BeginBinaryImportAsync(command, ctk);
 
         // The type mapping can be null for obvious types like string.
-        var columnTypes = columns.Select(GetPostgreSqlType).ToArray();
+        var columnTypes = columns.Select(c => GetPostgreSqlType(c, options)).ToArray();
 
         foreach (var entity in entities)
         {
@@ -74,7 +75,7 @@ internal class PostgreSqlBulkInsertProvider(ILogger<PostgreSqlBulkInsertProvider
             var columnIndex = 0;
             foreach (var column in columns)
             {
-                var value = column.GetValue(entity);
+                var value = column.GetValue(entity, options.Converters);
 
                 // Get the actual type, so that the writer can do the conversation to the target type automatically.
                 var type = columnTypes[columnIndex];
@@ -122,8 +123,20 @@ internal class PostgreSqlBulkInsertProvider(ILogger<PostgreSqlBulkInsertProvider
         }
     }
 
-    private static NpgsqlDbType? GetPostgreSqlType(ColumnMetadata column)
+    private static NpgsqlDbType? GetPostgreSqlType(ColumnMetadata column, PostgreSqlBulkInsertOptions options)
     {
+        var typeProviders = options.TypeProviders;
+        if (typeProviders is { Count: > 0 }) 
+        {
+            foreach (var typeProvider in typeProviders)
+            {
+                if (typeProvider.TryGetType(column.Property, out var type))
+                {
+                    return type;
+                }
+            }
+        }
+
         var mapping = column.Property.GetRelationalTypeMapping() as NpgsqlTypeMapping;
 
         return mapping?.NpgsqlDbType;

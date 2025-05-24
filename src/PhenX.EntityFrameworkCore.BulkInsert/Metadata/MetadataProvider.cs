@@ -7,7 +7,7 @@ namespace PhenX.EntityFrameworkCore.BulkInsert.Metadata;
 
 internal sealed class MetadataProvider
 {
-    private Dictionary<Type, TableMetadata>? _tables;
+    private Dictionary<Type, Dictionary<Type, TableMetadata>> _tablesPerContext = new();
 
     public TableMetadata GetTableInfo<T>(DbContext context)
     {
@@ -23,26 +23,25 @@ internal sealed class MetadataProvider
 
     private Dictionary<Type, TableMetadata> GetTables(DbContext context)
     {
-        if (_tables != null)
+        lock (_tablesPerContext)
         {
-            return _tables;
-        }
-
-        lock (this)
-        {
-            if (_tables != null)
+            var type = context.GetType();
+            if (_tablesPerContext.TryGetValue(context.GetType(), out var tables))
             {
-                return _tables;
+                return tables;
             }
 
             var provider = context.GetService<IBulkInsertProvider>();
 
-            _tables =
+            tables =
                 context.Model.GetEntityTypes()
                 .ToDictionary(
                     x => x.ClrType,
                     x => new TableMetadata(x, provider.SqlDialect));
-            return _tables;
+
+            _tablesPerContext[type] = tables;
+
+            return tables;
         }
     }
 }

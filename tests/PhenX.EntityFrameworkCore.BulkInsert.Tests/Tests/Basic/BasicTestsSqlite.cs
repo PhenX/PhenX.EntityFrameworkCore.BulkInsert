@@ -6,7 +6,7 @@ using Xunit;
 namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.Tests.Basic;
 
 [Trait("Category", "Sqlite")]
-public class BasicTestsSqlite(TestDbContainerSqlite<TestDbContextSqlite> dbContainer) : BasicTestsBase<TestDbContainerSqlite<TestDbContextSqlite>, TestDbContextSqlite>(dbContainer)
+[Collection(TestDbContainerSqliteCollection.Name)]
+public class BasicTestsSqlite(TestDbContainerSqlite dbContainer) : BasicTestsBase<TestDbContextSqlite>(dbContainer)
 {
 }
-

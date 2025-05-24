@@ -3,10 +3,10 @@ using PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContext;
 
 using Xunit;
 
-namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.Tests.Basic;
+namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.Tests.Geo;
 
 [Trait("Category", "SqlServer")]
 [Collection(TestDbContainerSqlServerCollection.Name)]
-public class BasicTestsSqlServer(TestDbContainerSqlServer dbContainer) : BasicTestsBase<TestDbContextSqlServer>(dbContainer)
+public class GeoTestsSqlServer(TestDbContainerSqlServer dbContainer) : GeoTestsBase<TestDbContextGeo>(dbContainer)
 {
 }

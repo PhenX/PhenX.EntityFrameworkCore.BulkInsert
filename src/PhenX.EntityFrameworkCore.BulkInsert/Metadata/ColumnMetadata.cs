@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 
+using PhenX.EntityFrameworkCore.BulkInsert.Abstractions;
 using PhenX.EntityFrameworkCore.BulkInsert.Dialect;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Metadata;
@@ -25,9 +26,23 @@ internal sealed class ColumnMetadata(IProperty property,  SqlDialectBuilder dial
 
     public bool IsGenerated { get; } = property.ValueGenerated == ValueGenerated.OnAdd;
 
-    public object? GetValue(object entity)
+    public object? GetValue(object entity, List<IBulkValueConverter>? converters)
     {
-        return _getter(entity!);
+        var result = _getter(entity!);
+
+        if (converters != null && result != null)
+        {
+            foreach (var converter in converters)
+            {
+                if (converter.TryConvertValue(result, out var temp))
+                {
+                    result = temp;
+                    break;
+                }
+            }
+        }
+
+        return result;
     }
 
     private static PropertyAccessor.Getter<object, object?> BuildGetter(IProperty property)

@@ -3,32 +3,53 @@ using DotNet.Testcontainers.Containers;
 using Microsoft.EntityFrameworkCore;
 
 using PhenX.EntityFrameworkCore.BulkInsert.MySql;
-using PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContext;
 
 using Testcontainers.MySql;
 
+using Xunit;
+
 namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContainer;
 
-public class TestDbContainerMySql<TDbContext> : TestDbContainer<TDbContext>
-    where TDbContext : TestDbContextBase, new()
+[CollectionDefinition(Name)]
+public class TestDbContainerMySqlCollection : ICollectionFixture<TestDbContainerMySql>
+{
+    public const string Name = "MySql";
+}
+
+public class TestDbContainerMySql() : TestDbContainer
 {
     protected override IDatabaseContainer? GetDbContainer()
     {
         return new MySqlBuilder()
             .WithCommand("--log-bin-trust-function-creators=1", "--local-infile=1", "--innodb-print-all-deadlocks=ON")
             .WithReuse(true)
+            .WithUsername("root")
+            .WithPassword("root")
             .Build();
     }
 
-    protected override string GetConnectionString()
+    protected override string GetConnectionString(string databaseName)
     {
-        return $"{base.GetConnectionString()};AllowLoadLocalInfile=true;";
+        return $"{base.GetConnectionString(databaseName)};AllowLoadLocalInfile=true;";
     }
 
-    protected override void Configure(DbContextOptionsBuilder optionsBuilder)
+    protected override void Configure(DbContextOptionsBuilder optionsBuilder, string databaseName)
     {
+        var connectionString = GetConnectionString(databaseName);
+
         optionsBuilder
-            .UseMySql(ServerVersion.AutoDetect(GetConnectionString()))
+            .UseMySql(connectionString, ServerVersion.AutoDetect(connectionString), o =>
+            {
+                o.UseNetTopologySuite();
+            })
             .UseBulkInsertMySql();
+    }
+
+    protected override async Task EnsureConnectedAsync<TDbContext>(TDbContext context, string databaseName)
+    {
+        var container = (MySqlContainer)DbContainer!;
+
+        await container.ExecScriptAsync($"CREATE DATABASE `{databaseName}`");
+        await base.EnsureConnectedAsync(context, databaseName);
     }
 }

@@ -3,10 +3,10 @@ using PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContext;
 
 using Xunit;
 
-namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.Tests.Basic;
+namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.Tests.Geo;
 
 [Trait("Category", "PostgreSql")]
 [Collection(TestDbContainerPostgreSqlCollection.Name)]
-public class BasicTestsPostgreSql(TestDbContainerPostgreSql dbContainer) : BasicTestsBase<TestDbContextPostgreSql>(dbContainer)
+public class GeoTestsPostgreSql(TestDbContainerPostgreSql dbContainer) : GeoTestsBase<TestDbContextGeo>(dbContainer)
 {
 }

@@ -1,3 +1,5 @@
+using PhenX.EntityFrameworkCore.BulkInsert.Abstractions;
+
 namespace PhenX.EntityFrameworkCore.BulkInsert.Options;
 
 /// <summary>
@@ -42,6 +44,11 @@ public class BulkInsertOptions
     /// The timeout to copy records.
     /// </summary>
     public TimeSpan CopyTimeout { get; set; } = TimeSpan.FromMinutes(10);
+
+    /// <summary>
+    /// The value converters.
+    /// </summary>
+    public List<IBulkValueConverter>? Converters { get; set; }
 
     internal int GetCopyTimeoutInSeconds()
     {

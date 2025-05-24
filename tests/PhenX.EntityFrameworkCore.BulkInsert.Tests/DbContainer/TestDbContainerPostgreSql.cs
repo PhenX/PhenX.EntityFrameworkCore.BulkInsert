@@ -3,18 +3,25 @@ using DotNet.Testcontainers.Containers;
 using Microsoft.EntityFrameworkCore;
 
 using PhenX.EntityFrameworkCore.BulkInsert.PostgreSql;
-using PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContext;
 
 using Testcontainers.PostgreSql;
 
+using Xunit;
+
 namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContainer;
 
-public class TestDbContainerPostgreSql<TDbContext> : TestDbContainer<TDbContext>
-    where TDbContext : TestDbContextBase, new()
+[CollectionDefinition(Name)]
+public class TestDbContainerPostgreSqlCollection : ICollectionFixture<TestDbContainerPostgreSql>
+{
+    public const string Name = "PostgreSql";
+}
+
+public class TestDbContainerPostgreSql : TestDbContainer
 {
     protected override IDatabaseContainer? GetDbContainer()
     {
         return new PostgreSqlBuilder()
+            .WithImage("postgis/postgis") // Geo GeoSpatial support.
             .WithReuse(true)
             .WithDatabase("testdb")
             .WithUsername("testuser")
@@ -22,10 +29,21 @@ public class TestDbContainerPostgreSql<TDbContext> : TestDbContainer<TDbContext>
             .Build();
     }
 
-    protected override void Configure(DbContextOptionsBuilder optionsBuilder)
+    protected override void Configure(DbContextOptionsBuilder optionsBuilder, string databaseName)
     {
         optionsBuilder
-            .UseNpgsql()
+            .UseNpgsql(GetConnectionString(databaseName), o =>
+            {
+                o.UseNetTopologySuite();
+            })
             .UseBulkInsertPostgreSql();
+    }
+
+    protected override async Task EnsureConnectedAsync<TDbContext>(TDbContext context, string databaseName)
+    {
+        var container = (PostgreSqlContainer)DbContainer!;
+
+        await container.ExecScriptAsync($"CREATE DATABASE \"{databaseName}\"");
+        await base.EnsureConnectedAsync(context, databaseName);
     }
 }

@@ -9,7 +9,7 @@ using Testcontainers.MsSql;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContainer;
 
-public class TestDbContainerSqlServer<TDbContext> : TestDbContainer<TDbContext>
+public abstract class TestDbContainerSqlServer<TDbContext>(string reuseId) : TestDbContainer<TDbContext>
     where TDbContext : TestDbContextBase, new()
 {
     protected override IDatabaseContainer? GetDbContainer()
@@ -17,6 +17,7 @@ public class TestDbContainerSqlServer<TDbContext> : TestDbContainer<TDbContext>
         return new MsSqlBuilder()
             .WithImage("vibs2006/sql_server_fts") // Geo Geospatial support
             .WithReuse(true)
+            .WithLabel("reuse-id", reuseId)
             .Build();
     }
 

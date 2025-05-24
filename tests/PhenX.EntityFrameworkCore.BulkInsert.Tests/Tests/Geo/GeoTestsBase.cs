@@ -1,10 +1,6 @@
 ﻿using NetTopologySuite.Geometries;
 
-using PhenX.EntityFrameworkCore.BulkInsert.Enums;
 using PhenX.EntityFrameworkCore.BulkInsert.Extensions;
-using PhenX.EntityFrameworkCore.BulkInsert.MySql;
-using PhenX.EntityFrameworkCore.BulkInsert.Options;
-using PhenX.EntityFrameworkCore.BulkInsert.SqlServer;
 using PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContainer;
 using PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContext;
 

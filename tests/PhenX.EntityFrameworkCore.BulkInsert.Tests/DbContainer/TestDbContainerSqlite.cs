@@ -7,7 +7,7 @@ using PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContext;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContainer;
 
-public class TestDbContainerSqlite<TDbContext> : TestDbContainer<TDbContext>
+public abstract class TestDbContainerSqlite<TDbContext> : TestDbContainer<TDbContext>
     where TDbContext : TestDbContextBase, new()
 {
     protected override IDatabaseContainer? GetDbContainer() => null;

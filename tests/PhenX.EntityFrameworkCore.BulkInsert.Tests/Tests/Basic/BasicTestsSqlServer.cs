@@ -5,7 +5,14 @@ using Xunit;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.Tests.Basic;
 
+public class BasicTestsSqlServerFixture : TestDbContainerSqlServer<TestDbContextSqlServer>
+{
+    public BasicTestsSqlServerFixture() : base("basic-sql-server")
+    {
+    }
+}
+
 [Trait("Category", "SqlServer")]
-public class BasicTestsSqlServer(TestDbContainerSqlServer<TestDbContextSqlServer> dbContainer) : BasicTestsBase<TestDbContainerSqlServer<TestDbContextSqlServer>, TestDbContextSqlServer>(dbContainer)
+public class BasicTestsSqlServer(BasicTestsSqlServerFixture dbContainer) : BasicTestsBase<BasicTestsSqlServerFixture, TestDbContextSqlServer>(dbContainer)
 {
 }

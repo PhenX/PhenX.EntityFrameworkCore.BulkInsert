@@ -9,7 +9,7 @@ using Testcontainers.PostgreSql;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContainer;
 
-public class TestDbContainerPostgreSql<TDbContext> : TestDbContainer<TDbContext>
+public abstract class TestDbContainerPostgreSql<TDbContext>(string reuseId) : TestDbContainer<TDbContext>
     where TDbContext : TestDbContextBase, new()
 {
     protected override IDatabaseContainer? GetDbContainer()
@@ -20,6 +20,7 @@ public class TestDbContainerPostgreSql<TDbContext> : TestDbContainer<TDbContext>
             .WithDatabase("testdb")
             .WithUsername("testuser")
             .WithPassword("testpassword")
+            .WithLabel("reuse-id", reuseId)
             .Build();
     }
 

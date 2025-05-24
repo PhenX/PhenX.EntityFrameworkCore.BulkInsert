@@ -9,7 +9,7 @@ using Testcontainers.MySql;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContainer;
 
-public class TestDbContainerMySql<TDbContext> : TestDbContainer<TDbContext>
+public abstract class TestDbContainerMySql<TDbContext>(string reuseId) : TestDbContainer<TDbContext>
     where TDbContext : TestDbContextBase, new()
 {
     protected override IDatabaseContainer? GetDbContainer()
@@ -17,6 +17,7 @@ public class TestDbContainerMySql<TDbContext> : TestDbContainer<TDbContext>
         return new MySqlBuilder()
             .WithCommand("--log-bin-trust-function-creators=1", "--local-infile=1", "--innodb-print-all-deadlocks=ON")
             .WithReuse(true)
+            .WithLabel("reuse-id", reuseId)
             .Build();
     }
 

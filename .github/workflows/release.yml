@@ -35,6 +35,11 @@ jobs:
         with:
           dotnet-version: 9.0.x
 
+      - name: Install SQLite and SpatiaLite
+        run: |
+            sudo apt-get update
+            sudo apt-get install -y sqlite3 libsqlite3-mod-spatialite
+
       - name: Restore dependencies
         run: dotnet restore
 

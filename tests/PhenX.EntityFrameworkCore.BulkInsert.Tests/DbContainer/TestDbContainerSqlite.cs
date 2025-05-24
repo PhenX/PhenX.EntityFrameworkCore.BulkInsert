@@ -23,7 +23,7 @@ public class TestDbContainerSqlite<TDbContext> : TestDbContainer<TDbContext>
         optionsBuilder
             .UseSqlite(GetConnectionString(), o =>
             {
-                // o.UseNetTopologySuite();
+                o.UseNetTopologySuite();
             })
             .UseBulkInsertSqlite();
     }

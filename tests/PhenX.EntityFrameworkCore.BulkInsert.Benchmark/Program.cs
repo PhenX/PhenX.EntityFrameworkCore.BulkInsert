@@ -1,6 +1,8 @@
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Running;
 
+using PhenX.EntityFrameworkCore.BulkInsert.Benchmark.Providers;
+
 namespace PhenX.EntityFrameworkCore.BulkInsert.Benchmark;
 
 public class Program
@@ -11,9 +13,14 @@ public class Program
             .Create(DefaultConfig.Instance)
             .WithOptions(ConfigOptions.DisableOptimizationsValidator);
 
-        BenchmarkRunner.Run<LibComparatorMySql>(config);
-        BenchmarkRunner.Run<LibComparatorPostgreSql>(config);
-        BenchmarkRunner.Run<LibComparatorSqlServer>(config);
-        BenchmarkRunner.Run<LibComparatorSqlite>(config);
+        var comparators = new[]
+        {
+            typeof(LibComparatorMySql),
+            typeof(LibComparatorPostgreSql),
+            typeof(LibComparatorSqlite),
+            typeof(LibComparatorSqlServer),
+        };
+
+        BenchmarkRunner.Run(comparators, config);
     }
 }

@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 
 using PhenX.EntityFrameworkCore.BulkInsert.Options;
 
@@ -60,7 +60,7 @@ public static partial class PublicExtensions
         IEnumerable<T> entities,
         Action<TConfig> configure,
         OnConflictOptions<T>? onConflict = null,
-        CancellationToken ctk = default
+        CancellationToken cancellationToken = default
     )
         where T : class
         where TConfig : BulkInsertOptions
@@ -68,7 +68,7 @@ public static partial class PublicExtensions
         var dbSet = dbContext.Set<T>() ??
                     throw new InvalidOperationException($"DbSet of type {typeof(T).Name} not found in DbContext.");
 
-        return ExecuteBulkInsertReturnEntitiesCoreAsync(dbSet,false, entities, configure, onConflict, ctk);
+        return ExecuteBulkInsertReturnEntitiesCoreAsync(dbSet,false, entities, configure, onConflict, cancellationToken);
     }
 
     /// <summary>
@@ -79,11 +79,11 @@ public static partial class PublicExtensions
         IEnumerable<T> entities,
         Action<BulkInsertOptions> configure,
         OnConflictOptions<T>? onConflict = null,
-        CancellationToken ctk = default
+        CancellationToken cancellationToken = default
     )
         where T : class
     {
-        return ExecuteBulkInsertReturnEntitiesAsync<T, BulkInsertOptions>(dbContext, entities, configure, onConflict, ctk);
+        return ExecuteBulkInsertReturnEntitiesAsync<T, BulkInsertOptions>(dbContext, entities, configure, onConflict, cancellationToken);
     }
 
     /// <summary>
@@ -93,11 +93,11 @@ public static partial class PublicExtensions
         this DbContext dbContext,
         IEnumerable<T> entities,
         OnConflictOptions<T>? onConflict = null,
-        CancellationToken ctk = default
+        CancellationToken cancellationToken = default
     )
         where T : class
     {
-        return ExecuteBulkInsertReturnEntitiesAsync<T, BulkInsertOptions>(dbContext, entities, _ => { }, onConflict, ctk);
+        return ExecuteBulkInsertReturnEntitiesAsync<T, BulkInsertOptions>(dbContext, entities, _ => { }, onConflict, cancellationToken);
     }
 
     /// <summary>
@@ -108,7 +108,7 @@ public static partial class PublicExtensions
         IEnumerable<T> entities,
         Action<TConfig> configure,
         OnConflictOptions<T>? onConflict = null,
-        CancellationToken ctk = default
+        CancellationToken cancellationToken = default
     )
         where T : class
         where TConfig : BulkInsertOptions
@@ -116,7 +116,7 @@ public static partial class PublicExtensions
         var dbSet = dbContext.Set<T>() ??
                     throw new InvalidOperationException($"DbSet of type {typeof(T).Name} not found in DbContext.");
 
-        return dbSet.ExecuteBulkInsertReturnEnumerableAsync(entities, configure, onConflict, ctk);
+        return dbSet.ExecuteBulkInsertReturnEnumerableAsync(entities, configure, onConflict, cancellationToken);
     }
 
     /// <summary>
@@ -127,10 +127,10 @@ public static partial class PublicExtensions
         IEnumerable<T> entities,
         Action<BulkInsertOptions> configure,
         OnConflictOptions<T>? onConflict = null,
-        CancellationToken ctk = default
+        CancellationToken cancellationToken = default
     ) where T : class
     {
-        return ExecuteBulkInsertReturnEnumerableAsync<T, BulkInsertOptions>(dbContext, entities, configure, onConflict, ctk);
+        return ExecuteBulkInsertReturnEnumerableAsync<T, BulkInsertOptions>(dbContext, entities, configure, onConflict, cancellationToken);
     }
 
     /// <summary>
@@ -140,10 +140,10 @@ public static partial class PublicExtensions
         this DbContext dbContext,
         IEnumerable<T> entities,
         OnConflictOptions<T>? onConflict = null,
-        CancellationToken ctk = default
+        CancellationToken cancellationToken = default
     ) where T : class
     {
-        return ExecuteBulkInsertReturnEnumerableAsync<T, BulkInsertOptions>(dbContext, entities, _ => { }, onConflict, ctk);
+        return ExecuteBulkInsertReturnEnumerableAsync<T, BulkInsertOptions>(dbContext, entities, _ => { }, onConflict, cancellationToken);
     }
 
     /// <summary>
@@ -154,7 +154,7 @@ public static partial class PublicExtensions
         IEnumerable<T> entities,
         Action<TConfig> configure,
         OnConflictOptions<T>? onConflict = null,
-        CancellationToken ctk = default
+        CancellationToken cancellationToken = default
     )
         where T : class
         where TConfig : BulkInsertOptions
@@ -162,7 +162,7 @@ public static partial class PublicExtensions
         var dbSet = dbContext.Set<T>() ??
                     throw new InvalidOperationException($"DbSet of type {typeof(T).Name} not found in DbContext.");
 
-        await dbSet.ExecuteBulkInsertAsync(entities, configure, onConflict, ctk);
+        await dbSet.ExecuteBulkInsertAsync(entities, configure, onConflict, cancellationToken);
     }
 
     /// <summary>
@@ -173,11 +173,11 @@ public static partial class PublicExtensions
         IEnumerable<T> entities,
         Action<BulkInsertOptions> configure,
         OnConflictOptions<T>? onConflict = null,
-        CancellationToken ctk = default
+        CancellationToken cancellationToken = default
     )
         where T : class
     {
-        await ExecuteBulkInsertAsync<T, BulkInsertOptions>(dbContext, entities, configure, onConflict, ctk);
+        await ExecuteBulkInsertAsync<T, BulkInsertOptions>(dbContext, entities, configure, onConflict, cancellationToken);
     }
 
     /// <summary>
@@ -187,11 +187,11 @@ public static partial class PublicExtensions
         this DbContext dbContext,
         IEnumerable<T> entities,
         OnConflictOptions<T>? onConflict = null,
-        CancellationToken ctk = default
+        CancellationToken cancellationToken = default
     )
         where T : class
     {
-        await ExecuteBulkInsertAsync<T, BulkInsertOptions>(dbContext, entities, _ => { }, onConflict, ctk);
+        await ExecuteBulkInsertAsync<T, BulkInsertOptions>(dbContext, entities, _ => { }, onConflict, cancellationToken);
     }
 
     /// <summary>

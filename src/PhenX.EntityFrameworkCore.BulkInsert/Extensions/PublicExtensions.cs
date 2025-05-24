@@ -49,8 +49,7 @@ public static partial class PublicExtensions
     {
         var context = dbSet.GetDbContext();
         var provider = context.GetService<IBulkInsertProvider>();
-        var options = provider.InternalCreateDefaultOptions();
-
+        var options = provider.CreateDefaultOptions();
         if (options is not TOptions castedOptions)
         {
             throw new InvalidOperationException($"Options type mismatch. Expected {options.GetType().Name}, but got {typeof(TOptions).Name}.");

@@ -56,5 +56,8 @@ dotnet_naming_style.camel_case_underscore_style.capitalization = camel_case
 dotnet_style_predefined_type_for_locals_parameters_members = true:suggestion
 dotnet_style_predefined_type_for_member_access = true:suggestion
 
+# IDE0090: Use 'new(...)'
+dotnet_diagnostic.IDE0090.severity = none
+
 [*.{csproj,proj,targets}]
 indent_size = 2

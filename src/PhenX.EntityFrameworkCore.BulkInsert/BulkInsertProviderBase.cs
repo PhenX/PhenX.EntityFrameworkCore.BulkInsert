@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
 
-using PhenX.EntityFrameworkCore.BulkInsert.Abstractions;
 using PhenX.EntityFrameworkCore.BulkInsert.Dialect;
 using PhenX.EntityFrameworkCore.BulkInsert.Extensions;
 using PhenX.EntityFrameworkCore.BulkInsert.Metadata;
@@ -12,41 +11,25 @@ using PhenX.EntityFrameworkCore.BulkInsert.Options;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert;
 
-internal abstract class BulkInsertProviderBase<TDialect, TOptions>(ILogger<BulkInsertProviderBase<TDialect, TOptions>> logger) : IBulkInsertProvider
+internal abstract class BulkInsertProviderBase<TDialect, TOptions>(ILogger? logger) : BulkInsertProviderUntyped<TDialect, TOptions>
     where TDialect : SqlDialectBuilder, new()
     where TOptions : BulkInsertOptions, new()
 {
-    protected readonly TDialect SqlDialect = new();
-
     protected virtual string BulkInsertId => "_bulk_insert_id";
 
     protected abstract string AddTableCopyBulkInsertId { get; }
 
     protected virtual string GetTempTableName(string tableName) => $"_temp_bulk_insert_{tableName}";
 
-    SqlDialectBuilder IBulkInsertProvider.SqlDialect => SqlDialect;
-
-    public BulkInsertOptions InternalCreateDefaultOptions() => CreateDefaultOptions();
-
-    /// <summary>
-    /// Create the default options for the provider, can be a subclass of <see cref="BulkInsertOptions"/>.
-    /// </summary>
-    protected abstract TOptions CreateDefaultOptions();
-
-    public virtual async IAsyncEnumerable<T> BulkInsertReturnEntities<T>(
+    protected override async IAsyncEnumerable<T> BulkInsertReturnEntities<T>(
         bool sync,
         DbContext context,
         TableMetadata tableInfo,
         IEnumerable<T> entities,
-        BulkInsertOptions options,
-        OnConflictOptions? onConflict,
+        TOptions options,
+        OnConflictOptions<T>? onConflict,
         [EnumeratorCancellation] CancellationToken ctk) where T : class
     {
-        if (options is not TOptions providerOptions)
-        {
-            throw new InvalidOperationException($"Invalid options type: {options.GetType().Name}. Expected: {typeof(TOptions).Name}");
-        }
-
         using var activity = Telemetry.ActivitySource.StartActivity("BulkInsertReturnEntities");
         activity?.AddTag("tableName", tableInfo.TableName);
         activity?.AddTag("synchronous", sync);
@@ -59,10 +42,10 @@ internal abstract class BulkInsertProviderBase<TDialect, TOptions>(ILogger<BulkI
                 Log.UsingTempTableToReturnData(logger);
             }
 
-            var tableName = await PerformBulkInsertAsync(sync, context, tableInfo, entities, providerOptions, tempTableRequired: true, ctk: ctk);
+            var tableName = await PerformBulkInsertAsync(sync, context, tableInfo, entities, options, tempTableRequired: true, ctk: ctk);
 
             var result =
-                await CopyFromTempTableAsync<T, T>(sync, context, tableInfo, tableName, true, providerOptions, onConflict, ctk: ctk)
+                await CopyFromTempTableAsync<T, T>(sync, context, tableInfo, tableName, true, options, onConflict, ctk: ctk)
                     ?? throw new InvalidOperationException("Copy returns null enumerable.");
 
             await foreach (var item in result.WithCancellation(ctk))
@@ -79,20 +62,15 @@ internal abstract class BulkInsertProviderBase<TDialect, TOptions>(ILogger<BulkI
         }
     }
 
-    public virtual async Task BulkInsert<T>(
+    protected override async Task BulkInsert<T>(
         bool sync,
         DbContext context,
         TableMetadata tableInfo,
         IEnumerable<T> entities,
-        BulkInsertOptions options,
-        OnConflictOptions? onConflict,
+        TOptions options,
+        OnConflictOptions<T>? onConflict,
         CancellationToken ctk) where T : class
     {
-        if (options is not TOptions providerOptions)
-        {
-            throw new InvalidOperationException($"Invalid options type: {options.GetType().Name}. Expected: {typeof(TOptions).Name}");
-        }
-
         using var activity = Telemetry.ActivitySource.StartActivity("BulkInsert");
         activity?.AddTag("tableName", tableInfo.TableName);
         activity?.AddTag("synchronous", sync);
@@ -107,9 +85,9 @@ internal abstract class BulkInsertProviderBase<TDialect, TOptions>(ILogger<BulkI
                     Log.UsingTempTableToResolveConflicts(logger);
                 }
 
-                var tableName = await PerformBulkInsertAsync(sync, context, tableInfo, entities, providerOptions, tempTableRequired: true, ctk: ctk);
+                var tableName = await PerformBulkInsertAsync(sync, context, tableInfo, entities, options, tempTableRequired: true, ctk: ctk);
 
-                await CopyFromTempTableAsync<T, T>(sync, context, tableInfo, tableName, false, providerOptions, onConflict, ctk);
+                await CopyFromTempTableAsync<T, T>(sync, context, tableInfo, tableName, false, options, onConflict, ctk);
             }
             else
             {
@@ -118,7 +96,7 @@ internal abstract class BulkInsertProviderBase<TDialect, TOptions>(ILogger<BulkI
                     Log.UsingDirectInsert(logger);
                 }
 
-                await PerformBulkInsertAsync(sync, context, tableInfo, entities, providerOptions, tempTableRequired: false, ctk: ctk);
+                await PerformBulkInsertAsync(sync, context, tableInfo, entities, options, tempTableRequired: false, ctk: ctk);
             }
 
             // Commit the transaction if we own them.
@@ -207,7 +185,7 @@ internal abstract class BulkInsertProviderBase<TDialect, TOptions>(ILogger<BulkI
         string tempTableName,
         bool returnData,
         TOptions options,
-        OnConflictOptions? onConflict,
+        OnConflictOptions<T>? onConflict,
         CancellationToken ctk) where T : class where TResult : class
     {
         var query =

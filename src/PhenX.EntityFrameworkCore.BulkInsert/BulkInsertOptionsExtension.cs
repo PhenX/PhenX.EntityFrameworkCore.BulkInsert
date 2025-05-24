@@ -26,7 +26,6 @@ internal class BulkInsertOptionsExtension<TProvider> : IDbContextOptionsExtensio
 
     private class BulkInsertOptionsExtensionInfo(IDbContextOptionsExtension extension) : DbContextOptionsExtensionInfo(extension)
     {
-
         /// <inheritdoc />
         public override int GetServiceProviderHashCode() => 0;
 

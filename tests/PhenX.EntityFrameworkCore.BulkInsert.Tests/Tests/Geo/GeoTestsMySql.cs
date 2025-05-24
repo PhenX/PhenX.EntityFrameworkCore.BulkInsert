@@ -5,7 +5,7 @@ using Xunit;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.Tests.Geo;
 
-public class GeoTestsMySqlFixture : TestDbContainerSqlServer<TestDbContextGeo>
+public class GeoTestsMySqlFixture : TestDbContainerMySql<TestDbContextGeo>
 {
     public GeoTestsMySqlFixture() : base("geo-mysql")
     {

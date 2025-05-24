@@ -5,7 +5,7 @@ using Xunit;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.Tests.Basic;
 
-public class BasicTestsPostgreSqlFixture : TestDbContainerSqlServer<TestDbContextPostgreSql>
+public class BasicTestsPostgreSqlFixture : TestDbContainerPostgreSql<TestDbContextPostgreSql>
 {
     public BasicTestsPostgreSqlFixture() : base("basic-postgresql")
     {

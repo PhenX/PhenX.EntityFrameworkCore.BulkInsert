@@ -7,7 +7,7 @@ namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.Tests.Basic;
 
 public class BasicTestsSqlServerFixture : TestDbContainerSqlServer<TestDbContextSqlServer>
 {
-    public BasicTestsSqlServerFixture() : base("basic-sql-server")
+    public BasicTestsSqlServerFixture() : base("basic-sqlserver")
     {
     }
 }

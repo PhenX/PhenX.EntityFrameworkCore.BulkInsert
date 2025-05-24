@@ -5,7 +5,7 @@ using Xunit;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.Tests.Geo;
 
-public class GeoTestsPostgreSqlFixture : TestDbContainerSqlServer<TestDbContextGeo>
+public class GeoTestsPostgreSqlFixture : TestDbContainerPostgreSql<TestDbContextGeo>
 {
     public GeoTestsPostgreSqlFixture() : base("geo-postgresql")
     {

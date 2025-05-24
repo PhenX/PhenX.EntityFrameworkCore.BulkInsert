@@ -18,6 +18,14 @@ public class TestEntity
 
     [Column(nameof(StringEnumValue), TypeName = "text")]
     public StringEnum StringEnumValue { get; set; }
+
+    public NumericEnum NumericEnumValue { get; set; }
+}
+
+public enum NumericEnum
+{
+    First = 1,
+    Second = 2,
 }
 
 public enum StringEnum

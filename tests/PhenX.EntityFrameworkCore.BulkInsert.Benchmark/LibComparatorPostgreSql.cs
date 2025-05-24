@@ -1,3 +1,6 @@
+using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Engines;
+
 using DotNet.Testcontainers.Containers;
 
 using LinqToDB.EntityFrameworkCore;
@@ -10,6 +13,8 @@ using Testcontainers.PostgreSql;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Benchmark;
 
+[MemoryDiagnoser]
+[SimpleJob(RunStrategy.Throughput, launchCount: 1, warmupCount: 0, iterationCount: 5)]
 public class LibComparatorPostgreSql : LibComparator
 {
     protected override void ConfigureDbContext()

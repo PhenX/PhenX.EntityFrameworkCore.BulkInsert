@@ -107,7 +107,7 @@ public static partial class PublicExtensions
         where T : class
         where TOptions : BulkInsertOptions
     {
-        var provider = InitProvider(dbSet, configure, out var context, out var options);
+        var (provider, context, options) = InitProvider(dbSet, configure);
 
         return provider.BulkInsertReturnEntities(false, context, dbSet.GetDbContext().GetTableInfo<T>(), entities,
             options, onConflict, cancellationToken);
@@ -155,7 +155,7 @@ public static partial class PublicExtensions
         where T : class
         where TOptions : BulkInsertOptions
     {
-        var provider = InitProvider(dbSet, configure, out var context, out var options);
+        var (provider, context, options) = InitProvider(dbSet, configure);
 
         await provider.BulkInsert(false, context, dbSet.GetDbContext().GetTableInfo<T>(), entities, options, onConflict,
             cancellationToken);
@@ -202,7 +202,7 @@ public static partial class PublicExtensions
         where T : class
         where TOptions : BulkInsertOptions
     {
-        var provider = InitProvider(dbSet, configure, out var context, out var options);
+        var (provider, context, options) = InitProvider(dbSet, configure);
 
         provider.BulkInsert(true, context, dbSet.GetDbContext().GetTableInfo<T>(), entities, options, onConflict)
             .GetAwaiter().GetResult();

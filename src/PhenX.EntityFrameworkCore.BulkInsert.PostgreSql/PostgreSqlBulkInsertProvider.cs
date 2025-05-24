@@ -6,6 +6,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 using Npgsql;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.Mapping;
+
+using NpgsqlTypes;
 
 using PhenX.EntityFrameworkCore.BulkInsert.Metadata;
 using PhenX.EntityFrameworkCore.BulkInsert.Options;
@@ -13,7 +16,7 @@ using PhenX.EntityFrameworkCore.BulkInsert.Options;
 namespace PhenX.EntityFrameworkCore.BulkInsert.PostgreSql;
 
 [UsedImplicitly]
-internal class PostgreSqlBulkInsertProvider(ILogger<PostgreSqlBulkInsertProvider>? logger = null) : BulkInsertProviderBase<PostgreSqlDialectBuilder, BulkInsertOptions>(logger)
+internal class PostgreSqlBulkInsertProvider(ILogger<PostgreSqlBulkInsertProvider>? logger) : BulkInsertProviderBase<PostgreSqlDialectBuilder, BulkInsertOptions>(logger)
 {
     //language=sql
     /// <inheritdoc />
@@ -53,6 +56,9 @@ internal class PostgreSqlBulkInsertProvider(ILogger<PostgreSqlBulkInsertProvider
             ? connection.BeginBinaryImport(command)
             : await connection.BeginBinaryImportAsync(command, ctk);
 
+        // The type mapping can be null for obvious types like string.
+        var columnTypes = columns.Select(GetPostgreSqlType).ToArray();
+
         foreach (var entity in entities)
         {
             if (sync)
@@ -65,19 +71,40 @@ internal class PostgreSqlBulkInsertProvider(ILogger<PostgreSqlBulkInsertProvider
                 await writer.StartRowAsync(ctk);
             }
 
+            var columnIndex = 0;
             foreach (var column in columns)
             {
                 var value = column.GetValue(entity);
 
+                // Get the actual type, so that the writer can do the conversation to the target type automatically.
+                var type = columnTypes[columnIndex];
+
                 if (sync)
                 {
-                    // ReSharper disable once MethodHasAsyncOverloadWithCancellation
-                    writer.Write(value);
+                    if (type != null)
+                    {
+                        // ReSharper disable once MethodHasAsyncOverloadWithCancellation
+                        writer.Write(value, type.Value);
+                    }
+                    else
+                    {
+                        // ReSharper disable once MethodHasAsyncOverloadWithCancellation
+                        writer.Write(value);
+                    }
                 }
                 else
                 {
-                    await writer.WriteAsync(value, ctk);
+                    if (type != null)
+                    {
+                        await writer.WriteAsync(value, type.Value, ctk);
+                    }
+                    else
+                    {
+                        await writer.WriteAsync(value, ctk);
+                    }
                 }
+
+                columnIndex++;
             }
         }
 
@@ -93,6 +120,12 @@ internal class PostgreSqlBulkInsertProvider(ILogger<PostgreSqlBulkInsertProvider
             await writer.CompleteAsync(ctk);
             await writer.DisposeAsync();
         }
+    }
 
+    private static NpgsqlDbType? GetPostgreSqlType(ColumnMetadata column)
+    {
+        var mapping = column.Property.GetRelationalTypeMapping() as NpgsqlTypeMapping;
+
+        return mapping?.NpgsqlDbType;
     }
 }

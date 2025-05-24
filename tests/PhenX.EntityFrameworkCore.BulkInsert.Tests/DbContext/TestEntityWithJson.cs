@@ -3,15 +3,13 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContext;
 
-[Table("test_entity_guids")]
-public class TestEntityWithGuidId
+[Table("test_entity_json")]
+public class TestEntityWithJson
 {
     [Key]
-    public Guid Id { get; set; }
+    public int Id { get; set; }
 
-    [Column("name")]
-    [MaxLength(100)]
-    public string Name { get; set; } = string.Empty;
+    public List<int> Json { get; set; } = [];
 
     [Column("test_run")]
     public Guid TestRun { get; set; }

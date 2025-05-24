@@ -11,22 +11,22 @@ namespace PhenX.EntityFrameworkCore.BulkInsert.Extensions;
 /// </summary>
 public static partial class PublicExtensions
 {
-    private static async Task<List<T>> ExecuteBulkInsertReturnEntitiesCoreAsync<T, TOptions>(
-        this DbSet<T> dbSet,
+    private static async Task<List<TEntity>> ExecuteBulkInsertReturnEntitiesCoreAsync<TEntity, TOptions>(
+        this DbSet<TEntity> dbSet,
         bool sync,
-        IEnumerable<T> entities,
+        IEnumerable<TEntity> entities,
         Action<TOptions> configure,
-        OnConflictOptions<T>? onConflict,
+        OnConflictOptions<TEntity>? onConflict,
         CancellationToken ctk
     )
-        where T : class
+        where TEntity : class
         where TOptions : BulkInsertOptions
     {
-        var provider = InitProvider(dbSet, configure, out var context, out var options);
+        var (provider, context, options) = InitProvider(dbSet, configure);
 
-        var enumerable = provider.BulkInsertReturnEntities(sync, context, dbSet.GetDbContext().GetTableInfo<T>(), entities, options, onConflict, ctk);
+        var enumerable = provider.BulkInsertReturnEntities(sync, context, dbSet.GetDbContext().GetTableInfo<TEntity>(), entities, options, onConflict, ctk);
 
-        var result = new List<T>();
+        var result = new List<TEntity>();
         await foreach (var item in enumerable.WithCancellation(ctk))
         {
             result.Add(item);
@@ -41,27 +41,22 @@ public static partial class PublicExtensions
         return (infrastructure.Instance.GetService(typeof(ICurrentDbContext)) as ICurrentDbContext)!.Context;
     }
 
-    private static IBulkInsertProvider InitProvider<T, TOptions>(
+    private static (IBulkInsertProvider, DbContext, TOptions) InitProvider<T, TOptions>(
         DbSet<T> dbSet,
-        Action<TOptions>? configure,
-        out DbContext context,
-        out TOptions options
+        Action<TOptions>? configure
     )
         where T : class where TOptions : BulkInsertOptions
     {
-        context = dbSet.GetDbContext();
+        var context = dbSet.GetDbContext();
         var provider = context.GetService<IBulkInsertProvider>();
-
-        var defaultOptions = provider.CreateDefaultOptions();
-
-        if (defaultOptions is not TOptions castedOptions)
+        var options = provider.CreateDefaultOptions();
+        if (options is not TOptions castedOptions)
         {
-            throw new InvalidOperationException($"Options type mismatch. Expected {defaultOptions.GetType().Name}, but got {typeof(TOptions).Name}.");
+            throw new InvalidOperationException($"Options type mismatch. Expected {options.GetType().Name}, but got {typeof(TOptions).Name}.");
         }
 
-        options = castedOptions;
-        configure?.Invoke(options);
+        configure?.Invoke(castedOptions);
 
-        return provider;
+        return (provider, context, castedOptions);
     }
 }

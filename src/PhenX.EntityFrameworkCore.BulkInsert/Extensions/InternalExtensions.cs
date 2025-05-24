@@ -22,9 +22,8 @@ internal static class InternalExtensions
     internal static DbContextOptionsBuilder UseProvider<TProvider>(this DbContextOptionsBuilder optionsBuilder)
         where TProvider : class, IBulkInsertProvider
     {
-        var extension = optionsBuilder.Options.FindExtension<BulkInsertOptionsExtension<TProvider>>() ?? new BulkInsertOptionsExtension<TProvider>();
-
-        ((IDbContextOptionsBuilderInfrastructure)optionsBuilder).AddOrUpdateExtension(extension);
+        ((IDbContextOptionsBuilderInfrastructure)optionsBuilder).AddOrUpdateExtension(
+            optionsBuilder.Options.FindExtension<BulkInsertOptionsExtension<TProvider>>() ?? new());
 
         ((IDbContextOptionsBuilderInfrastructure)optionsBuilder).AddOrUpdateExtension(
             optionsBuilder.Options.FindExtension<MetadataProviderExtension>() ?? new());

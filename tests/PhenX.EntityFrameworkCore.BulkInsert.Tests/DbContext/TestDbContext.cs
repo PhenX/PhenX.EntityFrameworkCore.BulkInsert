@@ -6,9 +6,10 @@ namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContext;
 public class TestDbContext : TestDbContextBase
 {
     public DbSet<TestEntity> TestEntities { get; set; } = null!;
+    public DbSet<TestEntityWithGeo> TestEntitiesWithGeo { get; set; } = null!;
     public DbSet<TestEntityWithJson> TestEntitiesWithJson { get; set; } = null!;
-    public DbSet<TestEntityWithGuidId> TestEntitiesWithGuidIds { get; set; } = null!;
-    public DbSet<TestEntityWithConverters> TestEntitiesWithConverters { get; set; } = null!;
+    public DbSet<TestEntityWithGuidId> TestEntitiesWithGuidId { get; set; } = null!;
+    public DbSet<TestEntityWithConverters> TestEntitiesWithConverter { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

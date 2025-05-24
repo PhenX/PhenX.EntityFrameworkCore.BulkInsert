@@ -28,7 +28,10 @@ public class TestDbContainerMySql<TDbContext> : TestDbContainer<TDbContext>
     protected override void Configure(DbContextOptionsBuilder optionsBuilder)
     {
         optionsBuilder
-            .UseMySql(ServerVersion.AutoDetect(GetConnectionString()))
+            .UseMySql(ServerVersion.AutoDetect(GetConnectionString()), o =>
+            {
+                o.UseNetTopologySuite();
+            })
             .UseBulkInsertMySql();
     }
 }

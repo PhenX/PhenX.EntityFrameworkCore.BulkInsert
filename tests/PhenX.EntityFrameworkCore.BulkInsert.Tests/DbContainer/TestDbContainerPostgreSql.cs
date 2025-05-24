@@ -25,7 +25,10 @@ public class TestDbContainerPostgreSql<TDbContext> : TestDbContainer<TDbContext>
     protected override void Configure(DbContextOptionsBuilder optionsBuilder)
     {
         optionsBuilder
-            .UseNpgsql()
+            .UseNpgsql(o =>
+            {
+                o.UseNetTopologySuite();
+            })
             .UseBulkInsertPostgreSql();
     }
 }

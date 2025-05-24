@@ -1,3 +1,5 @@
+using NetTopologySuite.Geometries;
+
 using PhenX.EntityFrameworkCore.BulkInsert.Enums;
 using PhenX.EntityFrameworkCore.BulkInsert.Extensions;
 using PhenX.EntityFrameworkCore.BulkInsert.MySql;
@@ -7,6 +9,8 @@ using PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContainer;
 using PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContext;
 
 using Xunit;
+
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.Tests.Basic;
 
@@ -91,7 +95,7 @@ public abstract class BasicTestsBase<TFixture, TDbContext>(TestDbContainer<TDbCo
         Assert.Contains(insertedEntities, e => e.Name == $"{_run}_Entity2");
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task InsertsEntities_WithJson()
     {
         // Arrange
@@ -109,6 +113,29 @@ public abstract class BasicTestsBase<TFixture, TDbContext>(TestDbContainer<TDbCo
         Assert.Equal(2, insertedEntities.Count);
         Assert.Contains(insertedEntities, e => e.Json[0] == 1);
         Assert.Contains(insertedEntities, e => e.Json[0] == 2);
+    }
+
+    [Fact]
+    public async Task InsertsEntities_WithGeo()
+    {
+        // Arrange
+        var geo1 = new Point(1, 2) { SRID = 4326 };
+        var geo2 = new Point(3, 4) { SRID = 4326 };
+
+        var entities = new List<TestEntityWithGeo>
+        {
+            new TestEntityWithGeo { TestRun = _run, GeoObject = geo1 },
+            new TestEntityWithGeo { TestRun = _run, GeoObject = geo2 }
+        };
+
+        // Act
+        await _context.ExecuteBulkInsertAsync(entities);
+
+        // Assert
+        var insertedEntities = _context.TestEntitiesWithGeo.Where(x => x.TestRun == _run).ToList();
+        Assert.Equal(2, insertedEntities.Count);
+        Assert.Contains(insertedEntities, e => e.GeoObject == geo1);
+        Assert.Contains(insertedEntities, e => e.GeoObject == geo2);
     }
 
     [SkippableFact]
@@ -217,7 +244,7 @@ public abstract class BasicTestsBase<TFixture, TDbContext>(TestDbContainer<TDbCo
             });
 
         // Assert
-        var insertedEntities = _context.TestEntitiesWithGuidIds.Where(x => x.TestRun == _run).ToList();
+        var insertedEntities = _context.TestEntitiesWithGuidId.Where(x => x.TestRun == _run).ToList();
         Assert.Equal(2, insertedEntities.Count);
         Assert.Contains(insertedEntities, e => e.Name == $"Updated_{_run}_Entity1");
         Assert.Contains(insertedEntities, e => e.Name == $"Updated_{_run}_Entity2");
@@ -470,7 +497,7 @@ public abstract class BasicTestsBase<TFixture, TDbContext>(TestDbContainer<TDbCo
 
         // Act
         await _context.ExecuteBulkInsertAsync(entities);
-        var inserted = _context.TestEntitiesWithConverters.Where(x => x.TestRun == _run).ToList();
+        var inserted = _context.TestEntitiesWithConverter.Where(x => x.TestRun == _run).ToList();
 
         // Assert
         Assert.Equal(2, inserted.Count);

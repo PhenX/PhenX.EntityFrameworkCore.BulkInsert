@@ -21,7 +21,10 @@ public class TestDbContainerSqlite<TDbContext> : TestDbContainer<TDbContext>
     protected override void Configure(DbContextOptionsBuilder optionsBuilder)
     {
         optionsBuilder
-            .UseSqlite()
+            .UseSqlite(o =>
+            {
+                o.UseNetTopologySuite();
+            })
             .UseBulkInsertSqlite();
     }
 

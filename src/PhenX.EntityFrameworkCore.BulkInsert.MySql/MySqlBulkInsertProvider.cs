@@ -22,7 +22,10 @@ internal class MySqlBulkInsertProvider(ILogger<MySqlBulkInsertProvider> logger) 
     protected override string GetTempTableName(string tableName) => $"#_temp_bulk_insert_{tableName}";
 
     /// <inheritdoc />
-    protected override MySqlBulkInsertOptions CreateDefaultOptions() => new();
+    protected override MySqlBulkInsertOptions CreateDefaultOptions() => new()
+    {
+        Converters = [MySqlGeometryConverter.Instance]
+    };
 
     /// <inheritdoc />
     protected override IAsyncEnumerable<T> BulkInsertReturnEntities<T>(
@@ -71,11 +74,11 @@ internal class MySqlBulkInsertProvider(ILogger<MySqlBulkInsertProvider> logger) 
         if (sync)
         {
             // ReSharper disable once MethodHasAsyncOverloadWithCancellation
-            bulkCopy.WriteToServer(new EnumerableDataReader<T>(entities, properties));
+            bulkCopy.WriteToServer(new EnumerableDataReader<T>(entities, properties, options.Converters));
         }
         else
         {
-            await bulkCopy.WriteToServerAsync(new EnumerableDataReader<T>(entities, properties), ctk);
+            await bulkCopy.WriteToServerAsync(new EnumerableDataReader<T>(entities, properties, options.Converters), ctk);
         }
     }
 }

@@ -22,7 +22,10 @@ public class TestDbContainerSqlServer<TDbContext> : TestDbContainer<TDbContext>
     protected override void Configure(DbContextOptionsBuilder optionsBuilder)
     {
         optionsBuilder
-            .UseSqlServer()
+            .UseSqlServer(o =>
+            {
+                o.UseNetTopologySuite();
+            })
             .UseBulkInsertSqlServer();
     }
 }

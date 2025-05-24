@@ -53,11 +53,11 @@ internal class SqlServerBulkInsertProvider(ILogger<SqlServerBulkInsertProvider>?
         if (sync)
         {
             // ReSharper disable once MethodHasAsyncOverloadWithCancellation
-            bulkCopy.WriteToServer(new EnumerableDataReader<T>(entities, columns));
+            bulkCopy.WriteToServer(new EnumerableDataReader<T>(entities, columns, options.Converters));
         }
         else
         {
-            await bulkCopy.WriteToServerAsync(new EnumerableDataReader<T>(entities, columns), ctk);
+            await bulkCopy.WriteToServerAsync(new EnumerableDataReader<T>(entities, columns, options.Converters), ctk);
         }
     }
 }

@@ -1,10 +1,11 @@
 using System.Data;
 
+using PhenX.EntityFrameworkCore.BulkInsert.Abstractions;
 using PhenX.EntityFrameworkCore.BulkInsert.Metadata;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert;
 
-internal sealed class EnumerableDataReader<T>(IEnumerable<T> rows, IReadOnlyList<ColumnMetadata> columns) : IDataReader
+internal sealed class EnumerableDataReader<T>(IEnumerable<T> rows, IReadOnlyList<ColumnMetadata> columns, List<IValueConverter>? converters) : IDataReader
 {
     private readonly IEnumerator<T> _enumerator = rows.GetEnumerator();
     private readonly Dictionary<string, int> _ordinalMap =
@@ -23,7 +24,7 @@ internal sealed class EnumerableDataReader<T>(IEnumerable<T> rows, IReadOnlyList
             return DBNull.Value;
         }
 
-        return columns[i].GetValue(current)!;
+        return GetAndConvertValue(columns[i], current);
     }
 
     public int GetValues(object[] values)
@@ -36,10 +37,28 @@ internal sealed class EnumerableDataReader<T>(IEnumerable<T> rows, IReadOnlyList
 
         for (var i = 0; i < columns.Count; i++)
         {
-            values[i] = columns[i].GetValue(current)!;
+            values[i] = GetAndConvertValue(columns[i], current);
         }
 
         return columns.Count;
+    }
+
+    private object GetAndConvertValue(ColumnMetadata column, T entity)
+    {
+        var result = column.GetValue(entity!)!;
+        if (converters != null)
+        {
+            foreach (var converter in converters)
+            {
+                if (converter.TryConvertValue(result, out var temp))
+                {
+                    result = temp;
+                    break;
+                }
+            }
+        }
+
+        return result;
     }
 
     public bool Read() => _enumerator.MoveNext();

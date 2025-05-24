@@ -1,4 +1,5 @@
 using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Engines;
 
 using DotNet.Testcontainers.Containers;
 
@@ -6,18 +7,12 @@ using EFCore.BulkExtensions;
 
 using LinqToDB.EntityFrameworkCore;
 
-using Microsoft.Data.SqlClient;
-using Microsoft.Data.Sqlite;
-using Microsoft.EntityFrameworkCore;
-
-using MySqlConnector;
-
-using Npgsql;
-
 using PhenX.EntityFrameworkCore.BulkInsert.Extensions;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Benchmark;
 
+[MemoryDiagnoser]
+[SimpleJob(RunStrategy.ColdStart, launchCount: 1, warmupCount: 0, iterationCount: 5)]
 public abstract partial class LibComparator
 {
     [Params(500_000/*, 1_000_000/*, 10_000_000*/)]
@@ -34,7 +29,6 @@ public abstract partial class LibComparator
             Name = $"Entity{i}",
             Price = (decimal)(i * 0.1),
             Identifier = Guid.NewGuid(),
-            StringEnumValue = (StringEnum)(i % 2),
             NumericEnumValue = (NumericEnum)(i % 2),
         }).ToList();
 
@@ -135,65 +129,10 @@ public abstract partial class LibComparator
     //     });
     // }
 
-    // [Benchmark]
-    // public async Task EFCore_SaveChanges()
-    // {
-    //     DbContext.AddRange(data);
-    //     await DbContext.SaveChangesAsync();
-    // }
-
-    private void RawInsertMySql()
+    [Benchmark]
+    public async Task EFCore_SaveChanges()
     {
-        var connection = (MySqlConnection)DbContext.Database.GetDbConnection();
-        if (connection.State != ConnectionState.Open)
-        {
-            connection.Open();
-        }
-
-        var bulkCopy = new MySqlBulkCopy(connection);
-
-        bulkCopy.DestinationTableName = nameof(TestEntity);
-        bulkCopy.BulkCopyTimeout = 60;
-
-        bulkCopy.ColumnMappings.Add(new MySqlBulkCopyColumnMapping(0, "Name"));
-        bulkCopy.ColumnMappings.Add(new MySqlBulkCopyColumnMapping(1, "Price"));
-        bulkCopy.ColumnMappings.Add(new MySqlBulkCopyColumnMapping(2, "Identifier"));
-        bulkCopy.ColumnMappings.Add(new MySqlBulkCopyColumnMapping(3, "CreatedAt"));
-        bulkCopy.ColumnMappings.Add(new MySqlBulkCopyColumnMapping(4, "UpdatedAt"));
-        bulkCopy.ColumnMappings.Add(new MySqlBulkCopyColumnMapping(5, "StringEnumValue"));
-        bulkCopy.ColumnMappings.Add(new MySqlBulkCopyColumnMapping(6, "NumericEnumValue"));
-
-        var dataTable = new DataTable();
-        dataTable.Columns.Add("Name", typeof(string));
-        dataTable.Columns.Add("Price", typeof(decimal));
-        dataTable.Columns.Add("Identifier", typeof(Guid));
-        dataTable.Columns.Add("CreatedAt", typeof(DateTime));
-        dataTable.Columns.Add("UpdatedAt", typeof(DateTimeOffset));
-        dataTable.Columns.Add("StringEnumValue", typeof(string));
-        dataTable.Columns.Add("NumericEnumValue", typeof(int));
-
-        foreach (var entity in data)
-        {
-            var row = dataTable.NewRow();
-            row["Name"] = entity.Name;
-            row["Price"] = entity.Price;
-            row["Identifier"] = entity.Identifier;
-            row["CreatedAt"] = entity.CreatedAt;
-            row["UpdatedAt"] = entity.UpdatedAt;
-            row["StringEnumValue"] = entity.StringEnumValue.ToString();
-            row["NumericEnumValue"] = (int)entity.NumericEnumValue;
-            dataTable.Rows.Add(row);
-
-            if (dataTable.Rows.Count >= 50_000)
-            {
-                bulkCopy.WriteToServer(dataTable);
-                dataTable.Clear();
-            }
-        }
-
-        if (dataTable.Rows.Count > 0)
-        {
-            bulkCopy.WriteToServer(dataTable);
-        }
+        DbContext.AddRange(data);
+        await DbContext.SaveChangesAsync();
     }
 }

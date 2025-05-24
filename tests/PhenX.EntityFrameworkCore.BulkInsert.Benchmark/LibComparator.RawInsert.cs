@@ -4,6 +4,8 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
+using MySqlConnector;
+
 using Npgsql;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Benchmark;
@@ -25,7 +27,6 @@ public abstract partial class LibComparator
                                         "Identifier",
                                         "CreatedAt",
                                         "UpdatedAt",
-                                        "StringEnumValue",
                                         "NumericEnumValue"
                                     ) FROM STDIN (FORMAT BINARY)
                                     """;
@@ -39,7 +40,6 @@ public abstract partial class LibComparator
             writer.Write(entity.Identifier);
             writer.Write(entity.CreatedAt);
             writer.Write(entity.UpdatedAt);
-            writer.Write(entity.StringEnumValue.ToString());
             writer.Write((int)entity.NumericEnumValue);
         }
 
@@ -63,9 +63,8 @@ public abstract partial class LibComparator
                                    "Identifier",
                                    "CreatedAt",
                                    "UpdatedAt",
-                                   "StringEnumValue",
                                    "NumericEnumValue"
-                               ) VALUES (@Name, @Price, @Identifier, @CreatedAt, @UpdatedAt, @StringEnumValue, @NumericEnumValue)
+                               ) VALUES (@Name, @Price, @Identifier, @CreatedAt, @UpdatedAt, @NumericEnumValue)
                                """;
 
         command.Parameters.Add(new SqliteParameter("@Name", DbType.String));
@@ -73,7 +72,6 @@ public abstract partial class LibComparator
         command.Parameters.Add(new SqliteParameter("@Identifier", DbType.Guid));
         command.Parameters.Add(new SqliteParameter("@CreatedAt", DbType.DateTime));
         command.Parameters.Add(new SqliteParameter("@UpdatedAt", DbType.DateTime2));
-        command.Parameters.Add(new SqliteParameter("@StringEnumValue", DbType.String));
         command.Parameters.Add(new SqliteParameter("@NumericEnumValue", DbType.Int32));
 
         foreach (var entity in data)
@@ -83,7 +81,6 @@ public abstract partial class LibComparator
             command.Parameters["@Identifier"].Value = entity.Identifier;
             command.Parameters["@CreatedAt"].Value = entity.CreatedAt;
             command.Parameters["@UpdatedAt"].Value = entity.UpdatedAt;
-            command.Parameters["@StringEnumValue"].Value = entity.StringEnumValue.ToString();
             command.Parameters["@NumericEnumValue"].Value = (int)entity.NumericEnumValue;
 
             command.ExecuteNonQuery();
@@ -111,7 +108,6 @@ public abstract partial class LibComparator
         bulkCopy.ColumnMappings.Add("Identifier", "Identifier");
         bulkCopy.ColumnMappings.Add("CreatedAt", "CreatedAt");
         bulkCopy.ColumnMappings.Add("UpdatedAt", "UpdatedAt");
-        bulkCopy.ColumnMappings.Add("StringEnumValue", "StringEnumValue");
         bulkCopy.ColumnMappings.Add("NumericEnumValue", "NumericEnumValue");
 
         var dataTable = new DataTable();
@@ -120,7 +116,6 @@ public abstract partial class LibComparator
         dataTable.Columns.Add("Identifier", typeof(Guid));
         dataTable.Columns.Add("CreatedAt", typeof(DateTime));
         dataTable.Columns.Add("UpdatedAt", typeof(DateTimeOffset));
-        dataTable.Columns.Add("StringEnumValue", typeof(string));
         dataTable.Columns.Add("NumericEnumValue", typeof(int));
 
         foreach (var entity in data)
@@ -131,7 +126,59 @@ public abstract partial class LibComparator
             row["Identifier"] = entity.Identifier;
             row["CreatedAt"] = entity.CreatedAt;
             row["UpdatedAt"] = entity.UpdatedAt;
-            row["StringEnumValue"] = entity.StringEnumValue.ToString();
+            row["NumericEnumValue"] = (int)entity.NumericEnumValue;
+            dataTable.Rows.Add(row);
+
+            if (dataTable.Rows.Count >= 50_000)
+            {
+                bulkCopy.WriteToServer(dataTable);
+                dataTable.Clear();
+            }
+        }
+
+        if (dataTable.Rows.Count > 0)
+        {
+            bulkCopy.WriteToServer(dataTable);
+        }
+    }
+
+    private void RawInsertMySql()
+    {
+        var connection = (MySqlConnection)DbContext.Database.GetDbConnection();
+        if (connection.State != ConnectionState.Open)
+        {
+            connection.Open();
+        }
+
+        var bulkCopy = new MySqlBulkCopy(connection);
+
+        bulkCopy.DestinationTableName = nameof(TestEntity);
+        bulkCopy.BulkCopyTimeout = 60;
+
+        var i = 0;
+        bulkCopy.ColumnMappings.Add(new MySqlBulkCopyColumnMapping(i++, "Name"));
+        bulkCopy.ColumnMappings.Add(new MySqlBulkCopyColumnMapping(i++, "Price"));
+        bulkCopy.ColumnMappings.Add(new MySqlBulkCopyColumnMapping(i++, "Identifier"));
+        bulkCopy.ColumnMappings.Add(new MySqlBulkCopyColumnMapping(i++, "CreatedAt"));
+        bulkCopy.ColumnMappings.Add(new MySqlBulkCopyColumnMapping(i++, "UpdatedAt"));
+        bulkCopy.ColumnMappings.Add(new MySqlBulkCopyColumnMapping(i++, "NumericEnumValue"));
+
+        var dataTable = new DataTable();
+        dataTable.Columns.Add("Name", typeof(string));
+        dataTable.Columns.Add("Price", typeof(decimal));
+        dataTable.Columns.Add("Identifier", typeof(Guid));
+        dataTable.Columns.Add("CreatedAt", typeof(DateTime));
+        dataTable.Columns.Add("UpdatedAt", typeof(DateTimeOffset));
+        dataTable.Columns.Add("NumericEnumValue", typeof(int));
+
+        foreach (var entity in data)
+        {
+            var row = dataTable.NewRow();
+            row["Name"] = entity.Name;
+            row["Price"] = entity.Price;
+            row["Identifier"] = entity.Identifier;
+            row["CreatedAt"] = entity.CreatedAt;
+            row["UpdatedAt"] = entity.UpdatedAt;
             row["NumericEnumValue"] = (int)entity.NumericEnumValue;
             dataTable.Rows.Add(row);
 

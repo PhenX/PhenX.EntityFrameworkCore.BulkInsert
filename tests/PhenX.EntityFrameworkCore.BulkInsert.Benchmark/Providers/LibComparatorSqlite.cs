@@ -1,6 +1,3 @@
-using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Engines;
-
 using DotNet.Testcontainers.Containers;
 
 using LinqToDB.EntityFrameworkCore;
@@ -9,11 +6,8 @@ using Microsoft.EntityFrameworkCore;
 
 using PhenX.EntityFrameworkCore.BulkInsert.Sqlite;
 
-namespace PhenX.EntityFrameworkCore.BulkInsert.Benchmark;
+namespace PhenX.EntityFrameworkCore.BulkInsert.Benchmark.Providers;
 
-[MinColumn, MaxColumn, BaselineColumn]
-[MemoryDiagnoser]
-[SimpleJob(RunStrategy.Throughput, launchCount: 1, warmupCount: 0, iterationCount: 5)]
 public class LibComparatorSqlite : LibComparator
 {
     protected override void ConfigureDbContext()

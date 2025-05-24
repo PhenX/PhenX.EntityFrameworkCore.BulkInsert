@@ -127,7 +127,7 @@ and https://entityframework-extensions.net/bulk-extensions), using optimized con
 
 Legend :
  * `PhenX_EntityFrameworkCore_BulkInsert`: this library
- * `RawInsert`: no library, using the native provider API (SqlBulkCopy for SQL Server, BeginBinaryImport for PostgreSQL, raw inserts for SQLite)
+ * `RawInsert`: naive implementation without any library, using the native provider API (SqlBulkCopy for SQL Server, BeginBinaryImport for PostgreSQL, raw inserts for SQLite)
  * `Z_EntityFramework_Extensions_EFCore`: https://entityframework-extensions.net/bulk-extensions
  * `EFCore_BulkExtensions`: https://github.com/borisdj/EFCore.BulkExtensions
  * `Linq2Db`: https://github.com/linq2db/linq2db
@@ -143,6 +143,10 @@ PostgreSQL results with 500 000 rows :
 SQLite results with 500 000 rows :
 
 ![bench-sqlite.png](https://raw.githubusercontent.com/PhenX/PhenX.EntityFrameworkCore.BulkInsert/refs/heads/master/images/bench-sqlite.png)
+
+MySQL results with 500 000 rows :
+
+![bench-mysql.png](https://raw.githubusercontent.com/PhenX/PhenX.EntityFrameworkCore.BulkInsert/refs/heads/master/images/bench-mysql.png)
 
 ## Contributing
 

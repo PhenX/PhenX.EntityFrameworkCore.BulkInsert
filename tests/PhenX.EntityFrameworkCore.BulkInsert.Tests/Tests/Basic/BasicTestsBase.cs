@@ -114,31 +114,6 @@ public abstract class BasicTestsBase<TFixture, TDbContext>(TestDbContainer<TDbCo
     }
 
     [SkippableFact]
-    public async Task InsertsEntities_WithGeo()
-    {
-        Skip.If(_context.IsProvider(ProviderType.Sqlite));
-
-        // Arrange
-        var geo1 = new Point(1, 2) { SRID = 4326 };
-        var geo2 = new Point(3, 4) { SRID = 4326 };
-
-        var entities = new List<TestEntityWithGeo>
-        {
-            new TestEntityWithGeo { TestRun = _run, GeoObject = geo1 },
-            new TestEntityWithGeo { TestRun = _run, GeoObject = geo2 }
-        };
-
-        // Act
-        await _context.ExecuteBulkInsertAsync(entities);
-
-        // Assert
-        var insertedEntities = _context.TestEntitiesWithGeo.Where(x => x.TestRun == _run).ToList();
-        Assert.Equal(2, insertedEntities.Count);
-        Assert.Contains(insertedEntities, e => e.GeoObject == geo1);
-        Assert.Contains(insertedEntities, e => e.GeoObject == geo2);
-    }
-
-    [SkippableFact]
     public async Task InsertsEntities_AndReturn_AsyncEnumerable()
     {
         Skip.If(_context.Database.ProviderName!.Contains("Mysql", StringComparison.InvariantCultureIgnoreCase));

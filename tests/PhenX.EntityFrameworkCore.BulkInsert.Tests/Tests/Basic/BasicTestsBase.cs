@@ -10,8 +10,6 @@ using PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContext;
 
 using Xunit;
 
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
-
 namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.Tests.Basic;
 
 public abstract class BasicTestsBase<TFixture, TDbContext>(TestDbContainer<TDbContext> dbContainer) : IClassFixture<TFixture>, IAsyncLifetime
@@ -115,9 +113,11 @@ public abstract class BasicTestsBase<TFixture, TDbContext>(TestDbContainer<TDbCo
         Assert.Contains(insertedEntities, e => e.Json[0] == 2);
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task InsertsEntities_WithGeo()
     {
+        Skip.If(_context.IsProvider(ProviderType.Sqlite));
+
         // Arrange
         var geo1 = new Point(1, 2) { SRID = 4326 };
         var geo2 = new Point(3, 4) { SRID = 4326 };

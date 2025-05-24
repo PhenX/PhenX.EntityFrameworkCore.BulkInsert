@@ -3,7 +3,7 @@
 /// <summary>
 /// Provide an interface to control how objects are written.
 /// </summary>
-public interface IValueConverter
+public interface IBulkValueConverter
 {
     /// <summary>
     /// Converts a value before written to the output.

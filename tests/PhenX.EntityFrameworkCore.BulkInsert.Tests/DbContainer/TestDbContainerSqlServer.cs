@@ -15,6 +15,7 @@ public class TestDbContainerSqlServer<TDbContext> : TestDbContainer<TDbContext>
     protected override IDatabaseContainer? GetDbContainer()
     {
         return new MsSqlBuilder()
+            .WithImage("vibs2006/sql_server_fts") // Geo Geospatial support
             .WithReuse(true)
             .Build();
     }
@@ -22,7 +23,7 @@ public class TestDbContainerSqlServer<TDbContext> : TestDbContainer<TDbContext>
     protected override void Configure(DbContextOptionsBuilder optionsBuilder)
     {
         optionsBuilder
-            .UseSqlServer(o =>
+            .UseSqlServer(GetConnectionString(), o =>
             {
                 o.UseNetTopologySuite();
             })

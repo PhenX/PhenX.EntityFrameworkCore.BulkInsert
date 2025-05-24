@@ -48,7 +48,7 @@ public class BulkInsertOptions
     /// <summary>
     /// The value converters.
     /// </summary>
-    public List<IValueConverter>? Converters { get; set; }
+    public List<IBulkValueConverter>? Converters { get; set; }
 
     internal int GetCopyTimeoutInSeconds()
     {

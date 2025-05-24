@@ -15,6 +15,7 @@ public class TestDbContainerPostgreSql<TDbContext> : TestDbContainer<TDbContext>
     protected override IDatabaseContainer? GetDbContainer()
     {
         return new PostgreSqlBuilder()
+            .WithImage("postgis/postgis") // Geo GeoSpatial support.
             .WithReuse(true)
             .WithDatabase("testdb")
             .WithUsername("testuser")
@@ -25,7 +26,7 @@ public class TestDbContainerPostgreSql<TDbContext> : TestDbContainer<TDbContext>
     protected override void Configure(DbContextOptionsBuilder optionsBuilder)
     {
         optionsBuilder
-            .UseNpgsql(o =>
+            .UseNpgsql(GetConnectionString(), o =>
             {
                 o.UseNetTopologySuite();
             })

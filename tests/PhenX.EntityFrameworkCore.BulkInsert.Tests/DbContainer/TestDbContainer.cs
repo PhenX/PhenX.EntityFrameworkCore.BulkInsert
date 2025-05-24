@@ -48,8 +48,6 @@ public abstract class TestDbContainer<TDbContext> : IAsyncLifetime
             }
         };
 
-        dbContext.Database.SetConnectionString(GetConnectionString());
-
         await EnsureConnectedAsync(dbContext);
         try
         {

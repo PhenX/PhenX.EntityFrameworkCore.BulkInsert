@@ -22,6 +22,7 @@ internal class SqlServerBulkInsertProvider(ILogger<SqlServerBulkInsertProvider>?
     protected override SqlServerBulkInsertOptions CreateDefaultOptions() => new()
     {
         BatchSize = 50_000,
+        Converters = [SqlServerGeometryConverter.Instance]
     };
 
     /// <inheritdoc />

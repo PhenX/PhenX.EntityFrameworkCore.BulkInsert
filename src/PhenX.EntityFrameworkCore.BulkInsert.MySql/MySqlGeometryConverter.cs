@@ -6,7 +6,7 @@ using PhenX.EntityFrameworkCore.BulkInsert.Abstractions;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.MySql;
 
-internal sealed class MySqlGeometryConverter : IValueConverter
+internal sealed class MySqlGeometryConverter : IBulkValueConverter
 {
     public static readonly MySqlGeometryConverter Instance = new();
 

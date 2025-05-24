@@ -190,7 +190,7 @@ internal class SqliteBulkInsertProvider(ILogger<SqliteBulkInsertProvider>? logge
         {
             foreach (var column in columns)
             {
-                var value = column.GetValue(entity);
+                var value = column.GetValue(entity, null);
                 parameters[p].Value = value;
                 p++;
             }

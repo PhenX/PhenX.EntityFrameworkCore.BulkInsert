@@ -10,16 +10,16 @@ using PhenX.EntityFrameworkCore.BulkInsert.Enums;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Extensions;
 
-internal static class DbContextExtensions
+internal static class InternalExtensions
 {
-    public static TableMetadata GetTableInfo<T>(this DbContext context)
+    internal static TableMetadata GetTableInfo<T>(this DbContext context)
     {
         var provider = context.GetService<MetadataProvider>();
 
         return provider.GetTableInfo<T>(context);
     }
 
-    public static DbContextOptionsBuilder UseProvider<TProvider>(this DbContextOptionsBuilder optionsBuilder)
+    internal static DbContextOptionsBuilder UseProvider<TProvider>(this DbContextOptionsBuilder optionsBuilder)
         where TProvider : class, IBulkInsertProvider
     {
         var extension = optionsBuilder.Options.FindExtension<BulkInsertOptionsExtension<TProvider>>() ?? new BulkInsertOptionsExtension<TProvider>();

@@ -13,7 +13,7 @@ using PhenX.EntityFrameworkCore.BulkInsert.Options;
 namespace PhenX.EntityFrameworkCore.BulkInsert.Sqlite;
 
 [UsedImplicitly]
-internal class SqliteBulkInsertProvider(ILogger<SqliteBulkInsertProvider>? logger = null) : BulkInsertProviderBase<SqliteDialectBuilder>(logger)
+internal class SqliteBulkInsertProvider(ILogger<SqliteBulkInsertProvider>? logger) : BulkInsertProviderBase<SqliteDialectBuilder, BulkInsertOptions>(logger)
 {
     private const int MaxParams = 1000;
 
@@ -23,6 +23,12 @@ internal class SqliteBulkInsertProvider(ILogger<SqliteBulkInsertProvider>? logge
     //language=sql
     /// <inheritdoc />
     protected override string AddTableCopyBulkInsertId => "--"; // No need to add an ID column in SQLite
+
+    /// <inheritdoc />
+    protected override BulkInsertOptions CreateDefaultOptions() => new()
+    {
+        BatchSize = 5,
+    };
 
     /// <inheritdoc />
     protected override Task AddBulkInsertIdColumn<T>(
@@ -121,9 +127,9 @@ internal class SqliteBulkInsertProvider(ILogger<SqliteBulkInsertProvider>? logge
         CancellationToken ctk
     ) where T : class
     {
-        var batchSize = Math.Min(options.BatchSize ?? 5, MaxParams / columns.Count);
+        var batchSize = Math.Min(options.BatchSize, MaxParams / columns.Count);
 
-        // The StringBuilder can be resuse between the batches. 
+        // The StringBuilder can be resuse between the batches.
         var sb = new StringBuilder();
 
         var columnList = tableInfo.GetColumns(options.CopyGeneratedColumns);

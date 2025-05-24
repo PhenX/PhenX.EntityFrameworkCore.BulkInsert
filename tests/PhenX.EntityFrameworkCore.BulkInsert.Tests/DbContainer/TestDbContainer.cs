@@ -1,6 +1,7 @@
 using DotNet.Testcontainers.Containers;
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 
 using PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContext;
 
@@ -40,7 +41,11 @@ public abstract class TestDbContainer<TDbContext> : IAsyncLifetime
     {
         var dbContext = new TDbContext
         {
-            ConfigureOptions = Configure
+            ConfigureOptions = (builder) =>
+            {
+                builder.UseLoggerFactory(NullLoggerFactory.Instance);
+                Configure(builder);
+            }
         };
 
         dbContext.Database.SetConnectionString(GetConnectionString());

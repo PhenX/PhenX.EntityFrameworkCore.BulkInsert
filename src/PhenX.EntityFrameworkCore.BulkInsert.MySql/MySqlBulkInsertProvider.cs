@@ -9,7 +9,7 @@ using PhenX.EntityFrameworkCore.BulkInsert.Options;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.MySql;
 
-internal class MySqlBulkInsertProvider(ILogger<MySqlBulkInsertProvider>? logger = null) : BulkInsertProviderBase<MySqlServerDialectBuilder>(logger)
+internal class MySqlBulkInsertProvider(ILogger<MySqlBulkInsertProvider> logger) : BulkInsertProviderBase<MySqlServerDialectBuilder, MySqlBulkInsertOptions>(logger)
 {
     //language=sql
     /// <inheritdoc />
@@ -17,6 +17,9 @@ internal class MySqlBulkInsertProvider(ILogger<MySqlBulkInsertProvider>? logger 
 
     /// <inheritdoc />
     protected override string GetTempTableName(string tableName) => $"#_temp_bulk_insert_{tableName}";
+
+    /// <inheritdoc />
+    protected override MySqlBulkInsertOptions CreateDefaultOptions() => new();
 
     /// <inheritdoc />
     public override IAsyncEnumerable<T> BulkInsertReturnEntities<T>(
@@ -39,7 +42,7 @@ internal class MySqlBulkInsertProvider(ILogger<MySqlBulkInsertProvider>? logger 
         IEnumerable<T> entities,
         string tableName,
         IReadOnlyList<ColumnMetadata> properties,
-        BulkInsertOptions options,
+        MySqlBulkInsertOptions options,
         CancellationToken ctk
     )
     {

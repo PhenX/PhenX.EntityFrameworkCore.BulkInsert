@@ -1,5 +1,8 @@
+using PhenX.EntityFrameworkCore.BulkInsert.Enums;
 using PhenX.EntityFrameworkCore.BulkInsert.Extensions;
+using PhenX.EntityFrameworkCore.BulkInsert.MySql;
 using PhenX.EntityFrameworkCore.BulkInsert.Options;
+using PhenX.EntityFrameworkCore.BulkInsert.SqlServer;
 using PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContainer;
 using PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContext;
 
@@ -70,7 +73,7 @@ public abstract class BasicTestsBase<TFixture, TDbContext>(TestDbContainer<TDbCo
     [SkippableFact]
     public async Task InsertsEntities_AndReturn()
     {
-        Skip.If(_context.Database.ProviderName!.Contains("Mysql", StringComparison.InvariantCultureIgnoreCase));
+        Skip.If(_context.IsProvider(ProviderType.MySql));
 
         // Arrange
         var entities = new List<TestEntity>
@@ -137,7 +140,7 @@ public abstract class BasicTestsBase<TFixture, TDbContext>(TestDbContainer<TDbCo
     [SkippableFact]
     public void InsertsEntities_AndReturn_Sync()
     {
-        Skip.If(_context.Database.ProviderName!.Contains("Mysql", StringComparison.InvariantCultureIgnoreCase));
+        Skip.If(_context.IsProvider(ProviderType.MySql));
 
         // Arrange
         var entities = new List<TestEntity>
@@ -158,8 +161,8 @@ public abstract class BasicTestsBase<TFixture, TDbContext>(TestDbContainer<TDbCo
     [SkippableFact]
     public async Task InsertsEntities_MultipleTimes()
     {
-        Skip.If(_context.Database.ProviderName!.Contains("Postgres", StringComparison.InvariantCultureIgnoreCase));
-        Skip.If(_context.Database.ProviderName!.Contains("SqlServer", StringComparison.InvariantCultureIgnoreCase));
+        Skip.If(_context.IsProvider(ProviderType.PostgreSql));
+        Skip.If(_context.IsProvider(ProviderType.SqlServer));
 
         // Arrange
         var entities = new List<TestEntity>
@@ -279,7 +282,7 @@ public abstract class BasicTestsBase<TFixture, TDbContext>(TestDbContainer<TDbCo
     [SkippableFact]
     public async Task InsertsEntities_WithConflict_SingleColumn()
     {
-        Skip.If(_context.Database.ProviderName!.Contains("Mysql", StringComparison.InvariantCultureIgnoreCase));
+        Skip.If(_context.IsProvider(ProviderType.MySql));
 
         _context.TestEntities.Add(new TestEntity { TestRun = _run, Name = $"{_run}_Entity1" });
         await _context.SaveChangesAsync();
@@ -318,7 +321,7 @@ public abstract class BasicTestsBase<TFixture, TDbContext>(TestDbContainer<TDbCo
     [SkippableFact]
     public async Task InsertsEntities_WithConflict_DoNothing()
     {
-        Skip.If(_context.Database.ProviderName!.Contains("Mysql", StringComparison.InvariantCultureIgnoreCase));
+        Skip.If(_context.IsProvider(ProviderType.MySql));
 
         _context.TestEntities.Add(new TestEntity { TestRun = _run, Name = $"{_run}_Entity1" });
         await _context.SaveChangesAsync();
@@ -348,7 +351,7 @@ public abstract class BasicTestsBase<TFixture, TDbContext>(TestDbContainer<TDbCo
     [SkippableFact]
     public async Task InsertsEntities_WithConflict_Condition()
     {
-        Skip.If(_context.Database.ProviderName!.Contains("Mysql", StringComparison.InvariantCultureIgnoreCase));
+        Skip.If(_context.IsProvider(ProviderType.MySql));
 
         _context.TestEntities.Add(new TestEntity { TestRun = _run, Name = $"{_run}_Entity1", Price = 10 });
         await _context.SaveChangesAsync();
@@ -379,7 +382,7 @@ public abstract class BasicTestsBase<TFixture, TDbContext>(TestDbContainer<TDbCo
     [SkippableFact]
     public async Task InsertsEntities_WithConflict_MultipleColumns()
     {
-        Skip.If(_context.Database.ProviderName!.Contains("Mysql", StringComparison.InvariantCultureIgnoreCase));
+        Skip.If(_context.IsProvider(ProviderType.MySql));
 
         _context.TestEntities.Add(new TestEntity { TestRun = _run, Name = $"{_run}_Entity1", Price = 10 });
         await _context.SaveChangesAsync();
@@ -563,5 +566,37 @@ public abstract class BasicTestsBase<TFixture, TDbContext>(TestDbContainer<TDbCo
         var insertedEntities = _context.TestEntities.Where(x => x.TestRun == _run).ToList();
         Assert.DoesNotContain(insertedEntities, e => e.Name == $"{_run}_EntityWithTxFail1");
         Assert.DoesNotContain(insertedEntities, e => e.Name == $"{_run}_EntityWithTxFail2");
+    }
+
+    [SkippableFact]
+    public async Task ThrowsWhenUsingWrongConfigurationType()
+    {
+        // Skip for providers that don't support this feature
+        Skip.If(_context.IsProvider(ProviderType.PostgreSql));
+        Skip.If(_context.IsProvider(ProviderType.Sqlite));
+
+        // Arrange
+        var entities = new List<TestEntity>
+        {
+            new TestEntity { TestRun = _run, Name = $"{_run}_Entity1" },
+            new TestEntity { TestRun = _run, Name = $"{_run}_Entity2" }
+        };
+
+        // Act & Assert
+        if (_context.IsProvider(ProviderType.SqlServer))
+        {
+            await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await _context.ExecuteBulkInsertAsync(entities, (MySqlBulkInsertOptions o) =>
+                {
+                }));
+        }
+
+        if (_context.IsProvider(ProviderType.MySql))
+        {
+            await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await _context.ExecuteBulkInsertAsync(entities, (SqlServerBulkInsertOptions o) =>
+                {
+                }));
+        }
     }
 }

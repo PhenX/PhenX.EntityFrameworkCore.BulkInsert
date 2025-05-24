@@ -3,14 +3,20 @@ using DotNet.Testcontainers.Containers;
 using Microsoft.EntityFrameworkCore;
 
 using PhenX.EntityFrameworkCore.BulkInsert.PostgreSql;
-using PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContext;
 
 using Testcontainers.PostgreSql;
 
+using Xunit;
+
 namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContainer;
 
-public abstract class TestDbContainerPostgreSql<TDbContext>(string reuseId) : TestDbContainer<TDbContext>
-    where TDbContext : TestDbContextBase, new()
+[CollectionDefinition(Name)]
+public class TestDbContainerPostgreSqlCollection : ICollectionFixture<TestDbContainerPostgreSql>
+{
+    public const string Name = "PostgreSql";
+}
+
+public class TestDbContainerPostgreSql : TestDbContainer
 {
     protected override IDatabaseContainer? GetDbContainer()
     {
@@ -20,17 +26,24 @@ public abstract class TestDbContainerPostgreSql<TDbContext>(string reuseId) : Te
             .WithDatabase("testdb")
             .WithUsername("testuser")
             .WithPassword("testpassword")
-            .WithLabel("reuse-id", reuseId)
             .Build();
     }
 
-    protected override void Configure(DbContextOptionsBuilder optionsBuilder)
+    protected override void Configure(DbContextOptionsBuilder optionsBuilder, string databaseName)
     {
         optionsBuilder
-            .UseNpgsql(GetConnectionString(), o =>
+            .UseNpgsql(GetConnectionString(databaseName), o =>
             {
                 o.UseNetTopologySuite();
             })
             .UseBulkInsertPostgreSql();
+    }
+
+    protected override async Task EnsureConnectedAsync<TDbContext>(TDbContext context, string databaseName)
+    {
+        var container = (PostgreSqlContainer)DbContainer!;
+
+        await container.ExecScriptAsync($"CREATE DATABASE \"{databaseName}\"");
+        await base.EnsureConnectedAsync(context, databaseName);
     }
 }

@@ -5,14 +5,8 @@ using Xunit;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.Tests.Basic;
 
-public class BasicTestsMySqlFixture : TestDbContainerMySql<TestDbContextMySql>
-{
-    public BasicTestsMySqlFixture() : base("basic-mysql")
-    {
-    }
-}
-
 [Trait("Category", "MySql")]
-public class BasicTestsMySql(BasicTestsMySqlFixture dbContainer) : BasicTestsBase<BasicTestsMySqlFixture, TestDbContextMySql>(dbContainer)
+[Collection(TestDbContainerMySqlCollection.Name)]
+public class BasicTestsMySql(TestDbContainerMySql dbContainer) : BasicTestsBase<TestDbContextMySql>(dbContainer)
 {
 }

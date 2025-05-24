@@ -5,14 +5,8 @@ using Xunit;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.Tests.Geo;
 
-public class GeoTestsSqlServerFixture : TestDbContainerSqlServer<TestDbContextGeo>
-{
-    public GeoTestsSqlServerFixture() : base("geo-sqlserver")
-    {
-    }
-}
-
 [Trait("Category", "SqlServer")]
-public class GeoTestsSqlServer(GeoTestsSqlServerFixture dbContainer) : GeoTestsBase<GeoTestsSqlServerFixture, TestDbContextGeo>(dbContainer)
+[Collection(TestDbContainerSqlServerCollection.Name)]
+public class GeoTestsSqlServer(TestDbContainerSqlServer dbContainer) : GeoTestsBase<TestDbContextGeo>(dbContainer)
 {
 }

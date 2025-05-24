@@ -1,3 +1,5 @@
+using System.Data.Common;
+
 using DotNet.Testcontainers.Containers;
 
 using Microsoft.EntityFrameworkCore;
@@ -9,10 +11,10 @@ using Xunit;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContainer;
 
-public abstract class TestDbContainer<TDbContext> : IAsyncLifetime
-    where TDbContext : TestDbContextBase, new()
+public abstract class TestDbContainer : IAsyncLifetime
 {
-    private static readonly TimeSpan WaitTime = TimeSpan.FromSeconds(30);
+    private readonly TimeSpan _waitTime = TimeSpan.FromSeconds(30);
+    private readonly HashSet<string> _connected = [];
     protected readonly IDatabaseContainer? DbContainer;
 
     protected TestDbContainer()
@@ -22,12 +24,23 @@ public abstract class TestDbContainer<TDbContext> : IAsyncLifetime
 
     protected abstract IDatabaseContainer? GetDbContainer();
 
-    protected virtual string GetConnectionString()
+    protected virtual string GetConnectionString(string databaseName)
     {
-        return DbContainer?.GetConnectionString() ?? string.Empty;
+        if (DbContainer == null)
+        {
+            return string.Empty;
+        }
+
+        var builder = new DbConnectionStringBuilder()
+        {
+            ConnectionString = DbContainer.GetConnectionString()
+        };
+
+        builder["database"] = databaseName;
+        return builder.ToString();
     }
 
-    protected abstract void Configure(DbContextOptionsBuilder optionsBuilder);
+    protected abstract void Configure(DbContextOptionsBuilder optionsBuilder, string databaseName);
 
     public async Task InitializeAsync()
     {
@@ -37,18 +50,23 @@ public abstract class TestDbContainer<TDbContext> : IAsyncLifetime
         }
     }
 
-    public async Task<TDbContext> CreateContextAsync()
+    public async Task<TDbContext> CreateContextAsync<TDbContext>(string databaseName)
+        where TDbContext : TestDbContextBase, new()
     {
         var dbContext = new TDbContext
         {
             ConfigureOptions = (builder) =>
             {
                 builder.UseLoggerFactory(NullLoggerFactory.Instance);
-                Configure(builder);
+                Configure(builder, databaseName);
             }
         };
 
-        await EnsureConnectedAsync(dbContext);
+        if (_connected.Add(databaseName))
+        {
+            await EnsureConnectedAsync(dbContext, databaseName);
+        }
+
         try
         {
             await dbContext.Database.EnsureCreatedAsync();
@@ -61,9 +79,11 @@ public abstract class TestDbContainer<TDbContext> : IAsyncLifetime
         return dbContext;
     }
 
-    protected virtual async Task EnsureConnectedAsync(TDbContext context)
+    protected virtual async Task EnsureConnectedAsync<TDbContext>(TDbContext context, string databaseName)
+        where TDbContext : TestDbContextBase
     {
-        using var cts = new CancellationTokenSource(WaitTime);
+        using var cts = new CancellationTokenSource(_waitTime);
+
         while (!await context.Database.CanConnectAsync(cts.Token))
         {
             await Task.Delay(100, cts.Token);

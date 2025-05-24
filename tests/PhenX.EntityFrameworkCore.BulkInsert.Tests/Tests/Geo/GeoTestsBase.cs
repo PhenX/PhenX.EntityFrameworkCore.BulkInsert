@@ -8,16 +8,15 @@ using Xunit;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.Tests.Geo;
 
-public abstract class GeoTestsBase<TFixture, TDbContext>(TestDbContainer<TDbContext> dbContainer) : IClassFixture<TFixture>, IAsyncLifetime
+public abstract class GeoTestsBase<TDbContext>(TestDbContainer dbContainer) : IAsyncLifetime
     where TDbContext : TestDbContextGeo, new()
-    where TFixture : TestDbContainer<TDbContext>
 {
     private readonly Guid _run = Guid.NewGuid();
     private TDbContext _context = null!;
 
     public async Task InitializeAsync()
     {
-        _context = await DbContainer.CreateContextAsync();
+        _context = await dbContainer.CreateContextAsync<TDbContext>("geo");
     }
 
     public Task DisposeAsync()
@@ -26,10 +25,8 @@ public abstract class GeoTestsBase<TFixture, TDbContext>(TestDbContainer<TDbCont
         return Task.CompletedTask;
     }
 
-    protected TestDbContainer<TDbContext> DbContainer { get; } = dbContainer;
-
     [Fact]
-    public async Task InsertsEntities_WithGeo()
+    public async Task InsertEntities_WithGeo()
     {
         // Arrange
         var geo1 = new Point(1, 2) { SRID = 4326 };

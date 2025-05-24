@@ -13,10 +13,13 @@
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer.NetTopologySuite" Version="9.0.5" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer.NetTopologySuite" Condition="'$(TargetFramework)' == 'net8.0'" Version="8.0.16" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer.NetTopologySuite" Condition="'$(TargetFramework)' == 'net9.0'" Version="9.0.5" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
-        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL.NetTopologySuite" Version="9.0.4" />
-        <PackageReference Include="Pomelo.EntityFrameworkCore.MySql.NetTopologySuite" Version="9.0.0-preview.3.efcore.9.0.0" />
+        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL.NetTopologySuite" Condition="'$(TargetFramework)' == 'net8.0'" Version="8.0.11" />
+        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL.NetTopologySuite" Condition="'$(TargetFramework)' == 'net9.0'" Version="9.0.4" />
+        <PackageReference Include="Pomelo.EntityFrameworkCore.MySql.NetTopologySuite" Condition="'$(TargetFramework)' == 'net8.0'" Version="8.0.3" />
+        <PackageReference Include="Pomelo.EntityFrameworkCore.MySql.NetTopologySuite" Condition="'$(TargetFramework)' == 'net9.0'" Version="9.0.0-preview.3.efcore.9.0.0" />
         <PackageReference Include="xunit" Version="2.9.3" />
         <PackageReference Include="xunit.runner.visualstudio" Version="3.0.2">
           <PrivateAssets>all</PrivateAssets>

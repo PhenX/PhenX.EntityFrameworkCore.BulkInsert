@@ -9,12 +9,8 @@ using PhenX.EntityFrameworkCore.BulkInsert.Options;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.MySql;
 
-internal class MySqlBulkInsertProvider : BulkInsertProviderBase<MySqlServerDialectBuilder, MySqlBulkInsertOptions>
+internal class MySqlBulkInsertProvider(ILogger<MySqlBulkInsertProvider>? logger = null) : BulkInsertProviderBase<MySqlServerDialectBuilder, MySqlBulkInsertOptions>(logger)
 {
-    public MySqlBulkInsertProvider(ILogger<MySqlBulkInsertProvider>? logger = null) : base(logger)
-    {
-    }
-
     //language=sql
     /// <inheritdoc />
     protected override string AddTableCopyBulkInsertId => $"ALTER TABLE {{0}} ADD {BulkInsertId} INT AUTO_INCREMENT PRIMARY KEY;";
@@ -26,13 +22,13 @@ internal class MySqlBulkInsertProvider : BulkInsertProviderBase<MySqlServerDiale
     protected override MySqlBulkInsertOptions CreateDefaultOptions() => new();
 
     /// <inheritdoc />
-    public override IAsyncEnumerable<T> BulkInsertReturnEntities<T>(
+    protected override IAsyncEnumerable<T> BulkInsertReturnEntities<T>(
         bool sync,
         DbContext context,
         TableMetadata tableInfo,
         IEnumerable<T> entities,
-        BulkInsertOptions options,
-        OnConflictOptions? onConflict = null,
+        MySqlBulkInsertOptions options,
+        OnConflictOptions<T>? onConflict = null,
         CancellationToken ctk = default)
     {
         throw new NotSupportedException("Provider does not support returning entities.");

@@ -13,11 +13,8 @@ using PhenX.EntityFrameworkCore.BulkInsert.Options;
 namespace PhenX.EntityFrameworkCore.BulkInsert.Sqlite;
 
 [UsedImplicitly]
-internal class SqliteBulkInsertProvider : BulkInsertProviderBase<SqliteDialectBuilder, BulkInsertOptions>
+internal class SqliteBulkInsertProvider(ILogger<SqliteBulkInsertProvider>? logger = null) : BulkInsertProviderBase<SqliteDialectBuilder, BulkInsertOptions>(logger)
 {
-    public SqliteBulkInsertProvider(ILogger<SqliteBulkInsertProvider>? logger = null) : base(logger)
-    {
-    }
 
     /// <inheritdoc />
     protected override string BulkInsertId => "rowid";

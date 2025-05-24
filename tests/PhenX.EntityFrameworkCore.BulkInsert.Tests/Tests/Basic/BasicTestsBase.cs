@@ -10,16 +10,11 @@ using Xunit;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.Tests.Basic;
 
-public abstract class BasicTestsBase<TFixture> : IClassFixture<TFixture>, IAsyncLifetime
+public abstract class BasicTestsBase<TFixture>(TestDbContainer<TestDbContext> dbContainer) : IClassFixture<TFixture>, IAsyncLifetime
     where TFixture : TestDbContainer<TestDbContext>
 {
     private readonly Guid _run = Guid.NewGuid();
     private TestDbContext _context = null!;
-
-    protected BasicTestsBase(TestDbContainer<TestDbContext> dbContainer)
-    {
-        DbContainer = dbContainer;
-    }
 
     public async Task InitializeAsync()
     {
@@ -32,7 +27,7 @@ public abstract class BasicTestsBase<TFixture> : IClassFixture<TFixture>, IAsync
         return Task.CompletedTask;
     }
 
-    protected TestDbContainer<TestDbContext> DbContainer { get; }
+    protected TestDbContainer<TestDbContext> DbContainer { get; } = dbContainer;
 
     [Fact]
     public async Task InsertsEntitiesSuccessfully()

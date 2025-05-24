@@ -20,7 +20,7 @@ internal interface IBulkInsertProvider
         TableMetadata tableInfo,
         IEnumerable<T> entities,
         BulkInsertOptions options,
-        OnConflictOptions? onConflict = null,
+        OnConflictOptions<T>? onConflict = null,
         CancellationToken ctk = default
     ) where T : class;
 
@@ -33,7 +33,7 @@ internal interface IBulkInsertProvider
         TableMetadata tableInfo,
         IEnumerable<T> entities,
         BulkInsertOptions options,
-        OnConflictOptions? onConflict = null,
+        OnConflictOptions<T>? onConflict = null,
         CancellationToken ctk = default
     ) where T : class;
 
@@ -42,5 +42,5 @@ internal interface IBulkInsertProvider
     /// <summary>
     /// Make the default options for the provider, can be a subclass of <see cref="BulkInsertOptions"/>.
     /// </summary>
-    internal BulkInsertOptions InternalCreateDefaultOptions();
+    internal BulkInsertOptions CreateDefaultOptions();
 }

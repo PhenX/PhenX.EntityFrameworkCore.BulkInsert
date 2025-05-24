@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 
 using PhenX.EntityFrameworkCore.BulkInsert.Options;
 
@@ -57,12 +57,12 @@ public static partial class PublicExtensions
         IEnumerable<T> entities,
         Action<TOptions> configure,
         OnConflictOptions<T>? onConflict = null,
-        CancellationToken ctk = default
+        CancellationToken cancellationToken = default
     )
         where T : class
         where TOptions : BulkInsertOptions
     {
-        return ExecuteBulkInsertReturnEntitiesCoreAsync(dbSet, false, entities, configure, onConflict, ctk);
+        return ExecuteBulkInsertReturnEntitiesCoreAsync(dbSet, false, entities, configure, onConflict, cancellationToken);
     }
 
     /// <summary>
@@ -73,11 +73,11 @@ public static partial class PublicExtensions
         IEnumerable<T> entities,
         Action<BulkInsertOptions> configure,
         OnConflictOptions<T>? onConflict = null,
-        CancellationToken ctk = default
+        CancellationToken cancellationToken = default
     )
         where T : class
     {
-        return ExecuteBulkInsertReturnEntitiesAsync<T, BulkInsertOptions>(dbSet, entities, configure, onConflict, ctk);
+        return ExecuteBulkInsertReturnEntitiesAsync<T, BulkInsertOptions>(dbSet, entities, configure, onConflict, cancellationToken);
     }
 
     /// <summary>
@@ -87,11 +87,11 @@ public static partial class PublicExtensions
         this DbSet<T> dbSet,
         IEnumerable<T> entities,
         OnConflictOptions<T>? onConflict = null,
-        CancellationToken ctk = default
+        CancellationToken cancellationToken = default
     )
         where T : class
     {
-        return ExecuteBulkInsertReturnEntitiesAsync<T, BulkInsertOptions>(dbSet, entities, _ => { }, onConflict, ctk);
+        return ExecuteBulkInsertReturnEntitiesAsync<T, BulkInsertOptions>(dbSet, entities, _ => { }, onConflict, cancellationToken);
     }
 
     /// <summary>
@@ -102,7 +102,7 @@ public static partial class PublicExtensions
         IEnumerable<T> entities,
         Action<TOptions> configure,
         OnConflictOptions<T>? onConflict = null,
-        CancellationToken ctk = default
+        CancellationToken cancellationToken = default
     )
         where T : class
         where TOptions : BulkInsertOptions
@@ -110,7 +110,7 @@ public static partial class PublicExtensions
         var provider = InitProvider(dbSet, configure, out var context, out var options);
 
         return provider.BulkInsertReturnEntities(false, context, dbSet.GetDbContext().GetTableInfo<T>(), entities,
-            options, onConflict, ctk);
+            options, onConflict, cancellationToken);
     }
 
     /// <summary>
@@ -121,11 +121,11 @@ public static partial class PublicExtensions
         IEnumerable<T> entities,
         Action<BulkInsertOptions> configure,
         OnConflictOptions<T>? onConflict = null,
-        CancellationToken ctk = default
+        CancellationToken cancellationToken = default
     )
         where T : class
     {
-        return ExecuteBulkInsertReturnEnumerableAsync<T, BulkInsertOptions>(dbSet, entities, configure, onConflict, ctk);
+        return ExecuteBulkInsertReturnEnumerableAsync<T, BulkInsertOptions>(dbSet, entities, configure, onConflict, cancellationToken);
     }
 
     /// <summary>
@@ -135,11 +135,11 @@ public static partial class PublicExtensions
         this DbSet<T> dbSet,
         IEnumerable<T> entities,
         OnConflictOptions<T>? onConflict = null,
-        CancellationToken ctk = default
+        CancellationToken cancellationToken = default
     )
         where T : class
     {
-        return ExecuteBulkInsertReturnEnumerableAsync<T, BulkInsertOptions>(dbSet, entities, _ => { }, onConflict, ctk);
+        return ExecuteBulkInsertReturnEnumerableAsync<T, BulkInsertOptions>(dbSet, entities, _ => { }, onConflict, cancellationToken);
     }
 
     /// <summary>
@@ -150,7 +150,7 @@ public static partial class PublicExtensions
         IEnumerable<T> entities,
         Action<TOptions> configure,
         OnConflictOptions<T>? onConflict = null,
-        CancellationToken ctk = default
+        CancellationToken cancellationToken = default
     )
         where T : class
         where TOptions : BulkInsertOptions
@@ -158,7 +158,7 @@ public static partial class PublicExtensions
         var provider = InitProvider(dbSet, configure, out var context, out var options);
 
         await provider.BulkInsert(false, context, dbSet.GetDbContext().GetTableInfo<T>(), entities, options, onConflict,
-            ctk);
+            cancellationToken);
     }
 
     /// <summary>
@@ -169,11 +169,11 @@ public static partial class PublicExtensions
         IEnumerable<T> entities,
         Action<BulkInsertOptions> configure,
         OnConflictOptions<T>? onConflict = null,
-        CancellationToken ctk = default
+        CancellationToken cancellationToken = default
     )
         where T : class
     {
-        await ExecuteBulkInsertAsync<T, BulkInsertOptions>(dbSet, entities, configure, onConflict, ctk);
+        await ExecuteBulkInsertAsync<T, BulkInsertOptions>(dbSet, entities, configure, onConflict, cancellationToken);
     }
 
     /// <summary>
@@ -183,11 +183,11 @@ public static partial class PublicExtensions
         this DbSet<T> dbSet,
         IEnumerable<T> entities,
         OnConflictOptions<T>? onConflict = null,
-        CancellationToken ctk = default
+        CancellationToken cancellationToken = default
     )
         where T : class
     {
-        await ExecuteBulkInsertAsync<T, BulkInsertOptions>(dbSet, entities, _ => { }, onConflict, ctk);
+        await ExecuteBulkInsertAsync<T, BulkInsertOptions>(dbSet, entities, _ => { }, onConflict, cancellationToken);
     }
 
     /// <summary>

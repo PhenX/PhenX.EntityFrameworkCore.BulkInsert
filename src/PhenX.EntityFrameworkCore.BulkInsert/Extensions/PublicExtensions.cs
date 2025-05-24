@@ -52,7 +52,7 @@ public static partial class PublicExtensions
         context = dbSet.GetDbContext();
         var provider = context.GetService<IBulkInsertProvider>();
 
-        var defaultOptions = provider.InternalCreateDefaultOptions();
+        var defaultOptions = provider.CreateDefaultOptions();
 
         if (defaultOptions is not TOptions castedOptions)
         {

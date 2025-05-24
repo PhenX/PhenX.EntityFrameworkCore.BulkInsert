@@ -154,7 +154,7 @@ internal abstract class SqlDialectBuilder
     /// <summary>
     /// Gets column names for the insert statement, from an object initializer.
     /// </summary>
-    protected string[] GetColumns<T>(TableMetadata table, Expression<Func<T, object>> columns)
+    protected static string[] GetColumns<T>(TableMetadata table, Expression<Func<T, object>> columns)
     {
         return columns.Body switch
         {

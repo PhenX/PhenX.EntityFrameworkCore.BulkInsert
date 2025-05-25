@@ -75,19 +75,19 @@ internal class SqlServerDialectBuilder : SqlDialectBuilder
             q.AppendLine(")");
 
             q.Append("ON ");
-            q.AppendJoin($" AND ", matchColumns, (b, col) => b.Append($"TARGET.{col} = SOURCE.{col}"));
+            q.AppendJoin(" AND ", matchColumns, (b, col) => b.Append($"TARGET.{col} = SOURCE.{col}"));
             q.AppendLine();
 
             if (onConflictTyped.Update != null)
             {
                 var columns = target.GetColumns(false);
 
-                q.AppendLine($"WHEN MATCHED THEN UPDATE SET ");
+                q.AppendLine("WHEN MATCHED THEN UPDATE SET ");
                 q.AppendJoin(", ", GetUpdates(target, columns, onConflictTyped.Update));
                 q.AppendLine();
             }
 
-            q.Append($"WHEN NOT MATCHED THEN INSERT (");
+            q.Append("WHEN NOT MATCHED THEN INSERT (");
             q.AppendColumns(insertedColumns);
             q.AppendLine(")");
 
@@ -98,7 +98,7 @@ internal class SqlServerDialectBuilder : SqlDialectBuilder
             if (returnedColumns.Count != 0)
             {
                 q.Append("OUTPUT ");
-                q.AppendJoin($", ", returnedColumns, (b, col) => b.Append($"INSERTED.{col.QuotedColumName} AS {col.QuotedColumName}"));
+                q.AppendJoin(", ", returnedColumns, (b, col) => b.Append($"INSERTED.{col.QuotedColumName} AS {col.QuotedColumName}"));
                 q.AppendLine();
             }
         }
@@ -113,7 +113,7 @@ internal class SqlServerDialectBuilder : SqlDialectBuilder
             if (returnedColumns.Count != 0)
             {
                 q.Append("OUTPUT ");
-                q.AppendJoin($", ", returnedColumns, (b, col) => b.Append($"INSERTED.{col.QuotedColumName} AS {col.QuotedColumName}"));
+                q.AppendJoin(", ", returnedColumns, (b, col) => b.Append($"INSERTED.{col.QuotedColumName} AS {col.QuotedColumName}"));
                 q.AppendLine();
             }
 

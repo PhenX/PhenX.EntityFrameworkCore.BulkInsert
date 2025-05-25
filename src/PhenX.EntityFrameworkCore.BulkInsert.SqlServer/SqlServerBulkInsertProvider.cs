@@ -51,14 +51,16 @@ internal class SqlServerBulkInsertProvider(ILogger<SqlServerBulkInsertProvider>?
             bulkCopy.ColumnMappings.Add(column.PropertyName, column.ColumnName);
         }
 
+        var dataReader = new EnumerableDataReader<T>(entities, columns, options.Converters);
+
         if (sync)
         {
             // ReSharper disable once MethodHasAsyncOverloadWithCancellation
-            bulkCopy.WriteToServer(new EnumerableDataReader<T>(entities, columns, options.Converters));
+            bulkCopy.WriteToServer(dataReader);
         }
         else
         {
-            await bulkCopy.WriteToServerAsync(new EnumerableDataReader<T>(entities, columns, options.Converters), ctk);
+            await bulkCopy.WriteToServerAsync(dataReader, ctk);
         }
     }
 }

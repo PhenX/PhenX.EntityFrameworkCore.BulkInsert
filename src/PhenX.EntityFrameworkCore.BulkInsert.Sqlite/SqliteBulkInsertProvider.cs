@@ -46,22 +46,23 @@ internal class SqliteBulkInsertProvider(ILogger<SqliteBulkInsertProvider>? logge
         {
             return SqliteType.Integer;
         }
-        else if (string.Equals(storeType, "FLOAT", StringComparison.OrdinalIgnoreCase))
+
+        if (string.Equals(storeType, "FLOAT", StringComparison.OrdinalIgnoreCase))
         {
             return SqliteType.Real;
         }
-        else if (string.Equals(storeType, "TEXT", StringComparison.OrdinalIgnoreCase))
+
+        if (string.Equals(storeType, "TEXT", StringComparison.OrdinalIgnoreCase))
         {
             return SqliteType.Text;
         }
-        else if (string.Equals(storeType, "BLOB", StringComparison.OrdinalIgnoreCase))
+
+        if (string.Equals(storeType, "BLOB", StringComparison.OrdinalIgnoreCase))
         {
             return SqliteType.Blob;
         }
-        else
-        {
-            throw new NotSupportedException($"Invalid store type '{storeType}' for property '{column.PropertyName}'");
-        }
+
+        throw new NotSupportedException($"Invalid store type '{storeType}' for property '{column.PropertyName}'");
     }
 
     private static DbCommand GetInsertCommand(
@@ -91,7 +92,7 @@ internal class SqliteBulkInsertProvider(ILogger<SqliteBulkInsertProvider>? logge
             sb.Append('(');
 
             var columnIndex = 0;
-            foreach (var column in columns)
+            for (var index = 0; index < columns.Count; index++)
             {
                 var parameterName = $"@p{p++}";
                 command.Parameters.Add(new SqliteParameter(parameterName, columnTypes[columnIndex]));
@@ -129,7 +130,7 @@ internal class SqliteBulkInsertProvider(ILogger<SqliteBulkInsertProvider>? logge
     {
         var batchSize = Math.Min(options.BatchSize, MaxParams / columns.Count);
 
-        // The StringBuilder can be resuse between the batches.
+        // The StringBuilder can be reused between the batches.
         var sb = new StringBuilder();
 
         var columnList = tableInfo.GetColumns(options.CopyGeneratedColumns);
@@ -186,10 +187,14 @@ internal class SqliteBulkInsertProvider(ILogger<SqliteBulkInsertProvider>? logge
     private static void FillValues<T>(T[] chunk, DbParameterCollection parameters, IReadOnlyList<ColumnMetadata> columns) where T : class
     {
         var p = 0;
-        foreach (var entity in chunk)
+
+        for (var chunkIndex = 0; chunkIndex < chunk.Length; chunkIndex++)
         {
-            foreach (var column in columns)
+            var entity = chunk[chunkIndex];
+
+            for (var columnIndex = 0; columnIndex < columns.Count; columnIndex++)
             {
+                var column = columns[columnIndex];
                 var value = column.GetValue(entity, null);
                 parameters[p].Value = value;
                 p++;

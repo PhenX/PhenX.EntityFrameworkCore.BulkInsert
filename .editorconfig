@@ -59,5 +59,8 @@ dotnet_style_predefined_type_for_member_access = true:suggestion
 # IDE0090: Use 'new(...)'
 dotnet_diagnostic.IDE0090.severity = none
 
+# Resharper
+resharper_for_can_be_converted_to_foreach_highlighting = none
+
 [*.{csproj,proj,targets}]
 indent_size = 2

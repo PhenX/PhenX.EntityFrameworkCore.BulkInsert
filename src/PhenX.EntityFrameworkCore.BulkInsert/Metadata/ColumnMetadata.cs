@@ -22,13 +22,11 @@ internal sealed class ColumnMetadata(IProperty property,  SqlDialectBuilder dial
 
     public Type ClrType { get; } = property.ClrType;
 
-    public Type? ProviderClrType { get; } = property.GetProviderClrType();
-
     public bool IsGenerated { get; } = property.ValueGenerated == ValueGenerated.OnAdd;
 
     public object? GetValue(object entity, List<IBulkValueConverter>? converters)
     {
-        var result = _getter(entity!);
+        var result = _getter(entity);
 
         if (converters != null && result != null)
         {
@@ -51,26 +49,22 @@ internal sealed class ColumnMetadata(IProperty property,  SqlDialectBuilder dial
             property.GetValueConverter() ??
             property.GetTypeMapping().Converter;
 
+        var propInfo = property.PropertyInfo!;
+
         var actualGetter =
             PropertyAccessor.CreateUntypedGetter(
-                property.PropertyInfo!,
+                propInfo,
                 property.DeclaringType.ClrType,
                 property.ClrType);
 
-        var result = actualGetter;
-        if (valueConverter != null)
+        if (valueConverter == null)
         {
-            var converter = valueConverter.ConvertToProvider;
-
-            result = source =>
-            {
-                var value = actualGetter(source);
-
-                return converter(value);
-            };
+            return actualGetter;
         }
 
-        return result;
+        var converter = valueConverter.ConvertToProvider;
+
+        return source => converter(actualGetter(source));
     }
 
     private static string GetStoreDefinition(IProperty property)

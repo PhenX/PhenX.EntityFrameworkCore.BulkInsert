@@ -57,6 +57,8 @@ internal class PostgreSqlBulkInsertProvider(ILogger<PostgreSqlBulkInsertProvider
             ? connection.BeginBinaryImport(command)
             : await connection.BeginBinaryImportAsync(command, ctk);
 
+        var bulkValueConverters = options.Converters;
+
         // The type mapping can be null for obvious types like string.
         var columnTypes = columns.Select(c => GetPostgreSqlType(c, options)).ToArray();
 
@@ -72,10 +74,9 @@ internal class PostgreSqlBulkInsertProvider(ILogger<PostgreSqlBulkInsertProvider
                 await writer.StartRowAsync(ctk);
             }
 
-            var columnIndex = 0;
-            foreach (var column in columns)
+            for (var columnIndex = 0; columnIndex < columns.Count; columnIndex++)
             {
-                var value = column.GetValue(entity, options.Converters);
+                var value = columns[columnIndex].GetValue(entity, bulkValueConverters);
 
                 // Get the actual type, so that the writer can do the conversation to the target type automatically.
                 var type = columnTypes[columnIndex];
@@ -104,8 +105,6 @@ internal class PostgreSqlBulkInsertProvider(ILogger<PostgreSqlBulkInsertProvider
                         await writer.WriteAsync(value, ctk);
                     }
                 }
-
-                columnIndex++;
             }
         }
 
@@ -126,7 +125,7 @@ internal class PostgreSqlBulkInsertProvider(ILogger<PostgreSqlBulkInsertProvider
     private static NpgsqlDbType? GetPostgreSqlType(ColumnMetadata column, PostgreSqlBulkInsertOptions options)
     {
         var typeProviders = options.TypeProviders;
-        if (typeProviders is { Count: > 0 }) 
+        if (typeProviders is { Count: > 0 })
         {
             foreach (var typeProvider in typeProviders)
             {

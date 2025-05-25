@@ -34,8 +34,8 @@ internal class MySqlBulkInsertProvider(ILogger<MySqlBulkInsertProvider> logger) 
         TableMetadata tableInfo,
         IEnumerable<T> entities,
         MySqlBulkInsertOptions options,
-        OnConflictOptions<T>? onConflict = null,
-        CancellationToken ctk = default)
+        OnConflictOptions<T>? onConflict,
+        CancellationToken ctk)
     {
         throw new NotSupportedException("Provider does not support returning entities.");
     }
@@ -71,14 +71,16 @@ internal class MySqlBulkInsertProvider(ILogger<MySqlBulkInsertProvider> logger) 
             sourceOrdinal++;
         }
 
+        var dataReader = new EnumerableDataReader<T>(entities, properties, options.Converters);
+        
         if (sync)
         {
             // ReSharper disable once MethodHasAsyncOverloadWithCancellation
-            bulkCopy.WriteToServer(new EnumerableDataReader<T>(entities, properties, options.Converters));
+            bulkCopy.WriteToServer(dataReader);
         }
         else
         {
-            await bulkCopy.WriteToServerAsync(new EnumerableDataReader<T>(entities, properties, options.Converters), ctk);
+            await bulkCopy.WriteToServerAsync(dataReader, ctk);
         }
     }
 }

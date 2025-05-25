@@ -8,28 +8,37 @@
         <IsTestProject>true</IsTestProject>
     </PropertyGroup>
 
-    <ItemGroup>
+    <ItemGroup Label="Test infrastructure">
         <PackageReference Include="coverlet.collector" Version="6.0.4">
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer.NetTopologySuite" Condition="'$(TargetFramework)' == 'net8.0'" Version="8.0.16" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer.NetTopologySuite" Condition="'$(TargetFramework)' == 'net9.0'" Version="9.0.5" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
-        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL.NetTopologySuite" Condition="'$(TargetFramework)' == 'net8.0'" Version="8.0.11" />
-        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL.NetTopologySuite" Condition="'$(TargetFramework)' == 'net9.0'" Version="9.0.4" />
-        <PackageReference Include="Pomelo.EntityFrameworkCore.MySql.NetTopologySuite" Condition="'$(TargetFramework)' == 'net8.0'" Version="8.0.3" />
-        <PackageReference Include="Pomelo.EntityFrameworkCore.MySql.NetTopologySuite" Condition="'$(TargetFramework)' == 'net9.0'" Version="9.0.0-preview.3.efcore.9.0.0" />
         <PackageReference Include="xunit" Version="2.9.3" />
         <PackageReference Include="xunit.runner.visualstudio" Version="3.0.2">
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
         <PackageReference Include="Xunit.SkippableFact" Version="1.5.23" />
+    </ItemGroup>
+
+    <ItemGroup Label="Test containers">
         <PackageReference Include="Testcontainers" Version="4.4.0" />
         <PackageReference Include="Testcontainers.PostgreSql" Version="4.4.0" />
         <PackageReference Include="Testcontainers.MsSql" Version="4.4.0" />
         <PackageReference Include="Testcontainers.MySql" Version="4.4.0" />
+    </ItemGroup>
+
+    <ItemGroup Label="NetTopologySuite net8.0" Condition="'$(TargetFramework)' == 'net8.0'">
+      <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer.NetTopologySuite" Version="8.0.16" />
+      <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL.NetTopologySuite" Version="8.0.11" />
+      <PackageReference Include="Pomelo.EntityFrameworkCore.MySql.NetTopologySuite" Version="8.0.3" />
+    </ItemGroup>
+
+    <ItemGroup Label="NetTopologySuite net9.0" Condition="'$(TargetFramework)' == 'net9.0'">
+      <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer.NetTopologySuite" Version="9.0.5" />
+      <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL.NetTopologySuite" Version="9.0.4" />
+      <PackageReference Include="Pomelo.EntityFrameworkCore.MySql.NetTopologySuite" Version="9.0.0-preview.3.efcore.9.0.0" />
     </ItemGroup>
 
     <ItemGroup>

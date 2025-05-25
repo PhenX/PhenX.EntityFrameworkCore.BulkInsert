@@ -10,7 +10,7 @@
 
   <ItemGroup>
     <PackageReference Include="NetTopologySuite" Version="2.6.0" />
-    <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Condition="'$(TargetFramework)' == 'net8.0'" Version="8.0.3" />
+    <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Condition="'$(TargetFramework)' == 'net8.0'" Version="8.0.*" />
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Condition="'$(TargetFramework)' == 'net9.0'" Version="9.0.0-preview.3.efcore.9.0.0" />
   </ItemGroup>
 

@@ -1,0 +1,13 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <ItemGroup>
+      <ProjectReference Include="..\PhenX.EntityFrameworkCore.BulkInsert\PhenX.EntityFrameworkCore.BulkInsert.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="NetTopologySuite" Version="2.6.0" />
+      <PackageReference Include="Oracle.EntityFrameworkCore" Condition="'$(TargetFramework)' == 'net8.0'" Version="8.23.80" />
+      <PackageReference Include="Oracle.EntityFrameworkCore" Condition="'$(TargetFramework)' == 'net9.0'" Version="9.23.80" />
+    </ItemGroup>
+
+</Project>

@@ -15,10 +15,11 @@ public class Program
 
         var comparators = new[]
         {
-            typeof(LibComparatorMySql),
-            typeof(LibComparatorPostgreSql),
-            typeof(LibComparatorSqlite),
-            typeof(LibComparatorSqlServer),
+            typeof(LibComparatorOracle),
+            // typeof(LibComparatorMySql),
+            // typeof(LibComparatorPostgreSql),
+            // typeof(LibComparatorSqlite),
+            // typeof(LibComparatorSqlServer),
         };
 
         BenchmarkRunner.Run(comparators, config);

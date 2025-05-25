@@ -89,6 +89,11 @@ public abstract partial class LibComparator
             // Use MySqlBulkCopy for PostgreSQL
             RawInsertMySql();
         }
+        else if (DbContext.Database.ProviderName!.Contains("Oracle", StringComparison.InvariantCultureIgnoreCase))
+        {
+            // Use OracleBulkCopy for Oracle
+            RawInsertOracle();
+        }
     }
 
     [Benchmark]

@@ -67,8 +67,20 @@ public class TestDbContextSqlServer : TestDbContext
     }
 }
 
-
 public class TestDbContextSqlite : TestDbContext
+{
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<TestEntityWithJson>(b =>
+        {
+            b.Property(x => x.Json).AsJsonString(null);
+        });
+    }
+}
+
+public class TestDbContextOracle : TestDbContext
 {
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

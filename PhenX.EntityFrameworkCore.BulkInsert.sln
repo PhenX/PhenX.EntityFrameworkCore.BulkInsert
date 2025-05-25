@@ -35,6 +35,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "root", "root", "{45366E91-4
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PhenX.EntityFrameworkCore.BulkInsert.MySql", "src\PhenX.EntityFrameworkCore.BulkInsert.MySql\PhenX.EntityFrameworkCore.BulkInsert.MySql.csproj", "{17649766-EA68-4333-8DA8-47B014A8B2CC}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PhenX.EntityFrameworkCore.BulkInsert.Oracle", "src\PhenX.EntityFrameworkCore.BulkInsert.Oracle\PhenX.EntityFrameworkCore.BulkInsert.Oracle.csproj", "{98CC5F0A-5739-4570-A384-A3A067D09755}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -69,6 +71,10 @@ Global
 		{17649766-EA68-4333-8DA8-47B014A8B2CC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{17649766-EA68-4333-8DA8-47B014A8B2CC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{17649766-EA68-4333-8DA8-47B014A8B2CC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{98CC5F0A-5739-4570-A384-A3A067D09755}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{98CC5F0A-5739-4570-A384-A3A067D09755}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{98CC5F0A-5739-4570-A384-A3A067D09755}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{98CC5F0A-5739-4570-A384-A3A067D09755}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -81,5 +87,6 @@ Global
 		{E4EB1C53-575C-45F8-924A-93DC42E8ACCA} = {F8A83782-311C-454D-8B97-B3FB86478BF4}
 		{450E859C-411F-4D67-A0B4-4E02C3D30E14} = {CBEBA2A8-79E0-412E-93C1-C88F4473D78B}
 		{17649766-EA68-4333-8DA8-47B014A8B2CC} = {CBEBA2A8-79E0-412E-93C1-C88F4473D78B}
+		{98CC5F0A-5739-4570-A384-A3A067D09755} = {CBEBA2A8-79E0-412E-93C1-C88F4473D78B}
 	EndGlobalSection
 EndGlobal

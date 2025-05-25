@@ -8,6 +8,8 @@ using MySqlConnector;
 
 using Npgsql;
 
+using Oracle.ManagedDataAccess.Client;
+
 namespace PhenX.EntityFrameworkCore.BulkInsert.Benchmark;
 
 public abstract partial class LibComparator
@@ -162,6 +164,59 @@ public abstract partial class LibComparator
         bulkCopy.ColumnMappings.Add(new MySqlBulkCopyColumnMapping(i++, "CreatedAt"));
         bulkCopy.ColumnMappings.Add(new MySqlBulkCopyColumnMapping(i++, "UpdatedAt"));
         bulkCopy.ColumnMappings.Add(new MySqlBulkCopyColumnMapping(i++, "NumericEnumValue"));
+
+        var dataTable = new DataTable();
+        dataTable.Columns.Add("Name", typeof(string));
+        dataTable.Columns.Add("Price", typeof(decimal));
+        dataTable.Columns.Add("Identifier", typeof(Guid));
+        dataTable.Columns.Add("CreatedAt", typeof(DateTime));
+        dataTable.Columns.Add("UpdatedAt", typeof(DateTimeOffset));
+        dataTable.Columns.Add("NumericEnumValue", typeof(int));
+
+        foreach (var entity in data)
+        {
+            var row = dataTable.NewRow();
+            row["Name"] = entity.Name;
+            row["Price"] = entity.Price;
+            row["Identifier"] = entity.Identifier;
+            row["CreatedAt"] = entity.CreatedAt;
+            row["UpdatedAt"] = entity.UpdatedAt;
+            row["NumericEnumValue"] = (int)entity.NumericEnumValue;
+            dataTable.Rows.Add(row);
+
+            if (dataTable.Rows.Count >= 50_000)
+            {
+                bulkCopy.WriteToServer(dataTable);
+                dataTable.Clear();
+            }
+        }
+
+        if (dataTable.Rows.Count > 0)
+        {
+            bulkCopy.WriteToServer(dataTable);
+        }
+    }
+
+    private void RawInsertOracle()
+    {
+        var connection = (OracleConnection)DbContext.Database.GetDbConnection();
+        if (connection.State != ConnectionState.Open)
+        {
+            connection.Open();
+        }
+
+        using var bulkCopy = new OracleBulkCopy(connection);
+
+        bulkCopy.DestinationTableName = "\"" + nameof(TestEntity) + "\"";
+        bulkCopy.BatchSize = 50_000;
+        bulkCopy.BulkCopyTimeout = 60;
+
+        bulkCopy.ColumnMappings.Add("Name", "\"Name\"");
+        bulkCopy.ColumnMappings.Add("Price", "\"Price\"");
+        bulkCopy.ColumnMappings.Add("Identifier", "\"Identifier\"");
+        bulkCopy.ColumnMappings.Add("CreatedAt", "\"CreatedAt\"");
+        bulkCopy.ColumnMappings.Add("UpdatedAt", "\"UpdatedAt\"");
+        bulkCopy.ColumnMappings.Add("NumericEnumValue", "\"NumericEnumValue\"");
 
         var dataTable = new DataTable();
         dataTable.Columns.Add("Name", typeof(string));

@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -43,14 +44,20 @@ internal abstract class BulkInsertProviderBase<TDialect, TOptions>(ILogger? logg
             }
 
             var tableName = await PerformBulkInsertAsync(sync, context, tableInfo, entities, options, tempTableRequired: true, ctk: ctk);
-
-            var result =
-                await CopyFromTempTableAsync<T, T>(sync, context, tableInfo, tableName, true, options, onConflict, ctk: ctk)
-                    ?? throw new InvalidOperationException("Copy returns null enumerable.");
-
-            await foreach (var item in result.WithCancellation(ctk))
+            try
             {
-                yield return item;
+                var result =
+                    await CopyFromTempTableAsync<T, T>(sync, context, tableInfo, tableName, true, options, onConflict, ctk: ctk)
+                        ?? throw new InvalidOperationException("Copy returns null enumerable.");
+
+                await foreach (var item in result.WithCancellation(ctk))
+                {
+                    yield return item;
+                }
+            }
+            finally
+            {
+                await PerformDropTempTableAsync(sync, context, tableName);
             }
 
             // Commit the transaction if we own them.
@@ -71,6 +78,11 @@ internal abstract class BulkInsertProviderBase<TDialect, TOptions>(ILogger? logg
         OnConflictOptions<T>? onConflict,
         CancellationToken ctk) where T : class
     {
+        if (entities.TryGetNonEnumeratedCount(out var count) && count == 0)
+        {
+            throw new InvalidOperationException("No entities to insert.");
+        }
+
         using var activity = Telemetry.ActivitySource.StartActivity("BulkInsert");
         activity?.AddTag("tableName", tableInfo.TableName);
         activity?.AddTag("synchronous", sync);
@@ -86,8 +98,14 @@ internal abstract class BulkInsertProviderBase<TDialect, TOptions>(ILogger? logg
                 }
 
                 var tableName = await PerformBulkInsertAsync(sync, context, tableInfo, entities, options, tempTableRequired: true, ctk: ctk);
-
-                await CopyFromTempTableAsync<T, T>(sync, context, tableInfo, tableName, false, options, onConflict, ctk);
+                try
+                {
+                    await CopyFromTempTableAsync<T, T>(sync, context, tableInfo, tableName, false, options, onConflict, ctk);
+                }
+                finally
+                {
+                    await PerformDropTempTableAsync(sync, context, tableName);
+                }
             }
             else
             {
@@ -107,7 +125,6 @@ internal abstract class BulkInsertProviderBase<TDialect, TOptions>(ILogger? logg
             await connection.Close(sync, ctk);
         }
     }
-
     private async Task<string> PerformBulkInsertAsync<T>(
         bool sync,
         DbContext context,
@@ -117,11 +134,6 @@ internal abstract class BulkInsertProviderBase<TDialect, TOptions>(ILogger? logg
         bool tempTableRequired,
         CancellationToken ctk) where T : class
     {
-        if (entities.TryGetNonEnumeratedCount(out var count) && count == 0)
-        {
-            throw new InvalidOperationException("No entities to insert.");
-        }
-
         var tableName = tempTableRequired
             ? await CreateTableCopyAsync<T>(sync, context, options, tableInfo, ctk)
             : tableInfo.QuotedTableName;
@@ -206,6 +218,33 @@ internal abstract class BulkInsertProviderBase<TDialect, TOptions>(ILogger? logg
         // If not returning data, just execute the command
         await ExecuteAsync(sync, context, query, ctk);
         return null;
+    }
+
+    private async Task PerformDropTempTableAsync(bool sync, DbContext dbContext, string tableName)
+    {
+        try
+        {
+            await DropTempTableAsync(sync, dbContext, tableName);
+        }
+        catch (Exception ex)
+        {
+            // The drop operation is not mandatory, therefore never fail the actual operation.
+            if (logger != null)
+            {
+                Log.DropTemporaryTableFailed(logger, ex);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Drops the temporary table manually if needed.
+    /// </summary>
+    /// <param name="sync">Indicates if the operation is synchronous.</param>
+    /// <param name="dbContext">The context.</param>
+    /// <param name="tableName">The table name.</param>
+    protected virtual Task DropTempTableAsync(bool sync, DbContext dbContext, string tableName)
+    {
+        return Task.CompletedTask;
     }
 
     protected static async Task ExecuteAsync(

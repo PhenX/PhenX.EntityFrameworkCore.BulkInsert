@@ -46,20 +46,27 @@ public static class TestHelpers
         }
 
         var actualConfigure = configure ?? (_ => { });
-        switch (strategy)
+        try
         {
-            case InsertStrategy.InsertReturn:
-                return dbContext.ExecuteBulkInsertReturnEntities(entities, actualConfigure, onConflict);
-            case InsertStrategy.InsertReturnAsync:
-                return await dbContext.ExecuteBulkInsertReturnEntitiesAsync(entities, actualConfigure, onConflict);
-            case InsertStrategy.Insert:
-                dbContext.ExecuteBulkInsert(entities, actualConfigure, onConflict);
-                return dbContext.Set<T>().Where(x => x.TestRun == runId).ToList();
-            case InsertStrategy.InsertAsync:
-                await dbContext.ExecuteBulkInsertAsync(entities, actualConfigure, onConflict);
-                return await dbContext.Set<T>().Where(x => x.TestRun == runId).ToListAsync();
-            default:
-                throw new NotImplementedException();
+            switch (strategy)
+            {
+                case InsertStrategy.InsertReturn:
+                    return dbContext.ExecuteBulkInsertReturnEntities(entities, actualConfigure, onConflict);
+                case InsertStrategy.InsertReturnAsync:
+                    return await dbContext.ExecuteBulkInsertReturnEntitiesAsync(entities, actualConfigure, onConflict);
+                case InsertStrategy.Insert:
+                    dbContext.ExecuteBulkInsert(entities, actualConfigure, onConflict);
+                    return dbContext.Set<T>().Where(x => x.TestRun == runId).ToList();
+                case InsertStrategy.InsertAsync:
+                    await dbContext.ExecuteBulkInsertAsync(entities, actualConfigure, onConflict);
+                    return await dbContext.Set<T>().Where(x => x.TestRun == runId).ToListAsync();
+                default:
+                    throw new NotImplementedException();
+            }
+        }
+        finally
+        {
+            dbContext.ChangeTracker.Clear();
         }
     }
 }

@@ -103,12 +103,12 @@ public abstract class BasicTestsBase<TDbContext>(TestDbContainer dbContainer) : 
         // Arrange
         var entities = new List<TestEntity>
         {
-            new TestEntity { Name = $"{_run}_Entity1" },
-            new TestEntity { Name = $"{_run}_Entity2" }
+            new TestEntity { TestRun = _run, Name = $"{_run}_Entity1" },
+            new TestEntity { TestRun = _run, Name = $"{_run}_Entity2" }
         };
 
         // Act
-        await _context.ExecuteBulkInsertAsync(entities);
+        await _context.InsertWithStrategyAsync(strategy, entities);
 
         foreach (var entity in entities)
         {
@@ -457,7 +457,7 @@ public abstract class BasicTestsBase<TDbContext>(TestDbContainer dbContainer) : 
         Assert.Empty(insertedEntities);
     }
     
-    [SkippableFact]
+    [Fact]
     public async Task ThrowsWhenUsingWrongConfigurationType()
     {
         // Skip for providers that don't support this feature
@@ -466,8 +466,8 @@ public abstract class BasicTestsBase<TDbContext>(TestDbContainer dbContainer) : 
         // Arrange
         var entities = new List<TestEntity>
         {
-            new TestEntity { TestRun = _run, Name = $"{_run}_Entity1" },
-            new TestEntity { TestRun = _run, Name = $"{_run}_Entity2" }
+            new TestEntity { Name = $"{_run}_Entity1" },
+            new TestEntity { Name = $"{_run}_Entity2" }
         };
 
         // Act & Assert

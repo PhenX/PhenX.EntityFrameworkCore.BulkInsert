@@ -457,7 +457,7 @@ public abstract class BasicTestsBase<TDbContext>(TestDbContainer dbContainer) : 
         Assert.Empty(insertedEntities);
     }
     
-    [Fact]
+    [SkippableFact]
     public async Task ThrowsWhenUsingWrongConfigurationType()
     {
         // Skip for providers that don't support this feature

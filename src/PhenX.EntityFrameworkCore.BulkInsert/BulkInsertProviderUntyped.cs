@@ -36,6 +36,11 @@ internal abstract class BulkInsertProviderUntyped<TDialect, TOptions> : IBulkIns
             throw new InvalidOperationException($"Invalid options type: {options.GetType().Name}. Expected: {typeof(TOptions).Name}");
         }
 
+        if (entities.TryGetNonEnumeratedCount(out var count) && count == 0)
+        {
+            throw new InvalidOperationException("No entities to insert.");
+        }
+
         return BulkInsertReturnEntities(sync, context, tableInfo, entities, providerOptions, onConflict, ctk);
     }
 
@@ -60,6 +65,11 @@ internal abstract class BulkInsertProviderUntyped<TDialect, TOptions> : IBulkIns
         if (options is not TOptions providerOptions)
         {
             throw new InvalidOperationException($"Invalid options type: {options.GetType().Name}. Expected: {typeof(TOptions).Name}");
+        }
+
+        if (entities.TryGetNonEnumeratedCount(out var count) && count == 0)
+        {
+            throw new InvalidOperationException("No entities to insert.");
         }
 
         return BulkInsert(sync, context, tableInfo, entities, providerOptions, onConflict, ctk);

@@ -20,9 +20,11 @@ internal class SqliteBulkInsertProvider(ILogger<SqliteBulkInsertProvider>? logge
     /// <inheritdoc />
     protected override string BulkInsertId => "rowid";
 
-    //language=sql
     /// <inheritdoc />
     protected override string AddTableCopyBulkInsertId => "--"; // No need to add an ID column in SQLite
+
+    /// <inheritdoc />
+    protected override string GetTempTableName(string tableName) => $"_temp_bulk_insert_test_entity_{Guid.NewGuid():N}";
 
     /// <inheritdoc />
     protected override BulkInsertOptions CreateDefaultOptions() => new()
@@ -114,6 +116,12 @@ internal class SqliteBulkInsertProvider(ILogger<SqliteBulkInsertProvider>? logge
         command.Prepare();
 
         return command;
+    }
+
+    /// <inheritdoc />
+    protected override Task DropTempTableAsync(bool sync, DbContext dbContext, string tableName)
+    {
+        return ExecuteAsync(sync, dbContext, $"DROP TABLE IF EXISTS {tableName}", default);
     }
 
     /// <inheritdoc />

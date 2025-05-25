@@ -15,15 +15,18 @@ jobs:
 
     strategy:
       matrix:
-        dotnet-version: [ '8.0.x', '9.0.x' ]
+        dotnet: [
+          { tfm: net8.0, version: 8.0.x },
+          { tfm: net9.0, version: 9.0.x },
+        ]
 
     steps:
     - uses: actions/checkout@v4
 
-    - name: Setup .NET ${{ matrix.dotnet-version }}
+    - name: Setup .NET ${{ matrix.dotnet.version }}
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: ${{ matrix.dotnet-version }}
+        dotnet-version: ${{ matrix.dotnet.version }}
 
     - name: Display dotnet version
       run: dotnet --version
@@ -32,7 +35,7 @@ jobs:
       run: dotnet restore
 
     - name: Build
-      run: dotnet build --no-restore
+      run: dotnet build --no-restore --framework ${{ matrix.dotnet.tfm }}
 
     - name: Test
-      run: dotnet test --no-build --verbosity normal
+      run: dotnet test --no-build --verbosity normal --framework ${{ matrix.dotnet.tfm }}

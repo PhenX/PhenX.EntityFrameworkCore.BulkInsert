@@ -23,10 +23,10 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Setup .NET ${{ matrix.dotnet.version }}
+    - name: Setup .NET 9.0 # Latest dotnet version supported
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: ${{ matrix.dotnet.version }}
+        dotnet-version: 9.0.x
 
     - name: Display dotnet version
       run: dotnet --version

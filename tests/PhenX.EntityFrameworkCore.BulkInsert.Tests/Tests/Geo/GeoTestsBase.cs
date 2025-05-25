@@ -1,6 +1,7 @@
-﻿using NetTopologySuite.Geometries;
+using FluentAssertions;
 
-using PhenX.EntityFrameworkCore.BulkInsert.Extensions;
+using NetTopologySuite.Geometries;
+
 using PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContainer;
 using PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContext;
 
@@ -11,7 +12,6 @@ namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.Tests.Geo;
 public abstract class GeoTestsBase<TDbContext>(TestDbContainer dbContainer) : IAsyncLifetime
     where TDbContext : TestDbContextGeo, new()
 {
-    private readonly Guid _run = Guid.NewGuid();
     private TDbContext _context = null!;
 
     public async Task InitializeAsync()
@@ -25,8 +25,9 @@ public abstract class GeoTestsBase<TDbContext>(TestDbContainer dbContainer) : IA
         return Task.CompletedTask;
     }
 
-    [Fact]
-    public async Task InsertEntities_WithGeo()
+    [SkippableTheory]
+    [CombinatorialData]
+    public async Task InsertEntities_WithGeo(InsertStrategy strategy)
     {
         // Arrange
         var geo1 = new Point(1, 2) { SRID = 4326 };
@@ -34,17 +35,15 @@ public abstract class GeoTestsBase<TDbContext>(TestDbContainer dbContainer) : IA
 
         var entities = new List<TestEntityWithGeo>
         {
-            new TestEntityWithGeo { TestRun = _run, GeoObject = geo1 },
-            new TestEntityWithGeo { TestRun = _run, GeoObject = geo2 }
+            new TestEntityWithGeo { GeoObject = geo1 },
+            new TestEntityWithGeo { GeoObject = geo2 }
         };
 
         // Act
-        await _context.ExecuteBulkInsertAsync(entities);
+        var insertedEntities = await _context.InsertWithStrategyAsync(strategy, entities);
 
         // Assert
-        var insertedEntities = _context.TestEntitiesWithGeo.Where(x => x.TestRun == _run).ToList();
-        Assert.Equal(2, insertedEntities.Count);
-        Assert.Contains(insertedEntities, e => e.GeoObject == geo1);
-        Assert.Contains(insertedEntities, e => e.GeoObject == geo2);
+        insertedEntities.Should().BeEquivalentTo(entities,
+            o => o.RespectingRuntimeTypes().Excluding((TestEntityWithGeo e) => e.Id));
     }
 }

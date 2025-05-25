@@ -8,7 +8,7 @@ namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContext;
 [PrimaryKey(nameof(Id))]
 [Index(nameof(Name), IsUnique = true)]
 [Table("test_entity")]
-public class TestEntity
+public class TestEntity : TestEntityBase
 {
     public int Id { get; set; }
 
@@ -18,9 +18,6 @@ public class TestEntity
 
     [Column("some_price")]
     public decimal Price { get; set; }
-
-    [Column("test_run")]
-    public Guid TestRun { get; set; }
 
     [Column("the_identifier")]
     public Guid Identifier { get; set; }

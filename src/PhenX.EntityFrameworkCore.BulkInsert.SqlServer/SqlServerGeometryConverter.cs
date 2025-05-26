@@ -1,10 +1,11 @@
-﻿using System.Data.SqlTypes;
+using System.Data.SqlTypes;
 
 using Microsoft.SqlServer.Types;
 
 using NetTopologySuite.Geometries;
 
 using PhenX.EntityFrameworkCore.BulkInsert.Abstractions;
+using PhenX.EntityFrameworkCore.BulkInsert.Options;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.SqlServer;
 
@@ -16,12 +17,12 @@ internal sealed class SqlServerGeometryConverter : IBulkValueConverter
     {
     }
 
-    public bool TryConvertValue(object source, out object result)
+    public bool TryConvertValue(object source, BulkInsertOptions options, out object result)
     {
         if (source is Geometry geometry)
         {
             var reversed = Reverse(geometry);
-            result = SqlGeometry.STGeomFromWKB(new SqlBytes(reversed.AsBinary()), geometry.SRID);
+            result = SqlGeometry.STGeomFromWKB(new SqlBytes(reversed.AsBinary()), options.SRID);
             return true;
         }
 

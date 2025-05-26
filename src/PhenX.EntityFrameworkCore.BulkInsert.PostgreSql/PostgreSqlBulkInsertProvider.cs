@@ -35,7 +35,6 @@ internal class PostgreSqlBulkInsertProvider(ILogger<PostgreSqlBulkInsertProvider
     {
         BatchSize = 50_000,
         Converters = [PostgreSqlGeometryConverter.Instance],
-        TypeProviders = [PostgreSqlGeometryConverter.Instance],
     };
 
     /// <inheritdoc />

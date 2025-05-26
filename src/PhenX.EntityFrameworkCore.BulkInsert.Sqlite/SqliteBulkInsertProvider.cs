@@ -20,9 +20,11 @@ internal class SqliteBulkInsertProvider(ILogger<SqliteBulkInsertProvider>? logge
     /// <inheritdoc />
     protected override string BulkInsertId => "rowid";
 
-    //language=sql
     /// <inheritdoc />
     protected override string AddTableCopyBulkInsertId => "--"; // No need to add an ID column in SQLite
+
+    /// <inheritdoc />
+    protected override string GetTempTableName(string tableName) => $"_temp_bulk_insert_test_entity_{Guid.NewGuid():N}";
 
     /// <inheritdoc />
     protected override BulkInsertOptions CreateDefaultOptions() => new()
@@ -117,6 +119,12 @@ internal class SqliteBulkInsertProvider(ILogger<SqliteBulkInsertProvider>? logge
     }
 
     /// <inheritdoc />
+    protected override Task DropTempTableAsync(bool sync, DbContext dbContext, string tableName)
+    {
+        return ExecuteAsync(sync, dbContext, $"DROP TABLE IF EXISTS {tableName}", default);
+    }
+
+    /// <inheritdoc />
     protected override async Task BulkInsert<T>(
         bool sync,
         DbContext context,
@@ -136,37 +144,48 @@ internal class SqliteBulkInsertProvider(ILogger<SqliteBulkInsertProvider>? logge
         var columnList = tableInfo.GetColumns(options.CopyGeneratedColumns);
         var columnTypes = columnList.Select(GetSqliteType).ToArray();
 
-        await using var insertCommand =
-            GetInsertCommand(
-                context,
-                tableName,
-                columnList,
-                columnTypes,
-                sb,
-                batchSize);
-
-        foreach (var chunk in entities.Chunk(batchSize))
+        DbCommand? insertCommand = null;
+        try
         {
-            // Full chunks
-            if (chunk.Length == batchSize)
+            foreach (var chunk in entities.Chunk(batchSize))
             {
-                FillValues(chunk, insertCommand.Parameters, columns);
-                await ExecuteCommand(sync, insertCommand, ctk);
-            }
-            // Last chunk
-            else
-            {
-                await using var partialInsertCommand =
-                GetInsertCommand(
-                    context,
-                    tableName,
-                    columnList,
-                    columnTypes,
-                    sb,
-                    chunk.Length);
+                // Full chunks
+                if (chunk.Length == batchSize)
+                {
+                    insertCommand ??=
+                        GetInsertCommand(
+                            context,
+                            tableName,
+                            columnList,
+                            columnTypes,
+                            sb,
+                            batchSize);
 
-                FillValues(chunk, partialInsertCommand.Parameters, columns);
-                await ExecuteCommand(sync, partialInsertCommand, ctk);
+                    FillValues(chunk, insertCommand.Parameters, columns, options);
+                    await ExecuteCommand(sync, insertCommand, ctk);
+                }
+                // Last chunk
+                else
+                {
+                    await using var partialInsertCommand =
+                        GetInsertCommand(
+                            context,
+                            tableName,
+                            columnList,
+                            columnTypes,
+                            sb,
+                            chunk.Length);
+
+                    FillValues(chunk, partialInsertCommand.Parameters, columns, options);
+                    await ExecuteCommand(sync, partialInsertCommand, ctk);
+                }
+            }
+        }
+        finally
+        {
+            if (insertCommand != null)
+            {
+                await insertCommand.DisposeAsync();
             }
         }
     }
@@ -184,7 +203,11 @@ internal class SqliteBulkInsertProvider(ILogger<SqliteBulkInsertProvider>? logge
         }
     }
 
-    private static void FillValues<T>(T[] chunk, DbParameterCollection parameters, IReadOnlyList<ColumnMetadata> columns) where T : class
+    private static void FillValues<T>(
+        T[] chunk,
+        DbParameterCollection parameters,
+        IReadOnlyList<ColumnMetadata> columns,
+        BulkInsertOptions options) where T : class
     {
         var p = 0;
 
@@ -195,7 +218,7 @@ internal class SqliteBulkInsertProvider(ILogger<SqliteBulkInsertProvider>? logge
             for (var columnIndex = 0; columnIndex < columns.Count; columnIndex++)
             {
                 var column = columns[columnIndex];
-                var value = column.GetValue(entity, null);
+                var value = column.GetValue(entity, options);
                 parameters[p].Value = value;
                 p++;
             }

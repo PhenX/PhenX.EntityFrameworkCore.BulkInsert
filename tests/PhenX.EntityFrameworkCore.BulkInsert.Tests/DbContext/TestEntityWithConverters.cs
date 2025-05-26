@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContext;
 
 [Table("test_entity_with_converters")]
-public class TestEntityWithConverters
+public class TestEntityWithConverters : TestEntityBase
 {
     public int Id { get; set; }
 
@@ -14,8 +14,5 @@ public class TestEntityWithConverters
 
     [Column("created_at")]
     public DateTime CreatedAt { get; set; }
-
-    [Column("test_run")]
-    public Guid TestRun { get; set; }
 }
 

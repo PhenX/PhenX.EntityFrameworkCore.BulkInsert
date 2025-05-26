@@ -51,7 +51,7 @@ internal class SqlServerBulkInsertProvider(ILogger<SqlServerBulkInsertProvider>?
             bulkCopy.ColumnMappings.Add(column.PropertyName, column.ColumnName);
         }
 
-        var dataReader = new EnumerableDataReader<T>(entities, columns, options.Converters);
+        var dataReader = new EnumerableDataReader<T>(entities, columns, options);
 
         if (sync)
         {

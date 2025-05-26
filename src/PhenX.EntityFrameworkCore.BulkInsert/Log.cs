@@ -21,4 +21,10 @@ internal static partial class Log
         Level = LogLevel.Trace,
         Message = "Insert to table directly")]
     public static partial void UsingDirectInsert(ILogger logger);
+
+    [LoggerMessage(
+        EventId = 1003,
+        Level = LogLevel.Error,
+        Message = "Failed to drop temporary table.")]
+    public static partial void DropTemporaryTableFailed(ILogger logger, Exception exception);
 }

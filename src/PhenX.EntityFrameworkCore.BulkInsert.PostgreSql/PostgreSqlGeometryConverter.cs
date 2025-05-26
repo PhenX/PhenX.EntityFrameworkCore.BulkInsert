@@ -1,14 +1,11 @@
-﻿using Microsoft.EntityFrameworkCore.Metadata;
-
 using NetTopologySuite.Geometries;
 
-using NpgsqlTypes;
-
 using PhenX.EntityFrameworkCore.BulkInsert.Abstractions;
+using PhenX.EntityFrameworkCore.BulkInsert.Options;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.PostgreSql;
 
-internal sealed class PostgreSqlGeometryConverter : IBulkValueConverter, IPostgresTypeProvider
+internal sealed class PostgreSqlGeometryConverter : IBulkValueConverter
 {
     public static readonly PostgreSqlGeometryConverter Instance = new();
 
@@ -16,27 +13,21 @@ internal sealed class PostgreSqlGeometryConverter : IBulkValueConverter, IPostgr
     {
     }
 
-    public bool TryConvertValue(object source, out object result)
+    public bool TryConvertValue(object source, BulkInsertOptions options, out object result)
     {
         if (source is Geometry geometry)
         {
-            result = geometry.ToBinary();
+            if (geometry.SRID != options.SRID)
+            {
+                geometry = geometry.Copy();
+                geometry.SRID = options.SRID;
+            }
+
+            result = geometry;
             return true;
         }
 
         result = source;
-        return false;
-    }
-
-    public bool TryGetType(IProperty property, out NpgsqlDbType result)
-    {
-        if (property.ClrType.IsAssignableTo(typeof(Geometry)))
-        {
-            result = NpgsqlDbType.Bytea;
-            return true;
-        }
-
-        result = default;
         return false;
     }
 }

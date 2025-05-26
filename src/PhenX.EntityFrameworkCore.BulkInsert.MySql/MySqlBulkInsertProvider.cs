@@ -71,7 +71,7 @@ internal class MySqlBulkInsertProvider(ILogger<MySqlBulkInsertProvider> logger) 
             sourceOrdinal++;
         }
 
-        var dataReader = new EnumerableDataReader<T>(entities, properties, options.Converters);
+        var dataReader = new EnumerableDataReader<T>(entities, properties, options);
         
         if (sync)
         {

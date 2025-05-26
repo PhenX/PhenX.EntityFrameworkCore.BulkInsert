@@ -1,3 +1,5 @@
+using FluentAssertions;
+
 using PhenX.EntityFrameworkCore.BulkInsert.Enums;
 using PhenX.EntityFrameworkCore.BulkInsert.Extensions;
 using PhenX.EntityFrameworkCore.BulkInsert.MySql;
@@ -27,91 +29,48 @@ public abstract class BasicTestsBase<TDbContext>(TestDbContainer dbContainer) : 
         return Task.CompletedTask;
     }
 
-    [Fact]
-    public async Task InsertsEntities()
+    [SkippableTheory]
+    [CombinatorialData]
+    public async Task InsertsEntities(InsertStrategy strategy)
     {
         // Arrange
         var entities = new List<TestEntity>
         {
-            new TestEntity { TestRun = _run, Name = $"{_run}_Entity1" },
-            new TestEntity { TestRun = _run, Name = $"{_run}_Entity2" }
+            new TestEntity { Name = $"{_run}_Entity1" },
+            new TestEntity { Name = $"{_run}_Entity2" }
         };
 
         // Act
-        await _context.ExecuteBulkInsertAsync(entities);
+        var insertedEntities = await _context.InsertWithStrategyAsync(strategy, entities);
 
         // Assert
-        var insertedEntities = _context.TestEntities.Where(x => x.TestRun == _run).ToList();
-        Assert.Equal(2, insertedEntities.Count);
-        Assert.Contains(insertedEntities, e => e.Name == $"{_run}_Entity1");
-        Assert.Contains(insertedEntities, e => e.Name == $"{_run}_Entity2");
+        insertedEntities.Should().BeEquivalentTo(entities,
+            o => o.RespectingRuntimeTypes().Excluding((TestEntity e) => e.Id));
     }
 
-    [Fact]
-    public void InsertEntities_Sync()
-    {
-        // Arrange
-        var entities = new List<TestEntity>
-        {
-            new TestEntity { TestRun = _run, Name = $"{_run}_Entity1" },
-            new TestEntity { TestRun = _run, Name = $"{_run}_Entity2" }
-        };
-
-        // Act
-        _context.ExecuteBulkInsert(entities);
-
-        // Assert
-        var insertedEntities = _context.TestEntities.Where(x => x.TestRun == _run).ToList();
-        Assert.Equal(2, insertedEntities.Count);
-        Assert.Contains(insertedEntities, e => e.Name == $"{_run}_Entity1");
-        Assert.Contains(insertedEntities, e => e.Name == $"{_run}_Entity2");
-    }
-
-    [SkippableFact]
-    public async Task InsertEntities_AndReturn()
-    {
-        Skip.If(_context.IsProvider(ProviderType.MySql));
-
-        // Arrange
-        var entities = new List<TestEntity>
-        {
-            new TestEntity { TestRun = _run, Name = $"{_run}_Entity1" },
-            new TestEntity { TestRun = _run, Name = $"{_run}_Entity2" }
-        };
-
-        // Act
-        var insertedEntities = await _context.ExecuteBulkInsertReturnEntitiesAsync(entities);
-
-        // Assert
-        Assert.Equal(2, insertedEntities.Count);
-        Assert.Contains(insertedEntities, e => e.Name == $"{_run}_Entity1");
-        Assert.Contains(insertedEntities, e => e.Name == $"{_run}_Entity2");
-    }
-
-    [Fact]
-    public async Task InsertEntities_WithJson()
+    [SkippableTheory]
+    [CombinatorialData]
+    public async Task InsertEntities_WithJson(InsertStrategy strategy)
     {
         // Arrange
         var entities = new List<TestEntityWithJson>
         {
-            new TestEntityWithJson { TestRun = _run, Json = [1] },
-            new TestEntityWithJson { TestRun = _run, Json = [2] }
+            new TestEntityWithJson { Json = [1] },
+            new TestEntityWithJson { Json = [2] }
         };
 
         // Act
-        await _context.ExecuteBulkInsertAsync(entities);
+        var insertedEntities = await _context.InsertWithStrategyAsync(strategy, entities);
 
         // Assert
-        var insertedEntities = _context.TestEntitiesWithJson.Where(x => x.TestRun == _run).ToList();
-        Assert.Equal(2, insertedEntities.Count);
-        Assert.Contains(insertedEntities, e => e.Json[0] == 1);
-        Assert.Contains(insertedEntities, e => e.Json[0] == 2);
+        insertedEntities.Should().BeEquivalentTo(entities,
+            o => o.RespectingRuntimeTypes().Excluding((TestEntityWithJson e) => e.Id));
     }
 
     [SkippableFact]
     public async Task InsertEntities_AndReturn_AsyncEnumerable()
     {
-        Skip.If(_context.Database.ProviderName!.Contains("Mysql", StringComparison.InvariantCultureIgnoreCase));
+        Skip.If(_context.IsProvider(ProviderType.MySql));
 
         // Arrange
         var entities = new List<TestEntity>
@@ -122,6 +81,7 @@ public abstract class BasicTestsBase<TDbContext>(TestDbContainer dbContainer) : 
 
         // Act
         var enumerable = _context.ExecuteBulkInsertReturnEnumerableAsync(entities);
+
         var insertedEntities = new List<TestEntity>();
         await foreach (var item in enumerable)
         {
@@ -129,34 +89,13 @@ public abstract class BasicTestsBase<TDbContext>(TestDbContainer dbContainer) : 
         }
 
         // Assert
-        Assert.Equal(2, insertedEntities.Count);
-        Assert.Contains(insertedEntities, e => e.Name == $"{_run}_Entity1");
-        Assert.Contains(insertedEntities, e => e.Name == $"{_run}_Entity2");
+        insertedEntities.Should().BeEquivalentTo(entities,
+            o => o.RespectingRuntimeTypes().Excluding((TestEntity e) => e.Id));
     }
 
-    [SkippableFact]
-    public void InsertEntities_AndReturn_Sync()
-    {
-        Skip.If(_context.IsProvider(ProviderType.MySql));
-
-        // Arrange
-        var entities = new List<TestEntity>
-        {
-            new TestEntity { TestRun = _run, Name = $"{_run}_Entity1" },
-            new TestEntity { TestRun = _run, Name = $"{_run}_Entity2" }
-        };
-
-        // Act
-        var insertedEntities = _context.ExecuteBulkInsertReturnEntities(entities);
-
-        // Assert
-        Assert.Equal(2, insertedEntities.Count);
-        Assert.Contains(insertedEntities, e => e.Name == $"{_run}_Entity1");
-        Assert.Contains(insertedEntities, e => e.Name == $"{_run}_Entity2");
-    }
-
-    [SkippableFact]
-    public async Task InsertEntities_MultipleTimes()
+    [SkippableTheory]
+    [CombinatorialData]
+    public async Task InsertEntities_MultipleTimes(InsertStrategy strategy)
     {
         Skip.If(_context.IsProvider(ProviderType.PostgreSql));
         Skip.If(_context.IsProvider(ProviderType.SqlServer));
@@ -169,34 +108,33 @@ public abstract class BasicTestsBase<TDbContext>(TestDbContainer dbContainer) : 
         };
 
         // Act
-        await _context.ExecuteBulkInsertAsync(entities);
+        await _context.InsertWithStrategyAsync(strategy, entities);
 
         foreach (var entity in entities)
         {
             entity.NumericEnumValue = NumericEnum.Second;
         }
 
-        await _context.ExecuteBulkInsertAsync(entities,
+        var insertedEntities = await _context.InsertWithStrategyAsync(strategy, entities,
             onConflict: new OnConflictOptions<TestEntity>
             {
                 Update = e => e,
             });
 
         // Assert
-        var insertedEntities = _context.TestEntities.Where(x => x.TestRun == _run).ToList();
-        Assert.Equal(2, insertedEntities.Count);
-        Assert.Contains(insertedEntities, e => e.NumericEnumValue == NumericEnum.Second);
-        Assert.Contains(insertedEntities, e => e.NumericEnumValue == NumericEnum.Second);
+        insertedEntities.Should().BeEquivalentTo(entities,
+            o => o.RespectingRuntimeTypes().Excluding((TestEntity e) => e.Id));
     }
 
-    [SkippableFact]
-    public async Task InsertEntities_MultipleTimes_WithGuidId()
+    [SkippableTheory]
+    [CombinatorialData]
+    public async Task InsertEntities_MultipleTimes_WithGuidId(InsertStrategy strategy)
     {
         // Arrange
         var entities = new List<TestEntityWithGuidId>
         {
-            new TestEntityWithGuidId { Id = Guid.NewGuid(), TestRun = _run, Name = $"{_run}_Entity1" },
-            new TestEntityWithGuidId { Id = Guid.NewGuid(), TestRun = _run, Name = $"{_run}_Entity2" }
+            new TestEntityWithGuidId { Id = Guid.NewGuid(), Name = $"{_run}_Entity1" },
+            new TestEntityWithGuidId { Id = Guid.NewGuid(), Name = $"{_run}_Entity2" }
         };
 
         // Act
@@ -207,39 +145,36 @@ public abstract class BasicTestsBase<TDbContext>(TestDbContainer dbContainer) : 
             entity.Name = $"Updated_{entity.Name}";
         }
 
-        await _context.ExecuteBulkInsertAsync(entities,
+        var insertedEntities = await _context.InsertWithStrategyAsync(strategy, entities,
             onConflict: new OnConflictOptions<TestEntityWithGuidId>
             {
                 Update = e => e,
             });
 
         // Assert
-        var insertedEntities = _context.TestEntitiesWithGuidId.Where(x => x.TestRun == _run).ToList();
-        Assert.Equal(2, insertedEntities.Count);
-        Assert.Contains(insertedEntities, e => e.Name == $"Updated_{_run}_Entity1");
-        Assert.Contains(insertedEntities, e => e.Name == $"Updated_{_run}_Entity2");
+        insertedEntities.Should().BeEquivalentTo(entities,
+            o => o.RespectingRuntimeTypes().Excluding((TestEntityWithGuidId e) => e.Id));
     }
 
-    [SkippableFact]
-    public async Task InsertEntities_MultipleTimes_With_Conflict_On_Id()
+    [SkippableTheory]
+    [CombinatorialData]
+    public async Task InsertEntities_MultipleTimes_With_Conflict_On_Id(InsertStrategy strategy)
     {
         // Arrange
         var entities = new List<TestEntity>
         {
-            new TestEntity { TestRun = _run, Name = $"{_run}_Entity1" },
-            new TestEntity { TestRun = _run, Name = $"{_run}_Entity2" }
+            new TestEntity { Name = $"{_run}_Entity1" },
+            new TestEntity { Name = $"{_run}_Entity2" }
         };
 
         // Act
-        await _context.ExecuteBulkInsertAsync(entities);
-
-        var insertedEntities0 = _context.TestEntities.Where(x => x.TestRun == _run).ToList();
+        var insertedEntities0 = await _context.InsertWithStrategyAsync(strategy, entities);
         foreach (var entity in insertedEntities0)
         {
             entity.Name = $"Updated_{entity.Name}";
         }
 
-        await _context.ExecuteBulkInsertAsync(insertedEntities0,
+        var insertedEntities1 = await _context.InsertWithStrategyAsync(strategy, insertedEntities0,
             o => o.CopyGeneratedColumns = true,
             onConflict: new OnConflictOptions<TestEntity>
             {
@@ -247,53 +182,52 @@ public abstract class BasicTestsBase<TDbContext>(TestDbContainer dbContainer) : 
             });
 
         // Assert
-        var insertedEntities1 = _context.TestEntities.Where(x => x.TestRun == _run).ToList();
-        Assert.Equal(2, insertedEntities1.Count);
-        Assert.Contains(insertedEntities1, e => e.Name == $"Updated_{_run}_Entity1");
-        Assert.Contains(insertedEntities1, e => e.Name == $"Updated_{_run}_Entity2");
+        insertedEntities1.Should().BeEquivalentTo(insertedEntities0,
+            o => o.RespectingRuntimeTypes().Excluding((TestEntity e) => e.Id));
     }
 
-    [Fact]
-    public async Task InsertEntities_MoveRows()
+    [SkippableTheory]
+    [CombinatorialData]
+    public async Task InsertEntities_MoveRows(InsertStrategy strategy)
     {
         // Arrange
         var entities = new List<TestEntity>
         {
-            new TestEntity { TestRun = _run, Name = $"{_run}_Entity1" },
-            new TestEntity { TestRun = _run, Name = $"{_run}_Entity2" }
+            new TestEntity { Name = $"{_run}_Entity1" },
+            new TestEntity { Name = $"{_run}_Entity2" }
         };
 
         // Act
-        await _context.ExecuteBulkInsertAsync(entities, o =>
+        var insertedEntities = await _context.InsertWithStrategyAsync(strategy, entities, o =>
         {
             o.MoveRows = true;
         });
 
         // Assert
-        var insertedEntities = _context.TestEntities.Where(x => x.TestRun == _run).ToList();
-        Assert.Equal(2, insertedEntities.Count);
-        Assert.Contains(insertedEntities, e => e.Name == $"{_run}_Entity1");
-        Assert.Contains(insertedEntities, e => e.Name == $"{_run}_Entity2");
+        insertedEntities.Should().BeEquivalentTo(entities,
+            o => o.RespectingRuntimeTypes().Excluding((TestEntity e) => e.Id));
     }
 
-    [SkippableFact]
-    public async Task InsertEntities_WithConflict_SingleColumn()
+    [SkippableTheory]
+    [InlineData(InsertStrategy.InsertReturn)]
+    [InlineData(InsertStrategy.InsertReturnAsync)]
+    public async Task InsertEntities_WithConflict_SingleColumn(InsertStrategy strategy)
     {
         Skip.If(_context.IsProvider(ProviderType.MySql));
 
-        _context.TestEntities.Add(new TestEntity { TestRun = _run, Name = $"{_run}_Entity1" });
-        await _context.SaveChangesAsync();
+        // Arrange
+        _context.TestEntities.Add(new TestEntity { Name = $"{_run}_Entity1" });
+        _context.SaveChanges();
         _context.ChangeTracker.Clear();
 
-        // Arrange
         var entities = new List<TestEntity>
         {
-            new TestEntity { TestRun = _run, Name = $"{_run}_Entity1" },
+            new TestEntity { Name = $"{_run}_Entity1" },
             new TestEntity { TestRun = _run, Name = $"{_run}_Entity2" },
         };
 
         // Act
-        await _context.ExecuteBulkInsertAsync(entities, o =>
+        var insertedEntities = await _context.InsertWithStrategyAsync(strategy, entities, o =>
         {
             o.MoveRows = true;
         }, new OnConflictOptions<TestEntity>
@@ -309,19 +243,21 @@ public abstract class BasicTestsBase<TDbContext>(TestDbContainer dbContainer) : 
         });
 
         // Assert
-        var insertedEntities = _context.TestEntities.Where(x => x.TestRun == _run).ToList();
         Assert.Equal(2, insertedEntities.Count);
         Assert.Contains(insertedEntities, e => e.Name == $"{_run}_Entity1 - Conflict");
         Assert.Contains(insertedEntities, e => e.Name == $"{_run}_Entity2");
     }
 
-    [SkippableFact]
-    public async Task InsertEntities_WithConflict_DoNothing()
+    [SkippableTheory]
+    [InlineData(InsertStrategy.Insert)]
+    [InlineData(InsertStrategy.InsertAsync)]
+    public async Task InsertEntities_WithConflict_DoNothing(InsertStrategy strategy)
     {
         Skip.If(_context.IsProvider(ProviderType.MySql));
 
+        // Arrange
         _context.TestEntities.Add(new TestEntity { TestRun = _run, Name = $"{_run}_Entity1" });
-        await _context.SaveChangesAsync();
+        _context.SaveChanges();
         _context.ChangeTracker.Clear();
 
         var entities = new List<TestEntity>
@@ -330,28 +266,31 @@ public abstract class BasicTestsBase<TDbContext>(TestDbContainer dbContainer) : 
             new TestEntity { TestRun = _run, Name = $"{_run}_Entity2" },
         };
 
-        await _context.ExecuteBulkInsertAsync(entities, o =>
+        // Act
+        var insertedEntities = await _context.InsertWithStrategyAsync(strategy, entities, o =>
         {
             o.MoveRows = true;
         }, new OnConflictOptions<TestEntity>
         {
             Match = e => new { e.Name }
-            // Pas de Update => DO NOTHING
         });
 
-        var insertedEntities = _context.TestEntities.Where(x => x.TestRun == _run).ToList();
+        // Assert
         Assert.Equal(2, insertedEntities.Count);
         Assert.Contains(insertedEntities, e => e.Name == $"{_run}_Entity1");
         Assert.Contains(insertedEntities, e => e.Name == $"{_run}_Entity2");
     }
 
-    [SkippableFact]
-    public async Task InsertEntities_WithConflict_Condition()
+    [SkippableTheory]
+    [InlineData(InsertStrategy.InsertReturn)]
+    [InlineData(InsertStrategy.InsertReturnAsync)]
+    public async Task InsertEntities_WithConflict_Condition(InsertStrategy strategy)
     {
         Skip.If(_context.IsProvider(ProviderType.MySql));
 
+        // Arrange
         _context.TestEntities.Add(new TestEntity { TestRun = _run, Name = $"{_run}_Entity1", Price = 10 });
-        await _context.SaveChangesAsync();
+        _context.SaveChanges();
         _context.ChangeTracker.Clear();
 
         var entities = new List<TestEntity>
@@ -360,7 +299,8 @@ public abstract class BasicTestsBase<TDbContext>(TestDbContainer dbContainer) : 
             new TestEntity { TestRun = _run, Name = $"{_run}_Entity2", Price = 30 },
         };
 
-        await _context.ExecuteBulkInsertAsync(entities, o =>
+        // Act
+        var insertedEntities = await _context.InsertWithStrategyAsync(strategy, entities, o =>
         {
             o.MoveRows = true;
         }, new OnConflictOptions<TestEntity>
@@ -370,19 +310,22 @@ public abstract class BasicTestsBase<TDbContext>(TestDbContainer dbContainer) : 
             Condition = "EXCLUDED.some_price > test_entity.some_price"
         });
 
-        var insertedEntities = _context.TestEntities.Where(x => x.TestRun == _run).ToList();
+        // Assert
         Assert.Equal(2, insertedEntities.Count);
         Assert.Contains(insertedEntities, e => e.Name == $"{_run}_Entity1" && e.Price == 20);
         Assert.Contains(insertedEntities, e => e.Name == $"{_run}_Entity2" && e.Price == 30);
     }
 
-    [SkippableFact]
-    public async Task InsertEntities_WithConflict_MultipleColumns()
+    [SkippableTheory]
+    [InlineData(InsertStrategy.InsertReturn)]
+    [InlineData(InsertStrategy.InsertReturnAsync)]
+    public async Task InsertEntities_WithConflict_MultipleColumns(InsertStrategy strategy)
     {
         Skip.If(_context.IsProvider(ProviderType.MySql));
 
+        // Arrange
         _context.TestEntities.Add(new TestEntity { TestRun = _run, Name = $"{_run}_Entity1", Price = 10 });
-        await _context.SaveChangesAsync();
+        _context.SaveChanges();
         _context.ChangeTracker.Clear();
 
         var entities = new List<TestEntity>
@@ -391,92 +334,89 @@ public abstract class BasicTestsBase<TDbContext>(TestDbContainer dbContainer) : 
             new TestEntity { TestRun = _run, Name = $"{_run}_Entity2", Price = 30, Identifier = Guid.NewGuid() },
         };
 
-        await _context.ExecuteBulkInsertAsync(entities, o =>
+        // Act
+        var insertedEntities = await _context.InsertWithStrategyAsync(strategy, entities, o =>
         {
             o.MoveRows = true;
         }, new OnConflictOptions<TestEntity>
         {
             Match = e => new { e.Name },
-            Update = e => new TestEntity {
-                Name = e.Name + " - Conflict",
-                Price = 0,
-            }
+            Update = e => new TestEntity { Name = e.Name + " - Conflict", Price = 0 }
         });
 
-        var insertedEntities = _context.TestEntities.Where(x => x.TestRun == _run).ToList();
+        // Assert
         Assert.Equal(2, insertedEntities.Count);
-        Assert.Equal(1, insertedEntities.Count(e => e.Name == $"{_run}_Entity1 - Conflict"));
         Assert.Contains(insertedEntities, e => e.Name == $"{_run}_Entity2");
-
-        var entity1 = insertedEntities.First(e => e.Name == $"{_run}_Entity1 - Conflict");
-        Assert.Equal(0, entity1.Price);
+        Assert.Contains(insertedEntities, e => e.Name == $"{_run}_Entity1 - Conflict" && e.Price == 0);
     }
 
-    [Fact]
-    public async Task InsertEntities_DoesNothing_WhenEntitiesAreEmpty()
+    [SkippableTheory]
+    [CombinatorialData]
+    public async Task InsertEntities_DoesNothing_WhenEntitiesAreEmpty(InsertStrategy strategy)
     {
         // Arrange
         var entities = new List<TestEntity>();
 
         // Act
-        await Assert.ThrowsAsync<InvalidOperationException>(async () => await _context.ExecuteBulkInsertAsync(entities));
+        await Assert.ThrowsAsync<InvalidOperationException>(async () => await _context.InsertWithStrategyAsync(strategy, entities));
 
         // Assert
         var insertedEntities = _context.TestEntities.Where(x => x.TestRun == _run).ToList();
         Assert.Empty(insertedEntities);
     }
 
-    [Fact]
-    public async Task InsertEntities_Many()
+    [SkippableTheory]
+    [CombinatorialData]
+    public async Task InsertEntities_Many(InsertStrategy strategy)
     {
         // Arrange
         const int count = 156055;
+
         var entities = Enumerable.Range(1, count).Select(i => new TestEntity
         {
-            Name = $"{_run}_Entity{i}",
-            Price = (decimal)(i * 0.1),
             Identifier = Guid.NewGuid(),
-            StringEnumValue = (StringEnum)(i % 2),
+            Name = $"{_run}_Entity{i}",
             NumericEnumValue = (NumericEnum)(i % 2),
-            TestRun = _run,
+            Price = (decimal)(i * 0.1),
+            StringEnumValue = (StringEnum)(i % 2),
         }).ToList();
 
         // Act
-        await _context.ExecuteBulkInsertAsync(entities, o =>
+        var insertedEntities = await _context.InsertWithStrategyAsync(strategy, entities, o =>
         {
             o.MoveRows = false;
         });
 
         // Assert
-        var insertedEntities = _context.TestEntities.Where(x => x.TestRun == _run).ToList();
         Assert.Equal(count, insertedEntities.Count);
         Assert.Contains(insertedEntities, e => e.Name == $"{_run}_Entity1");
         Assert.Contains(insertedEntities, e => e.Name == $"{_run}_Entity" + count);
     }
 
-    [Fact]
-    public async Task InsertEntities_AndReturn_WithEntityWithValueConverters()
+    [SkippableTheory]
+    [CombinatorialData]
+    public async Task InsertEntities_AndReturn_WithEntityWithValueConverters(InsertStrategy strategy)
     {
         // Arrange
         var now = DateTime.UtcNow;
+
         var entities = new List<TestEntityWithConverters>
         {
-            new() { TestRun = _run, Name = $"{_run}_Entity1", CreatedAt = now },
-            new() { TestRun = _run, Name = $"{_run}_Entity2", CreatedAt = now.AddDays(-1) }
+            new TestEntityWithConverters() { Name = $"{_run}_Entity1", CreatedAt = now },
+            new TestEntityWithConverters() { Name = $"{_run}_Entity2", CreatedAt = now.AddDays(-1) }
         };
 
         // Act
-        await _context.ExecuteBulkInsertAsync(entities);
-        var inserted = _context.TestEntitiesWithConverter.Where(x => x.TestRun == _run).ToList();
+        var insertedEntities = await _context.InsertWithStrategyAsync(strategy, entities);
 
         // Assert
-        Assert.Equal(2, inserted.Count);
-        Assert.Contains(inserted, e => e.Name == $"{_run}_Entity1" && e.CreatedAt == now);
-        Assert.Contains(inserted, e => e.Name == $"{_run}_Entity2" && e.CreatedAt == now.AddDays(-1));
+        insertedEntities.Should().BeEquivalentTo(entities,
+            o => o.RespectingRuntimeTypes().Excluding((TestEntityWithConverters e) => e.Id));
     }
 
-    [Fact]
-    public async Task InsertEntities_WithOpenTransaction_CommitsSuccessfully()
+    [SkippableTheory]
+    [CombinatorialData]
+    public async Task InsertEntities_WithOpenTransaction_CommitsSuccessfully(InsertStrategy strategy)
     {
         // Arrange
         var entities = new List<TestEntity>
@@ -485,42 +425,19 @@ public abstract class BasicTestsBase<TDbContext>(TestDbContainer dbContainer) : 
             new TestEntity { TestRun = _run, Name = $"{_run}_EntityWithTx2" }
         };
 
+        // Act
         await using var transaction = await _context.Database.BeginTransactionAsync();
-
-        await _context.ExecuteBulkInsertAsync(entities);
-
+        var insertedEntities = await _context.InsertWithStrategyAsync(strategy, entities);
         await transaction.CommitAsync();
 
         // Assert
-        var insertedEntities = _context.TestEntities.Where(x => x.TestRun == _run).ToList();
-        Assert.Contains(insertedEntities, e => e.Name == $"{_run}_EntityWithTx1");
-        Assert.Contains(insertedEntities, e => e.Name == $"{_run}_EntityWithTx2");
+        insertedEntities.Should().BeEquivalentTo(entities,
+            o => o.RespectingRuntimeTypes().Excluding((TestEntity e) => e.Id));
     }
 
-    [Fact]
-    public void InsertEntities_WithOpenTransaction_CommitsSuccessfully_Sync()
-    {
-        // Arrange
-        var entities = new List<TestEntity>
-        {
-            new TestEntity { TestRun = _run, Name = $"{_run}_EntityWithTx1" },
-            new TestEntity { TestRun = _run, Name = $"{_run}_EntityWithTx2" }
-        };
-
-        var transaction = _context.Database.BeginTransaction();
-
-        _context.ExecuteBulkInsert(entities);
-
-        transaction.Commit();
-
-        // Assert
-        var insertedEntities = _context.TestEntities.Where(x => x.TestRun == _run).ToList();
-        Assert.Contains(insertedEntities, e => e.Name == $"{_run}_EntityWithTx1");
-        Assert.Contains(insertedEntities, e => e.Name == $"{_run}_EntityWithTx2");
-    }
-
-    [Fact]
-    public async Task InsertEntities_WithOpenTransaction_RollsBackOnFailure()
+    [SkippableTheory]
+    [CombinatorialData]
+    public async Task InsertEntities_WithOpenTransaction_RollsBackOnFailure(InsertStrategy strategy)
     {
         // Arrange
         var entities = new List<TestEntity>
@@ -530,53 +447,27 @@ public abstract class BasicTestsBase<TDbContext>(TestDbContainer dbContainer) : 
         };
 
         await using var transaction = await _context.Database.BeginTransactionAsync();
-
-        await _context.ExecuteBulkInsertAsync(entities);
-
+        await _context.InsertWithStrategyAsync(strategy, entities);
         await transaction.RollbackAsync();
 
         // Assert
         _context.ChangeTracker.Clear();
+
         var insertedEntities = _context.TestEntities.Where(x => x.TestRun == _run).ToList();
-        Assert.DoesNotContain(insertedEntities, e => e.Name == $"{_run}_EntityWithTxFail1");
-        Assert.DoesNotContain(insertedEntities, e => e.Name == $"{_run}_EntityWithTxFail2");
+        Assert.Empty(insertedEntities);
     }
-
-    [Fact]
-    public void InsertEntities_WithOpenTransaction_RollsBackOnFailure_Sync()
-    {
-        // Arrange
-        var entities = new List<TestEntity>
-        {
-            new TestEntity { TestRun = _run, Name = $"{_run}_EntityWithTxFail1" },
-            new TestEntity { TestRun = _run, Name = $"{_run}_EntityWithTxFail2" }
-        };
-
-        using var transaction = _context.Database.BeginTransaction();
-
-        _context.ExecuteBulkInsert(entities);
-
-        transaction.Rollback();
-
-        // Assert
-        _context.ChangeTracker.Clear();
-        var insertedEntities = _context.TestEntities.Where(x => x.TestRun == _run).ToList();
-        Assert.DoesNotContain(insertedEntities, e => e.Name == $"{_run}_EntityWithTxFail1");
-        Assert.DoesNotContain(insertedEntities, e => e.Name == $"{_run}_EntityWithTxFail2");
-    }
-
+    
     [SkippableFact]
     public async Task ThrowsWhenUsingWrongConfigurationType()
     {
         // Skip for providers that don't support this feature
-        Skip.If(_context.IsProvider(ProviderType.PostgreSql));
         Skip.If(_context.IsProvider(ProviderType.Sqlite));
 
         // Arrange
         var entities = new List<TestEntity>
         {
-            new TestEntity { TestRun = _run, Name = $"{_run}_Entity1" },
-            new TestEntity { TestRun = _run, Name = $"{_run}_Entity2" }
+            new TestEntity { Name = $"{_run}_Entity1" },
+            new TestEntity { Name = $"{_run}_Entity2" }
         };
 
         // Act & Assert
@@ -589,6 +480,14 @@ public abstract class BasicTestsBase<TDbContext>(TestDbContainer dbContainer) : 
         }
 
         if (_context.IsProvider(ProviderType.MySql))
+        {
+            await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await _context.ExecuteBulkInsertAsync(entities, (SqlServerBulkInsertOptions o) =>
+                {
+                }));
+        }
+
+        if (_context.IsProvider(ProviderType.PostgreSql))
         {
             await Assert.ThrowsAsync<InvalidOperationException>(async () =>
                 await _context.ExecuteBulkInsertAsync(entities, (SqlServerBulkInsertOptions o) =>

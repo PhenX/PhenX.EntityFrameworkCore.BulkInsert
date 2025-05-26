@@ -84,7 +84,7 @@ internal abstract class SqlDialectBuilder
 
         if (returnedColumns.Count != 0)
         {
-            q.Append("RETURNING ");
+            q.Append(" RETURNING ");
             q.AppendJoin(", ", returnedColumns.Select(p => p.QuotedColumName));
             q.AppendLine();
         }

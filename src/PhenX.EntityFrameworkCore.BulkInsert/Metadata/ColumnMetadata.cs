@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.Metadata;
 
 using PhenX.EntityFrameworkCore.BulkInsert.Abstractions;
 using PhenX.EntityFrameworkCore.BulkInsert.Dialect;
+using PhenX.EntityFrameworkCore.BulkInsert.Options;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Metadata;
 
@@ -24,15 +25,15 @@ internal sealed class ColumnMetadata(IProperty property,  SqlDialectBuilder dial
 
     public bool IsGenerated { get; } = property.ValueGenerated == ValueGenerated.OnAdd;
 
-    public object? GetValue(object entity, List<IBulkValueConverter>? converters)
+    public object? GetValue(object entity, BulkInsertOptions options)
     {
         var result = _getter(entity);
 
-        if (converters != null && result != null)
+        if (options.Converters != null && result != null)
         {
-            foreach (var converter in converters)
+            foreach (var converter in options.Converters)
             {
-                if (converter.TryConvertValue(result, out var temp))
+                if (converter.TryConvertValue(result, options, out var temp))
                 {
                     result = temp;
                     break;

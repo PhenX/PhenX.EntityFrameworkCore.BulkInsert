@@ -134,19 +134,19 @@ Legend :
 
 SQL Server results with 500 000 rows :
 
-![bench-sqlserver.png](https://raw.githubusercontent.com/PhenX/PhenX.EntityFrameworkCore.BulkInsert/refs/heads/master/images/bench-sqlserver.png)
+![bench-sqlserver.png](https://raw.githubusercontent.com/PhenX/PhenX.EntityFrameworkCore.BulkInsert/refs/heads/main/images/bench-sqlserver.png)
 
 PostgreSQL results with 500 000 rows :
 
-![bench-postgresql.png](https://raw.githubusercontent.com/PhenX/PhenX.EntityFrameworkCore.BulkInsert/refs/heads/master/images/bench-postgresql.png)
+![bench-postgresql.png](https://raw.githubusercontent.com/PhenX/PhenX.EntityFrameworkCore.BulkInsert/refs/heads/main/images/bench-postgresql.png)
 
 SQLite results with 500 000 rows :
 
-![bench-sqlite.png](https://raw.githubusercontent.com/PhenX/PhenX.EntityFrameworkCore.BulkInsert/refs/heads/master/images/bench-sqlite.png)
+![bench-sqlite.png](https://raw.githubusercontent.com/PhenX/PhenX.EntityFrameworkCore.BulkInsert/refs/heads/main/images/bench-sqlite.png)
 
 MySQL results with 500 000 rows :
 
-![bench-mysql.png](https://raw.githubusercontent.com/PhenX/PhenX.EntityFrameworkCore.BulkInsert/refs/heads/master/images/bench-mysql.png)
+![bench-mysql.png](https://raw.githubusercontent.com/PhenX/PhenX.EntityFrameworkCore.BulkInsert/refs/heads/main/images/bench-mysql.png)
 
 ## Contributing
 

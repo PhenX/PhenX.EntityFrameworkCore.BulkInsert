@@ -49,7 +49,7 @@ internal class OracleBulkInsertProvider(ILogger<OracleBulkInsertProvider>? logge
             bulkCopy.ColumnMappings.Add(column.PropertyName, column.QuotedColumName);
         }
 
-        var dataReader = new EnumerableDataReader<T>(entities, columns, options.Converters);
+        var dataReader = new EnumerableDataReader<T>(entities, columns, options);
 
         bulkCopy.WriteToServer(dataReader);
 

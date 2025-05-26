@@ -1,6 +1,7 @@
 ﻿using NetTopologySuite.Geometries;
 
 using PhenX.EntityFrameworkCore.BulkInsert.Abstractions;
+using PhenX.EntityFrameworkCore.BulkInsert.Options;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Oracle;
 
@@ -12,7 +13,7 @@ internal sealed class OracleGeometryConverter : IBulkValueConverter
     {
     }
 
-    public bool TryConvertValue(object source, out object result)
+    public bool TryConvertValue(object source, BulkInsertOptions options, out object result)
     {
         if (source is Geometry geometry)
         {

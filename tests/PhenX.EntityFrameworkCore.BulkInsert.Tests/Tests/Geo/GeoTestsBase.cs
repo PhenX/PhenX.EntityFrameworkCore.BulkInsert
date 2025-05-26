@@ -1,5 +1,7 @@
 using FluentAssertions;
 
+using Microsoft.EntityFrameworkCore;
+
 using NetTopologySuite.Geometries;
 
 using PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContainer;
@@ -70,5 +72,30 @@ public abstract class GeoTestsBase<TDbContext>(TestDbContainer dbContainer) : IA
         // Assert
         insertedEntities.Should().BeEquivalentTo(entities,
             o => o.RespectingRuntimeTypes().Excluding((TestEntityWithGeo e) => e.Id));
+    }
+
+    [SkippableTheory]
+    [CombinatorialData]
+    public async Task InsertEntities_WithGeo_And_Search(InsertStrategy strategy)
+    {
+        // Arrange
+        var runId = Guid.NewGuid();
+
+        var geo1 = new Point(1, 2) { SRID = 4326 };
+        var geo2 = new Point(3, 4) { SRID = 4326 };
+
+        var entities = new List<TestEntityWithGeo>
+        {
+            new TestEntityWithGeo { TestRun = runId, GeoObject = geo1 },
+            new TestEntityWithGeo { TestRun = runId, GeoObject = geo2 }
+        };
+
+        // Act
+        await _context.InsertWithStrategyAsync(strategy, entities);
+
+        var found = await _context.TestEntitiesWithGeo.Where(x => x.TestRun == runId && x.GeoObject.Distance(geo1) < 1).ToListAsync();
+
+        // Assert
+        Assert.NotEmpty(found);
     }
 }

@@ -46,4 +46,29 @@ public abstract class GeoTestsBase<TDbContext>(TestDbContainer dbContainer) : IA
         insertedEntities.Should().BeEquivalentTo(entities,
             o => o.RespectingRuntimeTypes().Excluding((TestEntityWithGeo e) => e.Id));
     }
+
+    [SkippableTheory]
+    [CombinatorialData]
+    public async Task InsertEntities_WithGeo_And_Default_SRID(InsertStrategy strategy)
+    {
+        // Arrange
+        var geo1 = new Point(1, 2);
+        var geo2 = new Point(3, 4);
+
+        var entities = new List<TestEntityWithGeo>
+        {
+            new TestEntityWithGeo { GeoObject = geo1 },
+            new TestEntityWithGeo { GeoObject = geo2 }
+        };
+
+        // Act
+        var insertedEntities = await _context.InsertWithStrategyAsync(strategy, entities);
+
+        geo1.SRID = 4326;
+        geo2.SRID = 4326;
+
+        // Assert
+        insertedEntities.Should().BeEquivalentTo(entities,
+            o => o.RespectingRuntimeTypes().Excluding((TestEntityWithGeo e) => e.Id));
+    }
 }

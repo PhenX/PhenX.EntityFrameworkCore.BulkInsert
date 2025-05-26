@@ -50,6 +50,11 @@ public class BulkInsertOptions
     /// </summary>
     public List<IBulkValueConverter>? Converters { get; set; }
 
+    /// <summary>
+    /// Sets the ID of the Spatial Reference System used by the Geometries to be inserted.
+    /// </summary>
+    public int SRID { get; set; } = 4326;
+
     internal int GetCopyTimeoutInSeconds()
     {
         return Math.Max(0, (int)CopyTimeout.TotalSeconds);

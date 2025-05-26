@@ -57,8 +57,6 @@ internal class PostgreSqlBulkInsertProvider(ILogger<PostgreSqlBulkInsertProvider
             ? connection.BeginBinaryImport(command)
             : await connection.BeginBinaryImportAsync(command, ctk);
 
-        var bulkValueConverters = options.Converters;
-
         // The type mapping can be null for obvious types like string.
         var columnTypes = columns.Select(c => GetPostgreSqlType(c, options)).ToArray();
 
@@ -76,7 +74,7 @@ internal class PostgreSqlBulkInsertProvider(ILogger<PostgreSqlBulkInsertProvider
 
             for (var columnIndex = 0; columnIndex < columns.Count; columnIndex++)
             {
-                var value = columns[columnIndex].GetValue(entity, bulkValueConverters);
+                var value = columns[columnIndex].GetValue(entity, options);
 
                 // Get the actual type, so that the writer can do the conversation to the target type automatically.
                 var type = columnTypes[columnIndex];

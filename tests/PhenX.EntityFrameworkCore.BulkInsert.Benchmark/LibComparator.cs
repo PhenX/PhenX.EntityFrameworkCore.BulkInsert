@@ -5,6 +5,7 @@ using DotNet.Testcontainers.Containers;
 
 using EFCore.BulkExtensions;
 
+using LinqToDB.Data;
 using LinqToDB.EntityFrameworkCore;
 
 using PhenX.EntityFrameworkCore.BulkInsert.Extensions;
@@ -99,7 +100,10 @@ public abstract partial class LibComparator
     [Benchmark]
     public async Task Linq2Db()
     {
-        await DbContext.BulkCopyAsync(data);
+        await DbContext.BulkCopyAsync(new BulkCopyOptions
+        {
+            BulkCopyType = BulkCopyType.ProviderSpecific,
+        }, data);
     }
 
     [Benchmark]

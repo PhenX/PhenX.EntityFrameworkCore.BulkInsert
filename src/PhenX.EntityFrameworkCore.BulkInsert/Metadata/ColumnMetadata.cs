@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 
-using PhenX.EntityFrameworkCore.BulkInsert.Abstractions;
 using PhenX.EntityFrameworkCore.BulkInsert.Dialect;
 using PhenX.EntityFrameworkCore.BulkInsert.Options;
 
@@ -9,7 +8,7 @@ namespace PhenX.EntityFrameworkCore.BulkInsert.Metadata;
 
 internal sealed class ColumnMetadata(IProperty property,  SqlDialectBuilder dialect)
 {
-    private readonly PropertyAccessor.Getter<object, object?> _getter = BuildGetter(property);
+    private readonly Func<object, object?> _getter = BuildGetter(property);
 
     public IProperty Property { get; } = property;
 
@@ -44,7 +43,7 @@ internal sealed class ColumnMetadata(IProperty property,  SqlDialectBuilder dial
         return result;
     }
 
-    private static PropertyAccessor.Getter<object, object?> BuildGetter(IProperty property)
+    private static Func<object, object?> BuildGetter(IProperty property)
     {
         var valueConverter =
             property.GetValueConverter() ??
@@ -52,20 +51,7 @@ internal sealed class ColumnMetadata(IProperty property,  SqlDialectBuilder dial
 
         var propInfo = property.PropertyInfo!;
 
-        var actualGetter =
-            PropertyAccessor.CreateUntypedGetter(
-                propInfo,
-                property.DeclaringType.ClrType,
-                property.ClrType);
-
-        if (valueConverter == null)
-        {
-            return actualGetter;
-        }
-
-        var converter = valueConverter.ConvertToProvider;
-
-        return source => converter(actualGetter(source));
+        return PropertyAccessor.CreateGetter(propInfo, valueConverter?.ConvertToProviderExpression);
     }
 
     private static string GetStoreDefinition(IProperty property)

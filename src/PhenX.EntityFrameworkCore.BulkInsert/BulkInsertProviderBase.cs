@@ -1,5 +1,4 @@
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -208,6 +207,7 @@ internal abstract class BulkInsertProviderBase<TDialect, TOptions>(ILogger? logg
     {
         var query =
             SqlDialect.BuildMoveDataSql<T>(
+                context,
                 tableInfo,
                 tempTableName,
                 tableInfo.GetColumns(options.CopyGeneratedColumns),

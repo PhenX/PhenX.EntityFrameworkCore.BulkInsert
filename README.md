@@ -47,7 +47,7 @@ Install-Package PhenX.EntityFrameworkCore.BulkInsert.Oracle
 
 ## Usage
 
-1. Register the bulk insert provider in your `DbContextOptions`:
+Register the bulk insert provider in your `DbContextOptions`:
 
 ```csharp
 services.AddDbContext<MyDbContext>(options =>
@@ -68,7 +68,7 @@ services.AddDbContext<MyDbContext>(options =>
 });
 ```
 
-2. Use the bulk insert extension method:
+### Very basic usage
 
 ```csharp
 // Asynchronously
@@ -78,7 +78,7 @@ await dbContext.ExecuteBulkInsertAsync(entities);
 dbContext.ExecuteBulkInsert(entities);
 ```
 
-3. You can also configure the bulk insert options:
+### Bulk insert with options
 
 ```csharp
 // Common options
@@ -109,10 +109,45 @@ await dbContext.ExecuteBulkInsertAsync(entities, o =>
 });
 ```
 
-4. You can also return the inserted entities (slower):
+### Returning inserted entities
 
 ```csharp
 await dbContext.ExecuteBulkInsertReturnEntitiesAsync(entities);
+```
+
+### Conflict resolution / merge / upsert
+
+Conflict resolution works by specifying columns that should be used to detect conflicts and the action to take when
+a conflict is detected (e.g., update existing rows), using the `onConflict` parameter.
+
+ * The conflicting columns are specified with the `Match` property and must have a unique constraint in the database.
+ * The action to take when a conflict is detected is specified with the `Update` property. If not specified, the default action is to do nothing (i.e., skip the conflicting rows).
+ * You can also specify the condition for the update action using either the `Where` or the `RawWhere` property. If not specified, the update action will be applied to all conflicting rows.
+
+```csharp
+await dbContext.ExecuteBulkInsertAsync(entities, onConflict: new OnConflictOptions<TestEntity>
+{
+    Match = e => new
+    {
+        e.Name,
+        // ...other columns to match on
+    },
+
+    // Optional: specify the update action, if not specified, the default action is to do nothing
+    // Excluded is the row being inserted which is in conflict, and Inserted is the row already in the database.
+    Update = (inserted, excluded) => new TestEntity
+    {
+        Price = inserted.Price // Update the Price column with the new value
+    },
+
+    // Optional: specify the condition for the update action
+    // Excluded is the row being inserted which is in conflict, and Inserted is the row already in the database.
+    // Using raw SQL condition
+    RawWhere = (insertedTable, excludedTable) => $"{excludedTable}.some_price > {insertedTable}.some_price",
+
+    // OR using a lambda expression
+    Where = (inserted, excluded) => excluded.Price > inserted.Price,
+});
 ```
 
 ## Roadmap

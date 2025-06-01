@@ -1,5 +1,7 @@
 using System.Text;
 
+using Microsoft.EntityFrameworkCore;
+
 using PhenX.EntityFrameworkCore.BulkInsert.Dialect;
 using PhenX.EntityFrameworkCore.BulkInsert.Metadata;
 using PhenX.EntityFrameworkCore.BulkInsert.Options;
@@ -34,7 +36,10 @@ internal class SqlServerDialectBuilder : SqlDialectBuilder
         return q.ToString();
     }
 
+    protected override string Trim(string lhs) => $"TRIM({lhs})";
+
     public override string BuildMoveDataSql<T>(
+        DbContext context,
         TableMetadata target,
         string source,
         IReadOnlyList<ColumnMetadata> insertedColumns,
@@ -66,24 +71,37 @@ internal class SqlServerDialectBuilder : SqlDialectBuilder
                 throw new InvalidOperationException("Table has no primary key that can be used for conflict detection.");
             }
 
-            q.AppendLine($"MERGE INTO {target.QuotedTableName} AS TARGET");
+            q.AppendLine($"MERGE INTO {target.QuotedTableName} AS {PseudoTableInserted}");
 
             q.Append("USING (SELECT ");
             q.AppendColumns(insertedColumns);
-            q.Append($" FROM {source}) AS SOURCE (");
+            q.Append($" FROM {source}) AS {PseudoTableExcluded} (");
             q.AppendColumns(insertedColumns);
             q.AppendLine(")");
 
             q.Append("ON ");
-            q.AppendJoin(" AND ", matchColumns, (b, col) => b.Append($"TARGET.{col} = SOURCE.{col}"));
+            q.AppendJoin(" AND ", matchColumns, (b, col) => b.Append($"{PseudoTableInserted}.{col} = {PseudoTableExcluded}.{col}"));
             q.AppendLine();
 
             if (onConflictTyped.Update != null)
             {
                 var columns = target.GetColumns(false);
 
-                q.AppendLine("WHEN MATCHED THEN UPDATE SET ");
-                q.AppendJoin(", ", GetUpdates(target, columns, onConflictTyped.Update));
+                q.AppendLine("WHEN MATCHED ");
+
+                if (onConflictTyped.RawWhere != null || onConflictTyped.Where != null)
+                {
+                    if (onConflictTyped is { RawWhere: not null, Where: not null })
+                    {
+                        throw new ArgumentException("Cannot specify both RawWhere and Where in OnConflictOptions.");
+                    }
+
+                    q.Append("AND ");
+                    AppendConflictCondition(q, target, context, onConflictTyped);
+                }
+
+                q.AppendLine("THEN UPDATE SET ");
+                q.AppendJoin(", ", GetUpdates(context, target, columns, onConflictTyped.Update));
                 q.AppendLine();
             }
 
@@ -92,13 +110,13 @@ internal class SqlServerDialectBuilder : SqlDialectBuilder
             q.AppendLine(")");
 
             q.Append("VALUES (");
-            q.AppendJoin(", ", insertedColumns, (b, col) => b.Append($"SOURCE.{col.QuotedColumName}"));
+            q.AppendJoin(", ", insertedColumns, (b, col) => b.Append($"{PseudoTableExcluded}.{col.QuotedColumName}"));
             q.AppendLine(")");
 
             if (returnedColumns.Count != 0)
             {
                 q.Append("OUTPUT ");
-                q.AppendJoin(", ", returnedColumns, (b, col) => b.Append($"INSERTED.{col.QuotedColumName} AS {col.QuotedColumName}"));
+                q.AppendJoin(", ", returnedColumns, (b, col) => b.Append($"{PseudoTableInserted}.{col.QuotedColumName} AS {col.QuotedColumName}"));
                 q.AppendLine();
             }
         }
@@ -113,7 +131,7 @@ internal class SqlServerDialectBuilder : SqlDialectBuilder
             if (returnedColumns.Count != 0)
             {
                 q.Append("OUTPUT ");
-                q.AppendJoin(", ", returnedColumns, (b, col) => b.Append($"INSERTED.{col.QuotedColumName} AS {col.QuotedColumName}"));
+                q.AppendJoin(", ", returnedColumns, (b, col) => b.Append($"{PseudoTableInserted}.{col.QuotedColumName} AS {col.QuotedColumName}"));
                 q.AppendLine();
             }
 
@@ -131,12 +149,6 @@ internal class SqlServerDialectBuilder : SqlDialectBuilder
             q.AppendLine($"SET IDENTITY_INSERT {target.QuotedTableName} OFF;");
         }
 
-        var result = q.ToString();
-        return result;
-    }
-
-    protected override string GetExcludedColumnName(string columnName)
-    {
-        return $"SOURCE.{columnName}";
+        return q.ToString();
     }
 }

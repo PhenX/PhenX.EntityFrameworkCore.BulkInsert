@@ -30,7 +30,7 @@ public partial class GetValueComparator
 
     private static Dictionary<string, Expression<Func<object?, object?>>> Converters = new()
     {
-        { nameof(TestEntity.NumericEnumValue), v => (int) v},
+        { nameof(TestEntity.NumericEnumValue), v => (int) (v ?? 0)},
     };
 
     private static readonly PropertyInfo[] PropertyInfos = typeof(TestEntity).GetProperties();

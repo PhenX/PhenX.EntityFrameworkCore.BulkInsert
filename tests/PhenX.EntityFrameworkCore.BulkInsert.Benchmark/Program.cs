@@ -14,7 +14,7 @@ public class Program
             .WithOptions(ConfigOptions.DisableOptimizationsValidator);
 
         // Micro benchmark for value getters
-        BenchmarkRunner.Run<GetValueComparator>(config);
+        // BenchmarkRunner.Run<GetValueComparator>(config);
 
         // Library comparison benchmarks
         var comparators = new[]

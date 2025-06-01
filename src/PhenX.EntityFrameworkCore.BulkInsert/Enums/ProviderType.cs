@@ -24,4 +24,9 @@ public enum ProviderType
     /// MySQL provider.
     /// </summary>
     MySql,
+
+    /// <summary>
+    /// Oracle provider.
+    /// </summary>
+    Oracle,
 }

@@ -2,8 +2,6 @@ using DotNet.Testcontainers.Containers;
 
 using Microsoft.EntityFrameworkCore;
 
-using Oracle.ManagedDataAccess.Client;
-
 using PhenX.EntityFrameworkCore.BulkInsert.Oracle;
 
 using Testcontainers.Oracle;
@@ -23,6 +21,7 @@ public class TestDbContainerOracle : TestDbContainer
     protected override IDatabaseContainer? GetDbContainer()
     {
         return new OracleBuilder()
+            .WithImage("gvenzl/oracle-free:23-slim-faststart")
             .WithReuse(true)
             .Build();
     }
@@ -44,20 +43,8 @@ public class TestDbContainerOracle : TestDbContainer
             return string.Empty;
         }
 
-        var builder = new OracleConnectionStringBuilder
-        {
-            ConnectionString = DbContainer.GetConnectionString(),
-            DataSource = databaseName,
-        };
+        var port = DbContainer.GetMappedPublicPort(1521);
 
-        return builder.ToString();
-    }
-
-    protected override async Task EnsureConnectedAsync<TDbContext>(TDbContext context, string databaseName)
-    {
-        var container = (OracleContainer)DbContainer!;
-
-        await container.ExecScriptAsync($"CREATE DATABASE \"{databaseName}\";");
-        await base.EnsureConnectedAsync(context, databaseName);
+        return $"Data Source=(DESCRIPTION = (ADDRESS_LIST = (ADDRESS = (PROTOCOL = TCP)(HOST = localhost)(PORT = {port})) ) (CONNECT_DATA = (SERVICE_NAME = FREEPDB1) ) );User ID=oracle;Password=oracle";
     }
 }

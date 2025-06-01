@@ -69,7 +69,7 @@ public abstract class BasicTestsBase<TDbContext>(TestDbContainer dbContainer) : 
     [SkippableFact]
     public async Task InsertEntities_AndReturn_AsyncEnumerable()
     {
-        Skip.If(_context.IsProvider(ProviderType.MySql));
+        Skip.If(_context.IsProvider(ProviderType.MySql, ProviderType.Oracle));
 
         // Arrange
         var entities = new List<TestEntity>

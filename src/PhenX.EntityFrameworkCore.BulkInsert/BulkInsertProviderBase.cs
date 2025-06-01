@@ -185,6 +185,12 @@ internal abstract class BulkInsertProviderBase<TDialect, TOptions>(ILogger? logg
         string tempTableName,
         CancellationToken ctk) where T : class
     {
+        if (string.IsNullOrEmpty(AddTableCopyBulkInsertId))
+        {
+            // No need to add an ID column in this provider
+            return;
+        }
+
         var alterQuery = string.Format(AddTableCopyBulkInsertId, tempTableName);
 
         await ExecuteAsync(sync, context, alterQuery, ctk);

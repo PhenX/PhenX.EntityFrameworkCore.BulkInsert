@@ -1,6 +1,6 @@
 # PhenX.EntityFrameworkCore.BulkInsert
 
-A high-performance, provider-agnostic bulk insert extension for Entity Framework Core 8+. Supports SQL Server, PostgreSQL, SQLite and MySQL.
+A high-performance, provider-agnostic bulk insert extension for Entity Framework Core 8+. Supports SQL Server, PostgreSQL, SQLite, MySQL and Oracle.
 
 Its main purpose is to provide a fast way to perform simple bulk inserts in Entity Framework Core applications.
 
@@ -21,6 +21,7 @@ but they are in [the roadmap](#roadmap).
 | `PhenX.EntityFrameworkCore.BulkInsert.PostgreSql` | For PostgreSQL | [![NuGet](https://img.shields.io/nuget/v/PhenX.EntityFrameworkCore.BulkInsert.PostgreSql.svg)](https://www.nuget.org/packages/PhenX.EntityFrameworkCore.BulkInsert.PostgreSql) |
 | `PhenX.EntityFrameworkCore.BulkInsert.Sqlite`     | For SQLite     | [![NuGet](https://img.shields.io/nuget/v/PhenX.EntityFrameworkCore.BulkInsert.Sqlite.svg)](https://www.nuget.org/packages/PhenX.EntityFrameworkCore.BulkInsert.Sqlite)         |
 | `PhenX.EntityFrameworkCore.BulkInsert.MySql`      | For MySql      | [![NuGet](https://img.shields.io/nuget/v/PhenX.EntityFrameworkCore.BulkInsert.Sqlite.svg)](https://www.nuget.org/packages/PhenX.EntityFrameworkCore.BulkInsert.MySql)          |
+| `PhenX.EntityFrameworkCore.BulkInsert.Oracle`     | For Oracle      | [![NuGet](https://img.shields.io/nuget/v/PhenX.EntityFrameworkCore.BulkInsert.Oracle.svg)](https://www.nuget.org/packages/PhenX.EntityFrameworkCore.BulkInsert.Oracle)         |
 | `PhenX.EntityFrameworkCore.BulkInsert`            | Common library | [![NuGet](https://img.shields.io/nuget/v/PhenX.EntityFrameworkCore.BulkInsert.svg)](https://www.nuget.org/packages/PhenX.EntityFrameworkCore.BulkInsert)                       |
 
 ## Installation
@@ -39,6 +40,9 @@ Install-Package PhenX.EntityFrameworkCore.BulkInsert.Sqlite
 
 # For MySql
 Install-Package PhenX.EntityFrameworkCore.BulkInsert.MySql
+
+# For Oracle
+Install-Package PhenX.EntityFrameworkCore.BulkInsert.Oracle
 ```
 
 ## Usage
@@ -58,6 +62,8 @@ services.AddDbContext<MyDbContext>(options =>
         .UseBulkInsertSqlite()
         // OR
         .UseBulkInsertMySql()
+        // OR
+        .UseBulkInsertOracle()
         ;
 });
 ```
@@ -147,6 +153,10 @@ SQLite results with 500 000 rows :
 MySQL results with 500 000 rows :
 
 ![bench-mysql.png](https://raw.githubusercontent.com/PhenX/PhenX.EntityFrameworkCore.BulkInsert/refs/heads/main/images/bench-mysql.png)
+
+Oracle results with 500 000 rows :
+
+![bench-oracle.png](https://raw.githubusercontent.com/PhenX/PhenX.EntityFrameworkCore.BulkInsert/refs/heads/main/images/bench-oracle.png)
 
 ## Contributing
 

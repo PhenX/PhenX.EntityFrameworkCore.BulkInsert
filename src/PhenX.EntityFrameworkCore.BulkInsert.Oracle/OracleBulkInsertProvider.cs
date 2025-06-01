@@ -6,24 +6,39 @@ using Microsoft.Extensions.Logging;
 using Oracle.ManagedDataAccess.Client;
 
 using PhenX.EntityFrameworkCore.BulkInsert.Metadata;
+using PhenX.EntityFrameworkCore.BulkInsert.Options;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Oracle;
 
 [UsedImplicitly]
 internal class OracleBulkInsertProvider(ILogger<OracleBulkInsertProvider>? logger) : BulkInsertProviderBase<OracleDialectBuilder, OracleBulkInsertOptions>(logger)
 {
-    //language=sql
     /// <inheritdoc />
-    protected override string AddTableCopyBulkInsertId => $"ALTER TABLE {{0}} ADD {BulkInsertId} INT IDENTITY PRIMARY KEY;";
+    protected override string BulkInsertId => "ROWID";
 
     /// <inheritdoc />
-    protected override string GetTempTableName(string tableName) => $"#_temp_bulk_insert_{tableName}";
+    protected override string AddTableCopyBulkInsertId => ""; // No need to add an ID column in Oracle
+
+    /// <inheritdoc />
+    protected override string GetTempTableName(string tableName) => $"#temp_bulk_insert_{Guid.NewGuid().ToString("N")[..8]}";
 
     protected override OracleBulkInsertOptions CreateDefaultOptions() => new()
     {
         BatchSize = 50_000,
-        Converters = [OracleGeometryConverter.Instance]
     };
+
+    /// <inheritdoc />
+    protected override IAsyncEnumerable<T> BulkInsertReturnEntities<T>(
+        bool sync,
+        DbContext context,
+        TableMetadata tableInfo,
+        IEnumerable<T> entities,
+        OracleBulkInsertOptions options,
+        OnConflictOptions<T>? onConflict,
+        CancellationToken ctk)
+    {
+        throw new NotSupportedException("Provider does not support returning entities.");
+    }
 
     /// <inheritdoc />
     protected override Task BulkInsert<T>(
@@ -40,7 +55,7 @@ internal class OracleBulkInsertProvider(ILogger<OracleBulkInsertProvider>? logge
 
         using var bulkCopy = new OracleBulkCopy(connection, options.CopyOptions);
 
-        bulkCopy.DestinationTableName = tableName;
+        bulkCopy.DestinationTableName = tableInfo.QuotedTableName;
         bulkCopy.BatchSize = options.BatchSize;
         bulkCopy.BulkCopyTimeout = options.GetCopyTimeoutInSeconds();
 
@@ -54,5 +69,11 @@ internal class OracleBulkInsertProvider(ILogger<OracleBulkInsertProvider>? logge
         bulkCopy.WriteToServer(dataReader);
 
         return Task.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    protected override Task DropTempTableAsync(bool sync, DbContext dbContext, string tableName)
+    {
+        return ExecuteAsync(sync, dbContext, $"DROP TABLE IF EXISTS {tableName}", default);
     }
 }

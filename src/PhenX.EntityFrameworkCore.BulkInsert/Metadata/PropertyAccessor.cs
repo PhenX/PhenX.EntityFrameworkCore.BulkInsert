@@ -18,7 +18,7 @@ internal static class PropertyAccessor
             : Expression.Convert(instanceParam, propertyInfo.DeclaringType);
 
         // Call Getter
-        Expression getterCall = Expression.Call(typedInstance, getMethod);
+        Expression getterExpression = Expression.Call(typedInstance, getMethod);
 
         var propertyType = propertyInfo.PropertyType;
 
@@ -26,27 +26,27 @@ internal static class PropertyAccessor
         if (converter != null)
         {
             // Validate the converter input type matches property type
-            var convIn = converter.Parameters[0].Type;
-            if (!convIn.IsAssignableFrom(propertyType) && !propertyType.IsAssignableFrom(convIn))
+            var converterParamType = converter.Parameters[0].Type;
+            if (!converterParamType.IsAssignableFrom(propertyType) && !propertyType.IsAssignableFrom(converterParamType))
             {
-                throw new ArgumentException($"Converter input must be assignable from property type ({propertyType} -> {convIn})");
+                throw new ArgumentException($"Converter input must be assignable from property type ({propertyType} -> {converterParamType})");
             }
 
             // If property type != converter param, convert
-            var converterInput = getterCall;
-            if (convIn != propertyType)
+            var converterInput = getterExpression;
+            if (converterParamType != propertyType)
             {
-                converterInput = Expression.Convert(getterCall, convIn);
+                converterInput = Expression.Convert(getterExpression, converterParamType);
             }
 
-            getterCall = Expression.Invoke(converter, converterInput);
+            getterExpression = Expression.Invoke(converter, converterInput);
 
-            propertyType = getterCall.Type;
+            propertyType = getterExpression.Type;
         }
 
         var finalExpr = propertyType.IsValueType
-            ? Expression.Convert(getterCall, typeof(object))
-            : getterCall;
+            ? Expression.Convert(getterExpression, typeof(object))
+            : getterExpression;
 
         return Expression.Lambda<Func<object, object?>>(finalExpr, instanceParam).Compile();
     }

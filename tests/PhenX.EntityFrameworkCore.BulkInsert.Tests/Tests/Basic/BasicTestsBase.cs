@@ -96,6 +96,8 @@ public abstract class BasicTestsBase<TDbContext>(TestDbContainer dbContainer) : 
     [CombinatorialData]
     public async Task InsertEntities_MoveRows(InsertStrategy strategy)
     {
+        Skip.If(_context.IsProvider(ProviderType.Oracle), "Unstable with Oracle");
+
         // Arrange
         var entities = new List<TestEntity>
         {

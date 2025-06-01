@@ -8,12 +8,19 @@ namespace PhenX.EntityFrameworkCore.BulkInsert.Options;
 public abstract class OnConflictOptions
 {
     /// <summary>
-    /// Optional condition to apply on conflict, in raw SQL.
-    /// The pseudo tables `INSERTED` and `EXCLUDED` can be used to reference data :
-    /// * `INSERTED` refers to the data already in the target table.
-    /// * `EXCLUDED` refers to the new data, being in conflict.
+    /// Raw SQL condition delegate to match on conflict.
     /// </summary>
-    public string? RawWhere { get; set; }
+    public delegate string RawWhereDelegate(string insertedTable, string excludedTable);
+
+    /// <summary>
+    /// Optional condition to apply on conflict, in raw SQL.
+    /// The table names provided as parameters can be used to reference data :
+    /// <list type="bullet">
+    /// <item>insertedTable: refers to the data already in the target table.</item>
+    /// <item>excludedTable: refers to the new data, being in conflict.</item>
+    /// </list>
+    /// </summary>
+    public RawWhereDelegate? RawWhere { get; set; }
 }
 
 /// <summary>

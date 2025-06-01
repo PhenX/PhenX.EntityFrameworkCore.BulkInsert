@@ -71,16 +71,16 @@ internal class SqlServerDialectBuilder : SqlDialectBuilder
                 throw new InvalidOperationException("Table has no primary key that can be used for conflict detection.");
             }
 
-            q.AppendLine($"MERGE INTO {target.QuotedTableName} AS {PseudoColumnInserted}");
+            q.AppendLine($"MERGE INTO {target.QuotedTableName} AS {PseudoTableInserted}");
 
             q.Append("USING (SELECT ");
             q.AppendColumns(insertedColumns);
-            q.Append($" FROM {source}) AS {PseudoColumnExcluded} (");
+            q.Append($" FROM {source}) AS {PseudoTableExcluded} (");
             q.AppendColumns(insertedColumns);
             q.AppendLine(")");
 
             q.Append("ON ");
-            q.AppendJoin(" AND ", matchColumns, (b, col) => b.Append($"{PseudoColumnInserted}.{col} = {PseudoColumnExcluded}.{col}"));
+            q.AppendJoin(" AND ", matchColumns, (b, col) => b.Append($"{PseudoTableInserted}.{col} = {PseudoTableExcluded}.{col}"));
             q.AppendLine();
 
             if (onConflictTyped.Update != null)
@@ -110,13 +110,13 @@ internal class SqlServerDialectBuilder : SqlDialectBuilder
             q.AppendLine(")");
 
             q.Append("VALUES (");
-            q.AppendJoin(", ", insertedColumns, (b, col) => b.Append($"{PseudoColumnExcluded}.{col.QuotedColumName}"));
+            q.AppendJoin(", ", insertedColumns, (b, col) => b.Append($"{PseudoTableExcluded}.{col.QuotedColumName}"));
             q.AppendLine(")");
 
             if (returnedColumns.Count != 0)
             {
                 q.Append("OUTPUT ");
-                q.AppendJoin(", ", returnedColumns, (b, col) => b.Append($"{PseudoColumnInserted}.{col.QuotedColumName} AS {col.QuotedColumName}"));
+                q.AppendJoin(", ", returnedColumns, (b, col) => b.Append($"{PseudoTableInserted}.{col.QuotedColumName} AS {col.QuotedColumName}"));
                 q.AppendLine();
             }
         }
@@ -131,7 +131,7 @@ internal class SqlServerDialectBuilder : SqlDialectBuilder
             if (returnedColumns.Count != 0)
             {
                 q.Append("OUTPUT ");
-                q.AppendJoin(", ", returnedColumns, (b, col) => b.Append($"{PseudoColumnInserted}.{col.QuotedColumName} AS {col.QuotedColumName}"));
+                q.AppendJoin(", ", returnedColumns, (b, col) => b.Append($"{PseudoTableInserted}.{col.QuotedColumName} AS {col.QuotedColumName}"));
                 q.AppendLine();
             }
 

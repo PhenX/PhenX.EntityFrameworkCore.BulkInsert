@@ -223,7 +223,7 @@ public abstract class MergeTestsBase<TDbContext>(TestDbContainer dbContainer) : 
             {
                 Price = excluded.Price + inserted.Price,
             },
-            RawWhere = "EXCLUDED.some_price != INSERTED.some_price"
+            RawWhere = (insertedTable, excludedTable) => $"{excludedTable}.some_price != {insertedTable}.some_price",
         });
 
         // Assert

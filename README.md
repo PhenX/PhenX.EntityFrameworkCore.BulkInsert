@@ -137,7 +137,7 @@ await dbContext.ExecuteBulkInsertAsync(entities, onConflict: new OnConflictOptio
     // Optional: specify the condition for the update action
     // Excluded is the row being inserted which is in conflict, and Inserted is the row already in the database.
     // Using raw SQL condition
-    RawWhere = "EXCLUDED.some_price > INSERTED.some_price",
+    RawWhere = (insertedTable, excludedTable) => $"{excludedTable}.some_price > {insertedTable}.some_price",
 
     // OR using a lambda expression
     Where = (inserted, excluded) => excluded.Price > inserted.Price,

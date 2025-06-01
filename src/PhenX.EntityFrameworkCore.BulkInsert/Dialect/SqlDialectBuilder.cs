@@ -10,8 +10,8 @@ namespace PhenX.EntityFrameworkCore.BulkInsert.Dialect;
 
 internal abstract class SqlDialectBuilder
 {
-    protected const string PseudoColumnInserted = "INSERTED";
-    protected const string PseudoColumnExcluded = "EXCLUDED";
+    protected const string PseudoTableInserted = "INSERTED";
+    protected const string PseudoTableExcluded = "EXCLUDED";
 
     protected abstract string OpenDelimiter { get; }
     protected abstract string CloseDelimiter { get; }
@@ -68,7 +68,7 @@ internal abstract class SqlDialectBuilder
 
         if (SupportsInsertIntoAlias)
         {
-            q.Append($" AS {PseudoColumnInserted}");
+            q.Append($" AS {PseudoTableInserted}");
         }
 
         q.AppendLine(" (");
@@ -155,9 +155,13 @@ internal abstract class SqlDialectBuilder
     protected virtual void AppendConflictCondition<T>(StringBuilder sql, TableMetadata target, DbContext context,
         OnConflictOptions<T> onConflictTyped)
     {
-        var condition = onConflictTyped.RawWhere;
+        var condition = "";
 
-        if (onConflictTyped.Where != null)
+        if (onConflictTyped.RawWhere != null)
+        {
+            condition = onConflictTyped.RawWhere(PseudoTableInserted, PseudoTableExcluded);
+        }
+        else if (onConflictTyped.Where != null)
         {
             condition = ToSqlExpression<T>(context, target, onConflictTyped.Where);
         }
@@ -168,12 +172,12 @@ internal abstract class SqlDialectBuilder
     /// <summary>
     /// Get the name of the INSERTED column (data already in the table) for the ON CONFLICT clause.
     /// </summary>
-    protected virtual string GetInsertedColumnName(string columnName) => $"{PseudoColumnInserted}.{Quote(columnName)}";
+    protected virtual string GetInsertedColumnName(string columnName) => $"{PseudoTableInserted}.{Quote(columnName)}";
 
     /// <summary>
     /// Get the name of the EXCLUDED column (data conflicting with table) for the ON CONFLICT clause.
     /// </summary>
-    protected virtual string GetExcludedColumnName(string columnName) => $"{PseudoColumnExcluded}.{Quote(columnName)}";
+    protected virtual string GetExcludedColumnName(string columnName) => $"{PseudoTableExcluded}.{Quote(columnName)}";
 
     /// <summary>
     /// Quotes a column name using database-specific delimiters.

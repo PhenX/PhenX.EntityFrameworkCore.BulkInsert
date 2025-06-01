@@ -44,10 +44,10 @@ internal static class PropertyAccessor
             propertyType = getterExpression.Type;
         }
 
-        var finalExpr = propertyType.IsValueType
+        var finalExpression = propertyType.IsValueType
             ? Expression.Convert(getterExpression, typeof(object))
             : getterExpression;
 
-        return Expression.Lambda<Func<object, object?>>(finalExpr, instanceParam).Compile();
+        return Expression.Lambda<Func<object, object?>>(finalExpression, instanceParam).Compile();
     }
 }

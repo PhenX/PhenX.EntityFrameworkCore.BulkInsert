@@ -1,66 +1,53 @@
-using System.Reflection.Emit;
+using System.Linq.Expressions;
 using System.Reflection;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Metadata;
 
 internal static class PropertyAccessor
 {
-    public delegate TValue Getter<TSource, TValue>(TSource source);
-
-    public static Getter<object, object?> CreateUntypedGetter(PropertyInfo propertyInfo, Type sourceType, Type valueType)
+    public static Func<object, object?> CreateGetter(PropertyInfo propertyInfo, LambdaExpression? converter = null)
     {
-        var method =
-            typeof(PropertyAccessor).GetMethod(nameof(CreateInternalUntypedGetter), BindingFlags.NonPublic | BindingFlags.Static)!
-                .MakeGenericMethod(sourceType, valueType);
+        ArgumentNullException.ThrowIfNull(propertyInfo);
+        var getMethod = propertyInfo.GetMethod ?? throw new ArgumentException("Property does not have a getter.");
 
-        return (Getter<object, object?>)method.Invoke(null, [propertyInfo])!;
-    }
+        var instanceParam = Expression.Parameter(typeof(object), "instance");
 
-    private static Getter<object, object?> CreateInternalUntypedGetter<TSource, TValue>(PropertyInfo propertyInfo)
-    {
-        var getter = CreateGetter<TSource, TValue>(propertyInfo);
+        // Convert object to the declaring type
+        Expression typedInstance = propertyInfo.DeclaringType!.IsValueType
+            ? Expression.Unbox(instanceParam, propertyInfo.DeclaringType)
+            : Expression.Convert(instanceParam, propertyInfo.DeclaringType);
 
-        return source => getter((TSource)source!);
-    }
+        // Call Getter
+        Expression getterExpression = Expression.Call(typedInstance, getMethod);
 
-    public static Getter<TSource, TValue> CreateGetter<TSource, TValue>(PropertyInfo propertyInfo)
-    {
-        if (!propertyInfo.CanRead)
+        var propertyType = propertyInfo.PropertyType;
+
+        // If the converter is provided, we call it
+        if (converter != null)
         {
-            return x => throw new NotSupportedException();
+            // Validate the converter input type matches property type
+            var converterParamType = converter.Parameters[0].Type;
+            if (!converterParamType.IsAssignableFrom(propertyType) && !propertyType.IsAssignableFrom(converterParamType))
+            {
+                throw new ArgumentException($"Converter input must be assignable from property type ({propertyType} -> {converterParamType})");
+            }
+
+            // If property type != converter param, convert
+            var converterInput = getterExpression;
+            if (converterParamType != propertyType)
+            {
+                converterInput = Expression.Convert(getterExpression, converterParamType);
+            }
+
+            getterExpression = Expression.Invoke(converter, converterInput);
+
+            propertyType = getterExpression.Type;
         }
 
-        var bakingField =
-            propertyInfo.DeclaringType!.GetField($"<{propertyInfo.Name}>k__BackingField",
-                BindingFlags.NonPublic |
-                BindingFlags.Instance);
+        var finalExpression = propertyType.IsValueType
+            ? Expression.Convert(getterExpression, typeof(object))
+            : getterExpression;
 
-        var propertyGetMethod = propertyInfo.GetGetMethod()!;
-
-        var getMethod = new DynamicMethod(propertyGetMethod.Name, typeof(TValue), [typeof(TSource)], true);
-        var getGenerator = getMethod.GetILGenerator();
-
-        // Load this to stack.
-        getGenerator.Emit(OpCodes.Ldarg_0);
-
-        if (bakingField != null && !propertyGetMethod.IsVirtual)
-        {
-            // Get field directly.
-            getGenerator.Emit(OpCodes.Ldfld, bakingField);
-        }
-        else if (propertyGetMethod.IsVirtual)
-        {
-            // Call the virtual property.
-            getGenerator.Emit(OpCodes.Callvirt, propertyGetMethod);
-        }
-        else
-        {
-            // Call the non virtual property.
-            getGenerator.Emit(OpCodes.Call, propertyGetMethod);
-        }
-
-        getGenerator.Emit(OpCodes.Ret);
-
-        return getMethod.CreateDelegate<Getter<TSource, TValue>>();
+        return Expression.Lambda<Func<object, object?>>(finalExpression, instanceParam).Compile();
     }
 }

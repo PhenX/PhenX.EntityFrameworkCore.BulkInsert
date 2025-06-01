@@ -83,6 +83,8 @@ public partial class GetValueComparator
     [Benchmark(Baseline = true)]
     public void Native()
     {
+        var enumConverter = Converters[nameof(TestEntity.NumericEnumValue)].Compile();
+
         for (var i = 0; i < data.Count; i++)
         {
             var entity = data[i];
@@ -91,7 +93,7 @@ public partial class GetValueComparator
             _ = entity.Name;
             _ = entity.Price;
             _ = entity.Identifier;
-            _ = (int) entity.NumericEnumValue;
+            _ = enumConverter(entity.NumericEnumValue);
             _ = entity.CreatedAt;
             _ = entity.UpdatedAt;
         }

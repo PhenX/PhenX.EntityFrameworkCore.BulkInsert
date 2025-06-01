@@ -15,4 +15,6 @@ internal class SqliteDialectBuilder : SqlDialectBuilder
     {
         return $"CREATE TEMP TABLE {tempNameName} AS SELECT * FROM {tableInfo.QuotedTableName} WHERE 0;";
     }
+
+    protected override string Trim(string lhs) => $"TRIM({lhs})";
 }

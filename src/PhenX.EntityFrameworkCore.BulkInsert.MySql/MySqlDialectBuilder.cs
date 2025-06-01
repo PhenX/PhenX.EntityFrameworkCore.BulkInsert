@@ -1,5 +1,7 @@
 using System.Text;
 
+using Microsoft.EntityFrameworkCore;
+
 using PhenX.EntityFrameworkCore.BulkInsert.Dialect;
 using PhenX.EntityFrameworkCore.BulkInsert.Metadata;
 using PhenX.EntityFrameworkCore.BulkInsert.Options;
@@ -12,14 +14,22 @@ internal class MySqlServerDialectBuilder : SqlDialectBuilder
 
     protected override string CloseDelimiter => "`";
 
+    /// <inheritdoc />
     protected override bool SupportsMoveRows => false;
+
+    /// <inheritdoc />
+    protected override bool SupportsInsertIntoAlias => false;
 
     public override string CreateTableCopySql(string tempNameName, TableMetadata tableInfo, IReadOnlyList<ColumnMetadata> columns)
     {
         return $"CREATE TEMPORARY TABLE {tempNameName} SELECT * FROM {tableInfo.QuotedTableName} WHERE 1 = 0;";
     }
 
-    protected override void AppendConflictCondition<T>(StringBuilder sql, OnConflictOptions<T> onConflictTyped)
+    protected override void AppendConflictCondition<T>(
+        StringBuilder sql,
+        TableMetadata target,
+        DbContext context,
+        OnConflictOptions<T> onConflictTyped)
     {
         throw new NotSupportedException("Conflict conditions are not supported in MYSQL");
     }

@@ -52,7 +52,7 @@ public abstract class MergeTestsBase<TDbContext>(TestDbContainer dbContainer) : 
         var insertedEntities = await _context.InsertWithStrategyAsync(strategy, entities,
             onConflict: new OnConflictOptions<TestEntity>
             {
-                Update = e => e,
+                Update = (inserted, excluded) => inserted,
             });
 
         // Assert
@@ -82,7 +82,7 @@ public abstract class MergeTestsBase<TDbContext>(TestDbContainer dbContainer) : 
         var insertedEntities = await _context.InsertWithStrategyAsync(strategy, entities,
             onConflict: new OnConflictOptions<TestEntityWithGuidId>
             {
-                Update = e => e,
+                Update = (inserted, excluded) => inserted,
             });
 
         // Assert
@@ -112,7 +112,7 @@ public abstract class MergeTestsBase<TDbContext>(TestDbContainer dbContainer) : 
             o => o.CopyGeneratedColumns = true,
             onConflict: new OnConflictOptions<TestEntity>
             {
-                Update = e => e,
+                Update = (inserted, excluded) => inserted,
             });
 
         // Assert
@@ -139,18 +139,16 @@ public abstract class MergeTestsBase<TDbContext>(TestDbContainer dbContainer) : 
         };
 
         // Act
-        var insertedEntities = await _context.InsertWithStrategyAsync(strategy, entities, o =>
-        {
-            o.MoveRows = true;
-        }, new OnConflictOptions<TestEntity>
+        var insertedEntities = await _context.InsertWithStrategyAsync(strategy, entities, _ =>
+        {}, new OnConflictOptions<TestEntity>
         {
             Match = e => new
             {
                 e.Name,
             },
-            Update = e => new TestEntity
+            Update = (inserted, excluded) => new TestEntity
             {
-                Name = e.Name + " - Conflict",
+                Name = inserted.Name + " - Conflict",
             },
         });
 
@@ -179,10 +177,7 @@ public abstract class MergeTestsBase<TDbContext>(TestDbContainer dbContainer) : 
         };
 
         // Act
-        var insertedEntities = await _context.InsertWithStrategyAsync(strategy, entities, o =>
-        {
-            o.MoveRows = true;
-        }, new OnConflictOptions<TestEntity>
+        var insertedEntities = await _context.InsertWithStrategyAsync(strategy, entities, _ => {}, new OnConflictOptions<TestEntity>
         {
             Match = e => new { e.Name }
         });
@@ -196,7 +191,93 @@ public abstract class MergeTestsBase<TDbContext>(TestDbContainer dbContainer) : 
     [SkippableTheory]
     [InlineData(InsertStrategy.InsertReturn)]
     [InlineData(InsertStrategy.InsertReturnAsync)]
-    public async Task InsertEntities_WithConflict_Condition(InsertStrategy strategy)
+    public async Task InsertEntities_WithConflict_RawCondition(InsertStrategy strategy)
+    {
+        Skip.If(_context.IsProvider(ProviderType.MySql));
+
+        // Arrange
+        _context.TestEntities.Add(new TestEntity { TestRun = _run, Name = $"{_run}_Entity1", Price = 10 });
+        _context.SaveChanges();
+        _context.ChangeTracker.Clear();
+
+        var entities = new List<TestEntity>
+        {
+            new TestEntity { TestRun = _run, Name = $"{_run}_Entity1", Price = 20 },
+            new TestEntity { TestRun = _run, Name = $"{_run}_Entity2", Price = 600 },
+        };
+
+        await _context.ExecuteBulkInsertAsync(entities, onConflict: new OnConflictOptions<TestEntity>
+        {
+            Match = e => new
+            {
+                e.Name,
+            }
+        });
+
+        // Act
+        var insertedEntities = await _context.InsertWithStrategyAsync(strategy, entities, _ => {}, new OnConflictOptions<TestEntity>
+        {
+
+            Match = e => new { e.Name },
+            Update = (inserted, excluded) => new TestEntity
+            {
+                Price = excluded.Price + inserted.Price,
+            },
+            RawWhere = (insertedTable, excludedTable) => $"{excludedTable}.some_price != {insertedTable}.some_price",
+        });
+
+        // Assert
+        Assert.Single(insertedEntities);
+        Assert.Contains(insertedEntities, e => e.Name == $"{_run}_Entity1" && e.Price == 30);
+    }
+
+    [SkippableTheory]
+    [InlineData(InsertStrategy.InsertReturn)]
+    [InlineData(InsertStrategy.InsertReturnAsync)]
+    public async Task InsertEntities_WithConflict_ExpressionCondition(InsertStrategy strategy)
+    {
+        Skip.If(_context.IsProvider(ProviderType.MySql));
+
+        // Arrange
+        _context.TestEntities.Add(new TestEntity { TestRun = _run, Name = $"{_run}_Entity1", Price = 10 });
+        _context.SaveChanges();
+        _context.ChangeTracker.Clear();
+
+        var entities = new List<TestEntity>
+        {
+            new TestEntity { TestRun = _run, Name = $"{_run}_Entity1", Price = 20 },
+            new TestEntity { TestRun = _run, Name = $"{_run}_Entity2", Price = 600 },
+        };
+
+        await _context.ExecuteBulkInsertAsync(entities, onConflict: new OnConflictOptions<TestEntity>
+        {
+            Match = e => new
+            {
+                e.Name,
+            }
+        });
+
+        // Act
+        var insertedEntities = await _context.InsertWithStrategyAsync(strategy, entities, _ => {}, new OnConflictOptions<TestEntity>
+        {
+
+            Match = e => new { e.Name },
+            Update = (inserted, excluded) => new TestEntity
+            {
+                Price = excluded.Price + inserted.Price,
+            },
+            Where = (inserted, excluded) => excluded.Price != inserted.Price,
+        });
+
+        // Assert
+        Assert.Single(insertedEntities);
+        Assert.Contains(insertedEntities, e => e.Name == $"{_run}_Entity1" && e.Price == 30);
+    }
+
+    [SkippableTheory]
+    [InlineData(InsertStrategy.InsertReturn)]
+    [InlineData(InsertStrategy.InsertReturnAsync)]
+    public async Task InsertEntities_WithConflict_ComplexExpressionCondition(InsertStrategy strategy)
     {
         Skip.If(_context.IsProvider(ProviderType.MySql));
 
@@ -212,19 +293,16 @@ public abstract class MergeTestsBase<TDbContext>(TestDbContainer dbContainer) : 
         };
 
         // Act
-        var insertedEntities = await _context.InsertWithStrategyAsync(strategy, entities, o =>
-        {
-            o.MoveRows = true;
-        }, new OnConflictOptions<TestEntity>
+        var insertedEntities = await _context.InsertWithStrategyAsync(strategy, entities, _ => {}, new OnConflictOptions<TestEntity>
         {
             Match = e => new { e.Name },
-            Update = e => new TestEntity { Price = e.Price },
-            Condition = "EXCLUDED.some_price > test_entity.some_price"
+            Update = (inserted, excluded) => new TestEntity { Price = (excluded.Price > 15 ? 15 : 10) },
+            Where = (inserted, excluded) => excluded.Price > inserted.Price && inserted.Name.Trim().Contains("Entity1"),
         });
 
         // Assert
         Assert.Equal(2, insertedEntities.Count);
-        Assert.Contains(insertedEntities, e => e.Name == $"{_run}_Entity1" && e.Price == 20);
+        Assert.Contains(insertedEntities, e => e.Name == $"{_run}_Entity1" && e.Price == 15);
         Assert.Contains(insertedEntities, e => e.Name == $"{_run}_Entity2" && e.Price == 30);
     }
 
@@ -247,13 +325,10 @@ public abstract class MergeTestsBase<TDbContext>(TestDbContainer dbContainer) : 
         };
 
         // Act
-        var insertedEntities = await _context.InsertWithStrategyAsync(strategy, entities, o =>
-        {
-            o.MoveRows = true;
-        }, new OnConflictOptions<TestEntity>
+        var insertedEntities = await _context.InsertWithStrategyAsync(strategy, entities, _ => {}, new OnConflictOptions<TestEntity>
         {
             Match = e => new { e.Name },
-            Update = e => new TestEntity { Name = e.Name + " - Conflict", Price = 0 }
+            Update = (inserted, excluded) => new TestEntity { Name = inserted.Name + " - Conflict", Price = 0 }
         });
 
         // Assert

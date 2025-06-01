@@ -1,5 +1,7 @@
 using System.Text;
 
+using Microsoft.EntityFrameworkCore;
+
 using PhenX.EntityFrameworkCore.BulkInsert.Dialect;
 using PhenX.EntityFrameworkCore.BulkInsert.Metadata;
 using PhenX.EntityFrameworkCore.BulkInsert.Options;
@@ -35,6 +37,7 @@ internal class OracleDialectBuilder : SqlDialectBuilder
     }
 
     public override string BuildMoveDataSql<T>(
+        DbContext context,
         TableMetadata target,
         string source,
         IReadOnlyList<ColumnMetadata> insertedColumns,
@@ -78,7 +81,7 @@ internal class OracleDialectBuilder : SqlDialectBuilder
                 var columns = target.GetColumns(false);
 
                 q.AppendLine("WHEN MATCHED THEN UPDATE SET ");
-                q.AppendJoin(", ", GetUpdates(target, columns, onConflictTyped.Update));
+                q.AppendJoin(", ", GetUpdates(context, target, columns, onConflictTyped.Update));
                 q.AppendLine();
             }
 

@@ -10,11 +10,23 @@ namespace PhenX.EntityFrameworkCore.BulkInsert.Dialect;
 
 internal abstract class SqlDialectBuilder
 {
+    protected const string PseudoColumnInserted = "INSERTED";
+    protected const string PseudoColumnExcluded = "EXCLUDED";
+
     protected abstract string OpenDelimiter { get; }
     protected abstract string CloseDelimiter { get; }
 
     protected virtual string ConcatOperator => "||";
+
+    /// <summary>
+    /// Indicates whether the dialect supports moving rows from temporary table to the final table, in order to
+    /// theoretically reduce disk space requirements.
+    /// </summary>
     protected virtual bool SupportsMoveRows => true;
+
+    /// <summary>
+    /// Indicates whether the dialect supports INSERT INTO table AS alias.
+    /// </summary>
     protected virtual bool SupportsInsertIntoAlias => true;
 
     public abstract string CreateTableCopySql(string tempNameName, TableMetadata tableInfo, IReadOnlyList<ColumnMetadata> columns);
@@ -56,7 +68,7 @@ internal abstract class SqlDialectBuilder
 
         if (SupportsInsertIntoAlias)
         {
-            q.Append(" AS INSERTED");
+            q.Append($" AS {PseudoColumnInserted}");
         }
 
         q.AppendLine(" (");
@@ -156,12 +168,12 @@ internal abstract class SqlDialectBuilder
     /// <summary>
     /// Get the name of the INSERTED column (data already in the table) for the ON CONFLICT clause.
     /// </summary>
-    protected virtual string GetInsertedColumnName(string columnName) => $"INSERTED.{Quote(columnName)}";
+    protected virtual string GetInsertedColumnName(string columnName) => $"{PseudoColumnInserted}.{Quote(columnName)}";
 
     /// <summary>
     /// Get the name of the EXCLUDED column (data conflicting with table) for the ON CONFLICT clause.
     /// </summary>
-    protected virtual string GetExcludedColumnName(string columnName) => $"EXCLUDED.{Quote(columnName)}";
+    protected virtual string GetExcludedColumnName(string columnName) => $"{PseudoColumnExcluded}.{Quote(columnName)}";
 
     /// <summary>
     /// Quotes a column name using database-specific delimiters.

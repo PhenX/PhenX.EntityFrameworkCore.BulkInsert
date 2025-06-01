@@ -14,15 +14,10 @@ internal class MySqlServerDialectBuilder : SqlDialectBuilder
 
     protected override string CloseDelimiter => "`";
 
-    /// <summary>
-    /// Indicates whether the dialect supports moving rows from temporary table to the final table, in order to
-    /// theoretically reduce disk space requirements.
-    /// </summary>
+    /// <inheritdoc />
     protected override bool SupportsMoveRows => false;
 
-    /// <summary>
-    /// Indicates whether the dialect supports INSERT INTO table AS alias.
-    /// </summary>
+    /// <inheritdoc />
     protected override bool SupportsInsertIntoAlias => false;
 
     public override string CreateTableCopySql(string tempNameName, TableMetadata tableInfo, IReadOnlyList<ColumnMetadata> columns)

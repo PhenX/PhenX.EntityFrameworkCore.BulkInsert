@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 
-using PhenX.EntityFrameworkCore.BulkInsert.Abstractions;
 using PhenX.EntityFrameworkCore.BulkInsert.Dialect;
 using PhenX.EntityFrameworkCore.BulkInsert.Options;
 

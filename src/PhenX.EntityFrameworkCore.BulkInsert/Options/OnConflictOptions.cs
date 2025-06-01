@@ -8,9 +8,12 @@ namespace PhenX.EntityFrameworkCore.BulkInsert.Options;
 public abstract class OnConflictOptions
 {
     /// <summary>
-    /// Optional condition to apply on conflict.
+    /// Optional condition to apply on conflict, in raw SQL.
+    /// The pseudo tables `INSERTED` and `EXCLUDED` can be used to reference data :
+    /// * `INSERTED` refers to the data already in the target table.
+    /// * `EXCLUDED` refers to the new data, being in conflict.
     /// </summary>
-    public string? Condition {get; set; }
+    public string? RawWhere { get; set; }
 }
 
 /// <summary>
@@ -21,11 +24,25 @@ public class OnConflictOptions<T> : OnConflictOptions
 {
     /// <summary>
     /// Columns to match on conflict.
+    /// <example><code>
+    /// Match = (inserted) => new { inserted.Id } // Match on the Id column
+    /// </code></example>
     /// </summary>
     public Expression<Func<T, object>>? Match { get; set; }
 
     /// <summary>
     /// Updates to apply on conflict.
+    /// <example><code>
+    /// Update = (inserted) => new { inserted.Quantity + 1 } // Increment the quantity by 1 on conflict
+    /// </code></example>
     /// </summary>
     public Expression<Func<T, object>>? Update { get; set; }
+
+    /// <summary>
+    /// Condition to apply on conflict, with an expression.
+    /// <example><code>
+    /// Where = (inserted, excluded) => inserted.Price > excluded.Price
+    /// </code></example>
+    /// </summary>
+    public Expression<Func<T, T, bool>>? Where { get; set; }
 }

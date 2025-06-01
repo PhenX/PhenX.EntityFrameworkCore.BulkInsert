@@ -33,10 +33,10 @@ public class OnConflictOptions<T> : OnConflictOptions
     /// <summary>
     /// Updates to apply on conflict.
     /// <example><code>
-    /// Update = (inserted) => new { inserted.Quantity + 1 } // Increment the quantity by 1 on conflict
+    /// Update = (inserted, excluded) => new { inserted.Quantity = excluded.Quantity } // Update the Quantity column
     /// </code></example>
     /// </summary>
-    public Expression<Func<T, object>>? Update { get; set; }
+    public Expression<Func<T, T, object>>? Update { get; set; }
 
     /// <summary>
     /// Condition to apply on conflict, with an expression.

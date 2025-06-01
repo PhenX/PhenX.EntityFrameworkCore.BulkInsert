@@ -88,7 +88,7 @@ internal abstract class SqlDialectBuilder
                         throw new ArgumentException("Cannot specify both RawWhere and Where in OnConflictOptions.");
                     }
 
-                    q.Append(' ');
+                    q.Append(" WHERE ");
                     AppendConflictCondition(q, target, context, onConflictTyped);
                 }
             }
@@ -150,7 +150,7 @@ internal abstract class SqlDialectBuilder
             condition = ToSqlExpression<T>(context, target, onConflictTyped.Where);
         }
 
-        sql.AppendLine($"WHERE {condition}");
+        sql.Append(condition).AppendLine();
     }
 
     /// <summary>
@@ -206,15 +206,20 @@ internal abstract class SqlDialectBuilder
     /// var updates = GetUpdates(context, e => e.Prop1);
     /// </code>
     /// </example>
-    protected IEnumerable<string> GetUpdates<T>(DbContext context, TableMetadata table, IEnumerable<ColumnMetadata> columns, Expression<Func<T, object>> update)
+    protected IEnumerable<string> GetUpdates<T>(DbContext context, TableMetadata table, IEnumerable<ColumnMetadata> columns, Expression<Func<T, T, object>> update)
     {
+        if (update is not LambdaExpression lambda)
+        {
+            throw new ArgumentException("Update expression must be a lambda expression.");
+        }
+
         switch (update.Body)
         {
             case NewExpression { Members: not null } newExpr:
             {
                 foreach (var arg in newExpr.Arguments.Zip(newExpr.Members, (expr, member) => (expr, member)))
                 {
-                    yield return $"{table.GetColumnName(arg.member.Name)} = {ToSqlExpression<T>(context, table, arg.expr)}";
+                    yield return $"{table.GetColumnName(arg.member.Name)} = {ToSqlExpression<T>(context, table, arg.expr, lambda)}";
                 }
 
                 break;
@@ -223,14 +228,15 @@ internal abstract class SqlDialectBuilder
             {
                 foreach (var binding in memberInit.Bindings.OfType<MemberAssignment>())
                 {
-                    yield return $"{table.GetColumnName(binding.Member.Name)} = {ToSqlExpression<T>(context, table, binding.Expression)}";
+                    yield return $"{table.GetColumnName(binding.Member.Name)} = {ToSqlExpression<T>(context, table, binding.Expression, lambda)}";
                 }
 
                 break;
             }
             case MemberExpression memberExpr:
-                yield return $"{table.GetColumnName(memberExpr.Member.Name)} = {ToSqlExpression<T>(context, table, memberExpr)}";
+                yield return $"{table.GetColumnName(memberExpr.Member.Name)} = {ToSqlExpression<T>(context, table, memberExpr, lambda)}";
                 break;
+
             case ParameterExpression parameterExpr when (parameterExpr.Type == typeof(T)):
                 foreach (var property in columns)
                 {
@@ -355,11 +361,11 @@ internal abstract class SqlDialectBuilder
                         case "Trim":
                             return Trim(lhs);
                         case "Contains" when methodExpr is { Object: not null, Arguments.Count: 1 }:
-                            return $"{lhs} LIKE '%' || {ToSqlExpression<TEntity>(context, table, methodExpr.Arguments[0], lambda)} || '%'";
+                            return $"{lhs} LIKE '%' {ConcatOperator} {ToSqlExpression<TEntity>(context, table, methodExpr.Arguments[0], lambda)} {ConcatOperator} '%'";
                         case "EndsWith" when methodExpr is { Object: not null, Arguments.Count: 1 }:
-                            return $"{lhs} LIKE '%' || {ToSqlExpression<TEntity>(context, table, methodExpr.Arguments[0], lambda)}";
+                            return $"{lhs} LIKE '%' {ConcatOperator} {ToSqlExpression<TEntity>(context, table, methodExpr.Arguments[0], lambda)}";
                         case "StartsWith" when methodExpr is { Object: not null, Arguments.Count: 1 }:
-                            return $"{lhs} LIKE {ToSqlExpression<TEntity>(context, table, methodExpr.Arguments[0], lambda)} || '%'";
+                            return $"{lhs} LIKE {ToSqlExpression<TEntity>(context, table, methodExpr.Arguments[0], lambda)} {ConcatOperator} '%'";
                         default:
                             throw new NotSupportedException($"Method not supported: {methodExpr.Method.Name}");
                     }

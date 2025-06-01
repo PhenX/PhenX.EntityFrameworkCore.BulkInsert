@@ -128,9 +128,10 @@ await dbContext.ExecuteBulkInsertAsync(entities, onConflict: new OnConflictOptio
     },
 
     // Optional: specify the update action, if not specified, the default action is to do nothing
-    Update = e => new TestEntity
+    // Excluded is the row being inserted which is in conflict, and Inserted is the row already in the database.
+    Update = (inserted, excluded) => new TestEntity
     {
-        Price = e.Price // Update the Price column with the new value
+        Price = inserted.Price // Update the Price column with the new value
     },
 
     // Optional: specify the condition for the update action

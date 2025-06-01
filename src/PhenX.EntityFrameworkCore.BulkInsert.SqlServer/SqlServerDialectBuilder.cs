@@ -36,6 +36,8 @@ internal class SqlServerDialectBuilder : SqlDialectBuilder
         return q.ToString();
     }
 
+    protected override string Trim(string lhs) => $"TRIM({lhs})";
+
     public override string BuildMoveDataSql<T>(
         DbContext context,
         TableMetadata target,
@@ -87,9 +89,15 @@ internal class SqlServerDialectBuilder : SqlDialectBuilder
 
                 q.AppendLine("WHEN MATCHED ");
 
-                if (!string.IsNullOrEmpty(onConflictTyped.RawWhere))
+                if (onConflictTyped.RawWhere != null || onConflictTyped.Where != null)
                 {
-                    q.Append($"AND {onConflictTyped.RawWhere} ");
+                    if (onConflictTyped is { RawWhere: not null, Where: not null })
+                    {
+                        throw new ArgumentException("Cannot specify both RawWhere and Where in OnConflictOptions.");
+                    }
+
+                    q.Append("AND ");
+                    AppendConflictCondition(q, target, context, onConflictTyped);
                 }
 
                 q.AppendLine("THEN UPDATE SET ");
@@ -141,7 +149,6 @@ internal class SqlServerDialectBuilder : SqlDialectBuilder
             q.AppendLine($"SET IDENTITY_INSERT {target.QuotedTableName} OFF;");
         }
 
-        var result = q.ToString();
-        return result;
+        return q.ToString();
     }
 }

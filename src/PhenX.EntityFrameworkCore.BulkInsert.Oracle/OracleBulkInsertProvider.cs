@@ -72,8 +72,19 @@ internal class OracleBulkInsertProvider(ILogger<OracleBulkInsertProvider>? logge
     }
 
     /// <inheritdoc />
-    protected override Task DropTempTableAsync(bool sync, DbContext dbContext, string tableName)
+    protected override async Task DropTempTableAsync(bool sync, DbContext dbContext, string tableName)
     {
-        return ExecuteAsync(sync, dbContext, $"DROP TABLE IF EXISTS {tableName}", default);
+        var connection = (OracleConnection)dbContext.Database.GetDbConnection();
+        var commandText = $@"
+            BEGIN
+                EXECUTE IMMEDIATE 'DROP TABLE ' || :tableName;
+            EXCEPTION
+                WHEN OTHERS THEN
+                    IF SQLCODE != -942 THEN -- ORA-00942: table or view does not exist
+                        RAISE;
+                    END IF;
+            END;";
+
+        await ExecuteAsync(sync, dbContext, commandText, new OracleParameter("tableName", tableName));
     }
 }

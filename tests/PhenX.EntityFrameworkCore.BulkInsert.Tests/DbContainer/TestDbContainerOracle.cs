@@ -29,10 +29,7 @@ public class TestDbContainerOracle : TestDbContainer
     protected override void Configure(DbContextOptionsBuilder optionsBuilder, string databaseName)
     {
         optionsBuilder
-            .UseOracle(GetConnectionString(databaseName), o =>
-            {
-                // o.UseNetTopologySuite();
-            })
+            .UseOracle(GetConnectionString(databaseName))
             .UseBulkInsertOracle();
     }
 

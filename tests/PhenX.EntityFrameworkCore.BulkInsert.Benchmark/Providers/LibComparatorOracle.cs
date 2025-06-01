@@ -25,6 +25,8 @@ public class LibComparatorOracle : LibComparator
 
     protected override IDatabaseContainer? GetDbContainer()
     {
-        return new OracleBuilder().Build();
+        return new OracleBuilder()
+            .WithImage("gvenzl/oracle-free:23-slim-faststart")
+            .Build();
     }
 }

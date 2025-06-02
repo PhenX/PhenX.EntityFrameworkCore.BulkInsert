@@ -74,13 +74,13 @@ internal static class InternalExtensions
     /// <summary>
     /// Tells if the current provider is the specified provider type.
     /// </summary>
-    internal static bool IsProvider(this DbContext context, ProviderType providerType)
+    internal static bool IsProvider(this DbContext context, params ProviderType[] providerType)
     {
         if (context.Database.ProviderName == null)
         {
             throw new InvalidOperationException("Database provider name is null.");
         }
 
-        return context.Database.ProviderName.Contains(providerType.ToString(), StringComparison.OrdinalIgnoreCase);
+        return providerType.Any(p => context.Database.ProviderName.Contains(p.ToString(), StringComparison.OrdinalIgnoreCase));
     }
 }

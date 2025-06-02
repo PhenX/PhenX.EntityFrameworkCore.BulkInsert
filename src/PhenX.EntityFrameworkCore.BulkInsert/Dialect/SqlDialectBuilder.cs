@@ -29,6 +29,17 @@ internal abstract class SqlDialectBuilder
     /// </summary>
     protected virtual bool SupportsInsertIntoAlias => true;
 
+    protected static string CreateTableCopySqlBase(string tempTableName, IReadOnlyList<ColumnMetadata> columns)
+    {
+        var q = new StringBuilder();
+
+        q.Append($"CREATE TABLE {tempTableName} (");
+        q.AppendJoin(",", columns, (sb, column) => sb.AppendLine($"{column.QuotedColumName} {column.StoreDefinition}"));
+        q.AppendLine(")");
+
+        return q.ToString();
+    }
+
     public abstract string CreateTableCopySql(string tempNameName, TableMetadata tableInfo, IReadOnlyList<ColumnMetadata> columns);
 
     /// <summary>

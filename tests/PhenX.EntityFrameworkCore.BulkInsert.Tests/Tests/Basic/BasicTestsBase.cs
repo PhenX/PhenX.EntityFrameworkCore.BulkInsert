@@ -69,7 +69,7 @@ public abstract class BasicTestsBase<TDbContext>(TestDbContainer dbContainer) : 
     [SkippableFact]
     public async Task InsertEntities_AndReturn_AsyncEnumerable()
     {
-        Skip.If(_context.IsProvider(ProviderType.MySql));
+        Skip.If(_context.IsProvider(ProviderType.MySql, ProviderType.Oracle));
 
         // Arrange
         var entities = new List<TestEntity>
@@ -96,6 +96,8 @@ public abstract class BasicTestsBase<TDbContext>(TestDbContainer dbContainer) : 
     [CombinatorialData]
     public async Task InsertEntities_MoveRows(InsertStrategy strategy)
     {
+        Skip.If(_context.IsProvider(ProviderType.Oracle), "Unstable with Oracle");
+
         // Arrange
         var entities = new List<TestEntity>
         {

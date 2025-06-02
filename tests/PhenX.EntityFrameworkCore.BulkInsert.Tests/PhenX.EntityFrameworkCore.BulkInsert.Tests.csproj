@@ -29,6 +29,7 @@
         <PackageReference Include="Testcontainers.PostgreSql" Version="4.4.0" />
         <PackageReference Include="Testcontainers.MsSql" Version="4.4.0" />
         <PackageReference Include="Testcontainers.MySql" Version="4.4.0" />
+        <PackageReference Include="Testcontainers.Oracle" Version="4.4.0" />
     </ItemGroup>
 
     <ItemGroup Label="NetTopologySuite net8.0" Condition="'$(TargetFramework)' == 'net8.0'">
@@ -45,6 +46,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\..\src\PhenX.EntityFrameworkCore.BulkInsert.MySql\PhenX.EntityFrameworkCore.BulkInsert.MySql.csproj" />
+      <ProjectReference Include="..\..\src\PhenX.EntityFrameworkCore.BulkInsert.Oracle\PhenX.EntityFrameworkCore.BulkInsert.Oracle.csproj" />
       <ProjectReference Include="..\..\src\PhenX.EntityFrameworkCore.BulkInsert.PostgreSql\PhenX.EntityFrameworkCore.BulkInsert.PostgreSql.csproj" />
       <ProjectReference Include="..\..\src\PhenX.EntityFrameworkCore.BulkInsert.Sqlite\PhenX.EntityFrameworkCore.BulkInsert.Sqlite.csproj" />
       <ProjectReference Include="..\..\src\PhenX.EntityFrameworkCore.BulkInsert.SqlServer\PhenX.EntityFrameworkCore.BulkInsert.SqlServer.csproj" />

@@ -24,7 +24,7 @@ internal class SqliteBulkInsertProvider(ILogger<SqliteBulkInsertProvider>? logge
     protected override string AddTableCopyBulkInsertId => "--"; // No need to add an ID column in SQLite
 
     /// <inheritdoc />
-    protected override string GetTempTableName(string tableName) => $"_temp_bulk_insert_test_entity_{Guid.NewGuid():N}";
+    protected override string GetTempTableName(string tableName) => $"_temp_bulk_insert_{Guid.NewGuid():N}";
 
     /// <inheritdoc />
     protected override BulkInsertOptions CreateDefaultOptions() => new()

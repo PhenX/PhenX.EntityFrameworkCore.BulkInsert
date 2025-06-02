@@ -27,7 +27,12 @@ public static class TestHelpers
         OnConflictOptions<T>? onConflict = null)
         where T : TestEntityBase
     {
-        Skip.If(strategy is InsertStrategy.InsertReturn or InsertStrategy.InsertReturnAsync && dbContext.IsProvider(ProviderType.MySql));
+        ProviderType[] returningNotSupported = [
+            ProviderType.MySql,
+            ProviderType.Oracle,
+        ];
+
+        Skip.If(strategy is InsertStrategy.InsertReturn or InsertStrategy.InsertReturnAsync && dbContext.IsProvider(returningNotSupported));
 
         var runId = Guid.NewGuid();
         if (entities.Any(x => x.TestRun == default))

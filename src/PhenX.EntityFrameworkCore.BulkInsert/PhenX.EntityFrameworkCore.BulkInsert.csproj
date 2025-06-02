@@ -12,6 +12,7 @@
     <InternalsVisibleTo Include="PhenX.EntityFrameworkCore.BulkInsert.PostgreSql" />
     <InternalsVisibleTo Include="PhenX.EntityFrameworkCore.BulkInsert.SqlServer" />
     <InternalsVisibleTo Include="PhenX.EntityFrameworkCore.BulkInsert.Sqlite" />
+    <InternalsVisibleTo Include="PhenX.EntityFrameworkCore.BulkInsert.Oracle" />
   </ItemGroup>
 
 </Project>

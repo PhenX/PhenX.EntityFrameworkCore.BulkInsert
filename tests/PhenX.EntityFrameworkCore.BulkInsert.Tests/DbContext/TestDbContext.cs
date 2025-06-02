@@ -38,6 +38,11 @@ public class TestDbContextPostgreSql : TestDbContext
         {
             b.Property(x => x.Json).AsJsonString("jsonb");
         });
+
+        modelBuilder.Entity<TestEntity>(b =>
+        {
+            b.Property(x => x.StringEnumValue).HasColumnType("text");
+        });
     }
 }
 
@@ -50,6 +55,11 @@ public class TestDbContextMySql : TestDbContext
         modelBuilder.Entity<TestEntityWithJson>(b =>
         {
             b.Property(x => x.Json).AsJsonString("json");
+        });
+
+        modelBuilder.Entity<TestEntity>(b =>
+        {
+            b.Property(x => x.StringEnumValue).HasColumnType("text");
         });
     }
 }
@@ -64,6 +74,11 @@ public class TestDbContextSqlServer : TestDbContext
         {
             b.Property(x => x.Json).AsJsonString(null);
         });
+
+        modelBuilder.Entity<TestEntity>(b =>
+        {
+            b.Property(x => x.StringEnumValue).HasColumnType("text");
+        });
     }
 }
 
@@ -77,6 +92,11 @@ public class TestDbContextSqlite : TestDbContext
         {
             b.Property(x => x.Json).AsJsonString(null);
         });
+
+        modelBuilder.Entity<TestEntity>(b =>
+        {
+            b.Property(x => x.StringEnumValue).HasColumnType("text");
+        });
     }
 }
 
@@ -89,6 +109,11 @@ public class TestDbContextOracle : TestDbContext
         modelBuilder.Entity<TestEntityWithJson>(b =>
         {
             b.Property(x => x.Json).AsJsonString(null);
+        });
+
+        modelBuilder.Entity<TestEntity>(b =>
+        {
+            b.Property(x => x.StringEnumValue).HasColumnType("nvarchar2(255)");
         });
     }
 }

@@ -18,22 +18,7 @@ internal class SqlServerDialectBuilder : SqlDialectBuilder
 
     public override string CreateTableCopySql(string tempTableName, TableMetadata tableInfo, IReadOnlyList<ColumnMetadata> columns)
     {
-        var q = new StringBuilder();
-        q.Append($"CREATE TABLE {tempTableName} (");
-
-        foreach (var column in columns)
-        {
-            q.Append($"{column.QuotedColumName} {column.StoreDefinition}");
-            if (column != columns[^1])
-            {
-                q.Append(',');
-            }
-            q.AppendLine();
-        }
-
-        q.AppendLine(")");
-
-        return q.ToString();
+        return CreateTableCopySqlBase(tempTableName, columns);
     }
 
     protected override string Trim(string lhs) => $"TRIM({lhs})";

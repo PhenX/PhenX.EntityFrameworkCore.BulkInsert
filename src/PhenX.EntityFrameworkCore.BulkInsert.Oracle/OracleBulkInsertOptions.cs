@@ -11,5 +11,4 @@ public class OracleBulkInsertOptions : BulkInsertOptions
 {
     /// <inheritdoc cref="OracleBulkCopyOptions"/>
     public OracleBulkCopyOptions CopyOptions { get; set; } = OracleBulkCopyOptions.Default;
-
 }

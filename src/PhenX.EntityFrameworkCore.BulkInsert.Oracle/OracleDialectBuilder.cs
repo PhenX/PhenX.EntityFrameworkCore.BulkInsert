@@ -49,16 +49,16 @@ internal class OracleDialectBuilder : SqlDialectBuilder
                 throw new InvalidOperationException("Table has no primary key that can be used for conflict detection.");
             }
 
-            q.AppendLine($"MERGE INTO {target.QuotedTableName} AS TARGET");
+            q.AppendLine($"MERGE INTO {target.QuotedTableName} AS {PseudoTableInserted}");
 
             q.Append("USING (SELECT ");
             q.AppendColumns(insertedColumns);
-            q.Append($" FROM {source}) AS SOURCE (");
+            q.Append($" FROM {source}) AS {PseudoTableExcluded} (");
             q.AppendColumns(insertedColumns);
             q.AppendLine(")");
 
             q.Append("ON ");
-            q.AppendJoin(" AND ", matchColumns, (b, col) => b.Append($"TARGET.{col} = SOURCE.{col}"));
+            q.AppendJoin(" AND ", matchColumns, (b, col) => b.Append($"{PseudoTableInserted}.{col} = {PseudoTableExcluded}.{col}"));
             q.AppendLine();
 
             if (onConflictTyped.Update != null)
@@ -75,13 +75,13 @@ internal class OracleDialectBuilder : SqlDialectBuilder
             q.AppendLine(")");
 
             q.Append("VALUES (");
-            q.AppendJoin(", ", insertedColumns, (b, col) => b.Append($"SOURCE.{col.QuotedColumName}"));
+            q.AppendJoin(", ", insertedColumns, (b, col) => b.Append($"{PseudoTableExcluded}.{col.QuotedColumName}"));
             q.AppendLine(")");
 
             if (returnedColumns.Count != 0)
             {
                 q.Append("OUTPUT ");
-                q.AppendJoin(", ", returnedColumns, (b, col) => b.Append($"INSERTED.{col.QuotedColumName} AS {col.QuotedColumName}"));
+                q.AppendJoin(", ", returnedColumns, (b, col) => b.Append($"{PseudoTableInserted}.{col.QuotedColumName} AS {col.QuotedColumName}"));
                 q.AppendLine();
             }
         }
@@ -110,12 +110,6 @@ internal class OracleDialectBuilder : SqlDialectBuilder
 
         q.AppendLine(";");
 
-        var result = q.ToString();
-        return result;
-    }
-
-    protected override string GetExcludedColumnName(string columnName)
-    {
-        return $"SOURCE.{columnName}";
+        return q.ToString();
     }
 }

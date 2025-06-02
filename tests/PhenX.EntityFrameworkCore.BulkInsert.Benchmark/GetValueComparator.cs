@@ -28,9 +28,9 @@ public partial class GetValueComparator
         }).ToList();
     }
 
-    private static Dictionary<string, Expression<Func<object?, object?>>> Converters = new()
+    private static readonly Dictionary<string, Expression<Func<object?, object?>>> Converters = new()
     {
-        { nameof(TestEntity.NumericEnumValue), v => (int) (v ?? 0)},
+        { nameof(TestEntity.NumericEnumValue), v => (int) (v ?? 1)},
     };
 
     private static readonly PropertyInfo[] PropertyInfos = typeof(TestEntity).GetProperties();

@@ -34,7 +34,8 @@ internal class SqlServerDialectBuilder : SqlDialectBuilder
     {
         var q = new StringBuilder();
 
-        if (options.CopyGeneratedColumns)
+        var identityInsert = options.CopyGeneratedColumns && insertedColumns.Any(x => x.IsGenerated);
+        if (identityInsert)
         {
             q.AppendLine($"SET IDENTITY_INSERT {target.QuotedTableName} ON;");
         }
@@ -129,7 +130,7 @@ internal class SqlServerDialectBuilder : SqlDialectBuilder
 
         q.AppendLine(";");
 
-        if (options.CopyGeneratedColumns)
+        if (identityInsert)
         {
             q.AppendLine($"SET IDENTITY_INSERT {target.QuotedTableName} OFF;");
         }

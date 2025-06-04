@@ -22,7 +22,7 @@ internal sealed class ColumnMetadata(IProperty property,  SqlDialectBuilder dial
 
     public Type ClrType { get; } = property.ClrType;
 
-    public bool IsGenerated { get; } = property.ValueGenerated == ValueGenerated.OnAdd;
+    public bool IsGenerated { get; } = property.ValueGenerated != ValueGenerated.Never;
 
     public object? GetValue(object entity, BulkInsertOptions options)
     {

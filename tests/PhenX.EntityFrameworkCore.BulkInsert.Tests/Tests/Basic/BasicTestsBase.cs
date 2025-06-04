@@ -261,4 +261,26 @@ public abstract class BasicTestsBase<TDbContext>(TestDbContainer dbContainer) : 
                 }));
         }
     }
+
+    [SkippableTheory]
+    [CombinatorialData]
+    public async Task InsertEntities_WithGeneratedGuidId(InsertStrategy strategy)
+    {
+        // Arrange
+        var entities = new List<TestEntityWithGuidId>
+        {
+            new TestEntityWithGuidId { Id = Guid.NewGuid(), Name = $"{_run}_Entity1" },
+            new TestEntityWithGuidId { Id = Guid.NewGuid(), Name = $"{_run}_Entity2" }
+        };
+
+        // Act
+        var insertedEntities = await _context.InsertWithStrategyAsync(strategy, entities, configure => configure.CopyGeneratedColumns = true);
+
+        // Assert
+        insertedEntities.Should().BeEquivalentTo(entities,
+            o=> o
+                .RespectingRuntimeTypes()
+                .Excluding(e => e.Id)
+            );
+    }
 }

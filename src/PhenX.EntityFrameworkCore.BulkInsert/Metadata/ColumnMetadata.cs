@@ -24,7 +24,7 @@ internal sealed class ColumnMetadata(IProperty property,  SqlDialectBuilder dial
 
     public bool IsGenerated { get; } = property.ValueGenerated != ValueGenerated.Never;
 
-    public object? GetValue(object entity, BulkInsertOptions options)
+    public object GetValue(object entity, BulkInsertOptions options)
     {
         var result = _getter(entity);
 
@@ -40,7 +40,7 @@ internal sealed class ColumnMetadata(IProperty property,  SqlDialectBuilder dial
             }
         }
 
-        return result;
+        return result ?? DBNull.Value;
     }
 
     private static Func<object, object?> BuildGetter(IProperty property)

@@ -36,7 +36,8 @@ public class TestDbContextPostgreSql : TestDbContext
 
         modelBuilder.Entity<TestEntityWithJson>(b =>
         {
-            b.Property(x => x.Json).AsJsonString("jsonb");
+            b.Property(x => x.JsonArray).AsJsonString("jsonb");
+            b.Property(x => x.JsonObject).AsJsonString("jsonb");
         });
 
         modelBuilder.Entity<TestEntity>(b =>
@@ -54,7 +55,8 @@ public class TestDbContextMySql : TestDbContext
 
         modelBuilder.Entity<TestEntityWithJson>(b =>
         {
-            b.Property(x => x.Json).AsJsonString("json");
+            b.Property(x => x.JsonArray).AsJsonString("json");
+            b.Property(x => x.JsonObject).AsJsonString("json");
         });
 
         modelBuilder.Entity<TestEntity>(b =>
@@ -72,7 +74,8 @@ public class TestDbContextSqlServer : TestDbContext
 
         modelBuilder.Entity<TestEntityWithJson>(b =>
         {
-            b.Property(x => x.Json).AsJsonString(null);
+            b.Property(x => x.JsonArray).AsJsonString(null);
+            b.Property(x => x.JsonObject).AsJsonString(null);
         });
 
         modelBuilder.Entity<TestEntity>(b =>
@@ -90,7 +93,8 @@ public class TestDbContextSqlite : TestDbContext
 
         modelBuilder.Entity<TestEntityWithJson>(b =>
         {
-            b.Property(x => x.Json).AsJsonString(null);
+            b.Property(x => x.JsonArray).AsJsonString(null);
+            b.Property(x => x.JsonObject).AsJsonString(null);
         });
 
         modelBuilder.Entity<TestEntity>(b =>
@@ -108,7 +112,8 @@ public class TestDbContextOracle : TestDbContext
 
         modelBuilder.Entity<TestEntityWithJson>(b =>
         {
-            b.Property(x => x.Json).AsJsonString(null);
+            b.Property(x => x.JsonArray).AsJsonString(null);
+            b.Property(x => x.JsonObject).AsJsonString(null);
         });
 
         modelBuilder.Entity<TestEntity>(b =>

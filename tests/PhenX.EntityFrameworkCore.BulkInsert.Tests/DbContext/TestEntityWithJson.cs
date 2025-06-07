@@ -9,5 +9,7 @@ public class TestEntityWithJson : TestEntityBase
     [Key]
     public int Id { get; set; }
 
-    public List<int> Json { get; set; } = [];
+    public List<int> JsonArray { get; set; } = [];
+
+    public JsonDbObject JsonObject { get; set; }
 }

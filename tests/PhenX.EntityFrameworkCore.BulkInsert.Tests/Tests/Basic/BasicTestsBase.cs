@@ -176,8 +176,8 @@ public abstract class BasicTestsBase<TDbContext>(TestDbContainer dbContainer) : 
 
         var entities = new List<TestEntityWithConverters>
         {
-            new TestEntityWithConverters() { Name = $"{_run}_Entity1", CreatedAt = now },
-            new TestEntityWithConverters() { Name = $"{_run}_Entity2", CreatedAt = now.AddDays(-1) }
+            new TestEntityWithConverters() { Name = $"{_run}_Entity1", CreatedAt = now, Uri = null },
+            new TestEntityWithConverters() { Name = $"{_run}_Entity2", CreatedAt = now.AddDays(-1), Uri = new Uri("http://example.com/test") }
         };
 
         // Act

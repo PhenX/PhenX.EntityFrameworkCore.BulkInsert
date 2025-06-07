@@ -39,7 +39,18 @@ internal static class PropertyAccessor
                 converterInput = Expression.Convert(getterExpression, converterParamType);
             }
 
-            getterExpression = Expression.Invoke(converter, converterInput);
+            var invokeConverter = Expression.Invoke(converter, converterInput);
+
+            if (propertyType.IsClass)
+            {
+                var nullCondition = Expression.Equal(getterExpression, Expression.Constant(null, propertyType));
+                var nullResult = Expression.Constant(null, converter.ReturnType);
+                getterExpression = Expression.Condition(nullCondition, nullResult, invokeConverter);
+            }
+            else
+            {
+                getterExpression = invokeConverter;
+            }
 
             propertyType = getterExpression.Type;
         }

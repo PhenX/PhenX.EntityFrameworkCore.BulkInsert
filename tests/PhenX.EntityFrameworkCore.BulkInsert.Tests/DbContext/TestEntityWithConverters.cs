@@ -14,5 +14,8 @@ public class TestEntityWithConverters : TestEntityBase
 
     [Column("created_at")]
     public DateTime CreatedAt { get; set; }
+
+    [Column("uri")]
+    public Uri? Uri { get; set; }
 }
 

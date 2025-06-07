@@ -27,11 +27,9 @@ internal static class PropertyAccessor
         {
             // Validate the converter input type matches property type
             var converterParamType = converter.Parameters[0].Type;
-            if (!converterParamType.IsAssignableFrom(propertyType) &&
-                !propertyType.IsAssignableFrom(converterParamType))
+            if (!converterParamType.IsAssignableFrom(propertyType) && !propertyType.IsAssignableFrom(converterParamType))
             {
-                throw new ArgumentException(
-                    $"Converter input must be assignable from property type ({propertyType} -> {converterParamType})");
+                throw new ArgumentException($"Converter input must be assignable from property type ({propertyType} -> {converterParamType})");
             }
 
             // If property type != converter param, convert

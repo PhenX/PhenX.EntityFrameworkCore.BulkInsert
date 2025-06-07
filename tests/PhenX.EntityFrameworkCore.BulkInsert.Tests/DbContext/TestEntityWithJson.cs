@@ -11,5 +11,5 @@ public class TestEntityWithJson : TestEntityBase
 
     public List<int> JsonArray { get; set; } = [];
 
-    public JsonDbObject JsonObject { get; set; }
+    public JsonDbObject? JsonObject { get; set; }
 }

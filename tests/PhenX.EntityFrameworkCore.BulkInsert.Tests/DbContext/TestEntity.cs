@@ -22,6 +22,13 @@ public class TestEntity : TestEntityBase
     [Column("the_identifier")]
     public Guid Identifier { get; set; }
 
+    [Column("nullable_identifier")]
+    public Guid? NullableIdentifier { get; set; }
+
+    public DateTime Created { get; set; }
+
+    public DateTime? Modified { get; set; }
+
     [Column("string_enum_value")]
     public StringEnum StringEnumValue { get; set; }
 

@@ -54,8 +54,16 @@ public abstract class BasicTestsBase<TDbContext>(TestDbContainer dbContainer) : 
         // Arrange
         var entities = new List<TestEntityWithJson>
         {
-            new TestEntityWithJson { Json = [1] },
-            new TestEntityWithJson { Json = [2] }
+            new TestEntityWithJson
+            {
+                JsonArray = [1],
+                JsonObject = new JsonDbObject { Code = 1, Name = "Test1" },
+            },
+            new TestEntityWithJson
+            {
+                JsonArray = [2],
+                JsonObject = new JsonDbObject { Code = 2, Name = "Test2" },
+            },
         };
 
         // Act

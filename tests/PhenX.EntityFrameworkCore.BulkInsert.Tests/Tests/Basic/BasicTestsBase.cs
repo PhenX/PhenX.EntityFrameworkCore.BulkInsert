@@ -1,4 +1,5 @@
 using FluentAssertions;
+using FluentAssertions.Extensions;
 
 using PhenX.EntityFrameworkCore.BulkInsert.Enums;
 using PhenX.EntityFrameworkCore.BulkInsert.Extensions;
@@ -35,8 +36,8 @@ public abstract class BasicTestsBase<TDbContext>(TestDbContainer dbContainer) : 
         // Arrange
         var entities = new List<TestEntity>
         {
-            new TestEntity { Name = $"{_run}_Entity1" },
-            new TestEntity { Name = $"{_run}_Entity2" }
+            new TestEntity { TestRun = _run, Name = $"{_run}_Entity1" },
+            new TestEntity { TestRun = _run, Name = $"{_run}_Entity2" }
         };
 
         // Act
@@ -56,11 +57,13 @@ public abstract class BasicTestsBase<TDbContext>(TestDbContainer dbContainer) : 
         {
             new TestEntityWithJson
             {
+                TestRun = _run,
                 JsonArray = [1],
                 JsonObject = new JsonDbObject { Code = 1, Name = "Test1" },
             },
             new TestEntityWithJson
             {
+                TestRun = _run,
                 JsonArray = [2],
                 JsonObject = new JsonDbObject { Code = 2, Name = "Test2" },
             },
@@ -109,8 +112,8 @@ public abstract class BasicTestsBase<TDbContext>(TestDbContainer dbContainer) : 
         // Arrange
         var entities = new List<TestEntity>
         {
-            new TestEntity { Name = $"{_run}_Entity1" },
-            new TestEntity { Name = $"{_run}_Entity2" }
+            new TestEntity { TestRun = _run, Name = $"{_run}_Entity1" },
+            new TestEntity { TestRun = _run, Name = $"{_run}_Entity2" }
         };
 
         // Act
@@ -149,6 +152,7 @@ public abstract class BasicTestsBase<TDbContext>(TestDbContainer dbContainer) : 
         var entities = Enumerable.Range(1, count).Select(i => new TestEntity
         {
             Identifier = Guid.NewGuid(),
+            TestRun = _run,
             Name = $"{_run}_Entity{i}",
             NumericEnumValue = (NumericEnum)(i % 2),
             Price = (decimal)(i * 0.1),
@@ -176,8 +180,8 @@ public abstract class BasicTestsBase<TDbContext>(TestDbContainer dbContainer) : 
 
         var entities = new List<TestEntityWithConverters>
         {
-            new TestEntityWithConverters() { Name = $"{_run}_Entity1", CreatedAt = now, Uri = null },
-            new TestEntityWithConverters() { Name = $"{_run}_Entity2", CreatedAt = now.AddDays(-1), Uri = new Uri("http://example.com/test") }
+            new TestEntityWithConverters() { TestRun = _run, Name = $"{_run}_Entity1", CreatedAt = now, Uri = null },
+            new TestEntityWithConverters() { TestRun = _run, Name = $"{_run}_Entity2", CreatedAt = now.AddDays(-1), Uri = new Uri("http://example.com/test") }
         };
 
         // Act
@@ -240,8 +244,8 @@ public abstract class BasicTestsBase<TDbContext>(TestDbContainer dbContainer) : 
         // Arrange
         var entities = new List<TestEntity>
         {
-            new TestEntity { Name = $"{_run}_Entity1" },
-            new TestEntity { Name = $"{_run}_Entity2" }
+            new TestEntity { TestRun = _run, Name = $"{_run}_Entity1" },
+            new TestEntity { TestRun = _run, Name = $"{_run}_Entity2" }
         };
 
         // Act & Assert
@@ -277,8 +281,8 @@ public abstract class BasicTestsBase<TDbContext>(TestDbContainer dbContainer) : 
         // Arrange
         var entities = new List<TestEntityWithGuidId>
         {
-            new TestEntityWithGuidId { Id = Guid.NewGuid(), Name = $"{_run}_Entity1" },
-            new TestEntityWithGuidId { Id = Guid.NewGuid(), Name = $"{_run}_Entity2" }
+            new TestEntityWithGuidId { TestRun = _run, Id = Guid.NewGuid(), Name = $"{_run}_Entity1" },
+            new TestEntityWithGuidId { TestRun = _run, Id = Guid.NewGuid(), Name = $"{_run}_Entity2" }
         };
 
         // Act
@@ -299,16 +303,16 @@ public abstract class BasicTestsBase<TDbContext>(TestDbContainer dbContainer) : 
         // Arrange
         var entities = new List<TestEntity>
         {
-            new TestEntity { Name = $"{_run}_Entity1" },
-            new TestEntity { Name = $"{_run}_Entity2" },
-            new TestEntity { Name = $"{_run}_Entity3" },
-            new TestEntity { Name = $"{_run}_Entity4" },
-            new TestEntity { Name = $"{_run}_Entity5" },
-            new TestEntity { Name = $"{_run}_Entity6" },
-            new TestEntity { Name = $"{_run}_Entity7" },
-            new TestEntity { Name = $"{_run}_Entity8" },
-            new TestEntity { Name = $"{_run}_Entity9" },
-            new TestEntity { Name = $"{_run}_Entity10" },
+            new TestEntity { TestRun = _run, Name = $"{_run}_Entity1" },
+            new TestEntity { TestRun = _run, Name = $"{_run}_Entity2" },
+            new TestEntity { TestRun = _run, Name = $"{_run}_Entity3" },
+            new TestEntity { TestRun = _run, Name = $"{_run}_Entity4" },
+            new TestEntity { TestRun = _run, Name = $"{_run}_Entity5" },
+            new TestEntity { TestRun = _run, Name = $"{_run}_Entity6" },
+            new TestEntity { TestRun = _run, Name = $"{_run}_Entity7" },
+            new TestEntity { TestRun = _run, Name = $"{_run}_Entity8" },
+            new TestEntity { TestRun = _run, Name = $"{_run}_Entity9" },
+            new TestEntity { TestRun = _run, Name = $"{_run}_Entity10" },
         };
 
         long progressCount = 0;
@@ -337,10 +341,10 @@ public abstract class BasicTestsBase<TDbContext>(TestDbContainer dbContainer) : 
         // Arrange
         var entities = new List<TestEntity>
         {
-            new TestEntity { Name = $"{_run}_Entity1" },
-            new TestEntity { Name = $"{_run}_Entity2" },
-            new TestEntity { Name = $"{_run}_Entity3" },
-            new TestEntity { Name = $"{_run}_Entity4" },
+            new TestEntity { TestRun = _run, Name = $"{_run}_Entity1" },
+            new TestEntity { TestRun = _run, Name = $"{_run}_Entity2" },
+            new TestEntity { TestRun = _run, Name = $"{_run}_Entity3" },
+            new TestEntity { TestRun = _run, Name = $"{_run}_Entity4" },
         };
 
         var callCount = 0;
@@ -354,5 +358,89 @@ public abstract class BasicTestsBase<TDbContext>(TestDbContainer dbContainer) : 
 
         // Assert
         Assert.Equal(0, callCount);
+    }
+
+    [SkippableTheory]
+    [CombinatorialData]
+    public async Task InsertEntities_WithAllSimpleTypes(InsertStrategy strategy)
+    {
+        // Arrange
+        var entities = new List<TestEntityWithSimpleTypes>
+        {
+            new TestEntityWithSimpleTypes
+            {
+                TestRun = _run,
+                Id = 1,
+                BoolValue = true,
+                ByteValue = 1,
+                ByteArrayValue =
+                [
+                    1,
+                    2,
+                    3
+                ],
+                SByteValue = -1,
+                ShortValue = 2,
+                IntValue = 3,
+                LongValue = 4,
+                FloatValue = 5.5f,
+                DoubleValue = 6.6,
+                DecimalValue = 7.7m,
+                DateTimeValue = DateTime.UtcNow,
+                DateTimeOffsetValue = DateTimeOffset.UtcNow,
+                TimeSpanValue = TimeSpan.FromHours(1),
+                StringValue = "Test String 2",
+                CharValue = 'a',
+                UShortValue = 10,
+                UIntValue = 50,
+                ULongValue = 200,
+                DateOnlyValue = DateOnly.Parse("1985-10-31"),
+                TimeOnlyValue = TimeOnly.Parse("12:00:00"),
+                GuidValue = Guid.NewGuid(),
+            },
+            new TestEntityWithSimpleTypes
+            {
+                TestRun = _run,
+                Id = 2,
+                BoolValue = false,
+                ByteValue = 10,
+                ByteArrayValue =
+                [
+                    4,
+                    5,
+                    6
+                ],
+                SByteValue = -10,
+                ShortValue = 20,
+                IntValue = 30,
+                LongValue = 40,
+                FloatValue = 50.5f,
+                DoubleValue = 60.6,
+                DecimalValue = 70.7m,
+                DateTimeValue = DateTime.UtcNow.AddDays(1),
+                DateTimeOffsetValue = DateTimeOffset.UtcNow.AddDays(1),
+                TimeSpanValue = TimeSpan.FromHours(2),
+                StringValue = "Test String 2",
+                CharValue = 'b',
+                UShortValue = 50,
+                UIntValue = 20,
+                ULongValue = 100,
+                DateOnlyValue = DateOnly.Parse("2023-10-01"),
+                TimeOnlyValue = TimeOnly.Parse("12:00:00"),
+                GuidValue = Guid.NewGuid(),
+            }
+        };
+
+        // Act
+        var insertedEntities = await _context.InsertWithStrategyAsync(strategy, entities);
+
+        // Assert
+        insertedEntities.Should()
+            .BeEquivalentTo(entities, o => o
+                .Using<DateTime>(ctx => ctx.Subject.Should().BeCloseTo(ctx.Expectation, 1.Seconds())).WhenTypeIs<DateTime>()
+                .Using<DateTimeOffset>(ctx => ctx.Subject.Should().BeCloseTo(ctx.Expectation, 1.Seconds())).WhenTypeIs<DateTimeOffset>()
+                .RespectingRuntimeTypes()
+                .Excluding(e => e.Id)
+            );
     }
 }

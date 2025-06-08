@@ -67,8 +67,8 @@ public abstract class MergeTestsBase<TDbContext>(TestDbContainer dbContainer) : 
         // Arrange
         var entities = new List<TestEntityWithGuidId>
         {
-            new TestEntityWithGuidId { Id = Guid.NewGuid(), Name = $"{_run}_Entity1" },
-            new TestEntityWithGuidId { Id = Guid.NewGuid(), Name = $"{_run}_Entity2" }
+            new TestEntityWithGuidId { TestRun = _run,Id = Guid.NewGuid(), Name = $"{_run}_Entity1" },
+            new TestEntityWithGuidId { TestRun = _run,Id = Guid.NewGuid(), Name = $"{_run}_Entity2" }
         };
 
         // Act
@@ -97,8 +97,8 @@ public abstract class MergeTestsBase<TDbContext>(TestDbContainer dbContainer) : 
         // Arrange
         var entities = new List<TestEntity>
         {
-            new TestEntity { Name = $"{_run}_Entity1" },
-            new TestEntity { Name = $"{_run}_Entity2" }
+            new TestEntity { TestRun = _run, Name = $"{_run}_Entity1" },
+            new TestEntity { TestRun = _run, Name = $"{_run}_Entity2" }
         };
 
         // Act
@@ -128,13 +128,13 @@ public abstract class MergeTestsBase<TDbContext>(TestDbContainer dbContainer) : 
         Skip.If(_context.IsProvider(ProviderType.MySql));
 
         // Arrange
-        _context.TestEntities.Add(new TestEntity { Name = $"{_run}_Entity1" });
+        _context.TestEntities.Add(new TestEntity { TestRun = _run,Name = $"{_run}_Entity1" });
         _context.SaveChanges();
         _context.ChangeTracker.Clear();
 
         var entities = new List<TestEntity>
         {
-            new TestEntity { Name = $"{_run}_Entity1" },
+            new TestEntity { TestRun = _run, Name = $"{_run}_Entity1" },
             new TestEntity { TestRun = _run, Name = $"{_run}_Entity2" },
         };
 

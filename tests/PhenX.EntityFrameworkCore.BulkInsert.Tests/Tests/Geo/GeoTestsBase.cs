@@ -14,6 +14,7 @@ namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.Tests.Geo;
 public abstract class GeoTestsBase<TDbContext>(TestDbContainer dbContainer) : IAsyncLifetime
     where TDbContext : TestDbContextGeo, new()
 {
+    private readonly Guid _run = Guid.NewGuid();
     private TDbContext _context = null!;
 
     public async Task InitializeAsync()
@@ -37,8 +38,8 @@ public abstract class GeoTestsBase<TDbContext>(TestDbContainer dbContainer) : IA
 
         var entities = new List<TestEntityWithGeo>
         {
-            new TestEntityWithGeo { GeoObject = geo1 },
-            new TestEntityWithGeo { GeoObject = geo2 }
+            new TestEntityWithGeo { TestRun = _run, GeoObject = geo1 },
+            new TestEntityWithGeo { TestRun = _run, GeoObject = geo2 }
         };
 
         // Act
@@ -59,8 +60,8 @@ public abstract class GeoTestsBase<TDbContext>(TestDbContainer dbContainer) : IA
 
         var entities = new List<TestEntityWithGeo>
         {
-            new TestEntityWithGeo { GeoObject = geo1 },
-            new TestEntityWithGeo { GeoObject = geo2 }
+            new TestEntityWithGeo { TestRun = _run, GeoObject = geo1 },
+            new TestEntityWithGeo { TestRun = _run, GeoObject = geo2 }
         };
 
         // Act

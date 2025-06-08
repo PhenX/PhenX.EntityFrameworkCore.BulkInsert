@@ -63,6 +63,34 @@ internal class OracleBulkInsertProvider(ILogger<OracleBulkInsertProvider>? logge
         bulkCopy.BatchSize = options.BatchSize;
         bulkCopy.BulkCopyTimeout = options.GetCopyTimeoutInSeconds();
 
+        // Handle progress notifications
+        if (options is { NotifyProgressAfter: not null, OnProgress: not null })
+        {
+            bulkCopy.NotifyAfter = options.NotifyProgressAfter.Value;
+
+            bulkCopy.OracleRowsCopied += (sender, e) =>
+            {
+                options.OnProgress(e.RowsCopied);
+
+                if (ctk.IsCancellationRequested)
+                {
+                    e.Abort = true;
+                }
+            };
+        }
+
+        // If no progress notification is set, we still need to handle cancellation.
+        else
+        {
+            bulkCopy.OracleRowsCopied += (sender, e) =>
+            {
+                if (ctk.IsCancellationRequested)
+                {
+                    e.Abort = true;
+                }
+            };
+        }
+
         foreach (var column in columns)
         {
             bulkCopy.ColumnMappings.Add(column.PropertyName, column.QuotedColumName);

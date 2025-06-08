@@ -291,4 +291,68 @@ public abstract class BasicTestsBase<TDbContext>(TestDbContainer dbContainer) : 
                 .Excluding(e => e.Id)
             );
     }
+
+    [SkippableTheory]
+    [CombinatorialData]
+    public async Task HandleProgress(InsertStrategy strategy)
+    {
+        // Arrange
+        var entities = new List<TestEntity>
+        {
+            new TestEntity { Name = $"{_run}_Entity1" },
+            new TestEntity { Name = $"{_run}_Entity2" },
+            new TestEntity { Name = $"{_run}_Entity3" },
+            new TestEntity { Name = $"{_run}_Entity4" },
+            new TestEntity { Name = $"{_run}_Entity5" },
+            new TestEntity { Name = $"{_run}_Entity6" },
+            new TestEntity { Name = $"{_run}_Entity7" },
+            new TestEntity { Name = $"{_run}_Entity8" },
+            new TestEntity { Name = $"{_run}_Entity9" },
+            new TestEntity { Name = $"{_run}_Entity10" },
+        };
+
+        long progressCount = 0;
+        var callCount = 0;
+
+        // Act
+        await _context.InsertWithStrategyAsync(strategy, entities, o =>
+        {
+            o.NotifyProgressAfter = 2;
+            o.OnProgress = count =>
+            {
+                progressCount = count;
+                callCount++;
+            };
+        });
+
+        // Assert
+        Assert.Equal(10, progressCount);
+        Assert.Equal(5, callCount);
+    }
+
+    [SkippableTheory]
+    [CombinatorialData]
+    public async Task HandleNoProgress(InsertStrategy strategy)
+    {
+        // Arrange
+        var entities = new List<TestEntity>
+        {
+            new TestEntity { Name = $"{_run}_Entity1" },
+            new TestEntity { Name = $"{_run}_Entity2" },
+            new TestEntity { Name = $"{_run}_Entity3" },
+            new TestEntity { Name = $"{_run}_Entity4" },
+        };
+
+        var callCount = 0;
+
+        // Act
+        await _context.InsertWithStrategyAsync(strategy, entities, o =>
+        {
+            // NotifyProgressAfter not set, so no progress callback should be invoked
+            o.OnProgress = _ => callCount++;
+        });
+
+        // Assert
+        Assert.Equal(0, callCount);
+    }
 }

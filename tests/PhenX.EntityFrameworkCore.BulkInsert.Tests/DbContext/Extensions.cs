@@ -9,7 +9,7 @@ namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContext;
 public static class Extensions
 {
     public static PropertyBuilder<T> AsJsonString<T>(this PropertyBuilder<T> propertyBuilder, string? columnType)
-         where T : class
+         where T : class?
     {
         var converter = new ValueConverter<T, string>(
             v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),

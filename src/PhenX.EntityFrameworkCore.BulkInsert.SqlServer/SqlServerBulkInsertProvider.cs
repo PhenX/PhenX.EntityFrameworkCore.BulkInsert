@@ -46,6 +46,34 @@ internal class SqlServerBulkInsertProvider(ILogger<SqlServerBulkInsertProvider>?
         bulkCopy.BulkCopyTimeout = options.GetCopyTimeoutInSeconds();
         bulkCopy.EnableStreaming = options.EnableStreaming;
 
+        // Handle progress notifications
+        if (options is { NotifyProgressAfter: not null, OnProgress: not null })
+        {
+            bulkCopy.NotifyAfter = options.NotifyProgressAfter.Value;
+
+            bulkCopy.SqlRowsCopied += (sender, e) =>
+            {
+                options.OnProgress(e.RowsCopied);
+
+                if (ctk.IsCancellationRequested)
+                {
+                    e.Abort = true;
+                }
+            };
+        }
+
+        // If no progress notification is set, we still need to handle cancellation.
+        else
+        {
+            bulkCopy.SqlRowsCopied += (sender, e) =>
+            {
+                if (ctk.IsCancellationRequested)
+                {
+                    e.Abort = true;
+                }
+            };
+        }
+
         foreach (var column in columns)
         {
             bulkCopy.ColumnMappings.Add(column.PropertyName, column.ColumnName);

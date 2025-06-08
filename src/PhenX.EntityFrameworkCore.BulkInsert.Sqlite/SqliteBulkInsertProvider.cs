@@ -138,6 +138,8 @@ internal class SqliteBulkInsertProvider(ILogger<SqliteBulkInsertProvider>? logge
     {
         var batchSize = Math.Min(options.BatchSize, MaxParams / columns.Count);
 
+        long rowsCopied = 0;
+
         // The StringBuilder can be reused between the batches.
         var sb = new StringBuilder();
 
@@ -178,6 +180,12 @@ internal class SqliteBulkInsertProvider(ILogger<SqliteBulkInsertProvider>? logge
 
                     FillValues(chunk, partialInsertCommand.Parameters, columns, options);
                     await ExecuteCommand(sync, partialInsertCommand, ctk);
+                }
+
+                // Notify progress after each chunk
+                for (var i = 0; i < chunk.Length; i++)
+                {
+                    options.HandleOnProgress(ref rowsCopied);
                 }
             }
         }

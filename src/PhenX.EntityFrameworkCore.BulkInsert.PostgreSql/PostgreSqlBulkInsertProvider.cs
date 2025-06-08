@@ -33,7 +33,6 @@ internal class PostgreSqlBulkInsertProvider(ILogger<PostgreSqlBulkInsertProvider
     /// <inheritdoc />
     protected override PostgreSqlBulkInsertOptions CreateDefaultOptions() => new()
     {
-        BatchSize = 50_000,
         Converters = [PostgreSqlGeometryConverter.Instance],
     };
 
@@ -59,6 +58,7 @@ internal class PostgreSqlBulkInsertProvider(ILogger<PostgreSqlBulkInsertProvider
         // The type mapping can be null for obvious types like string.
         var columnTypes = columns.Select(c => GetPostgreSqlType(c, options)).ToArray();
 
+        long rowsCopied = 0;
         foreach (var entity in entities)
         {
             if (sync)
@@ -103,6 +103,8 @@ internal class PostgreSqlBulkInsertProvider(ILogger<PostgreSqlBulkInsertProvider
                     }
                 }
             }
+
+            options.HandleOnProgress(ref rowsCopied);
         }
 
         if (sync)

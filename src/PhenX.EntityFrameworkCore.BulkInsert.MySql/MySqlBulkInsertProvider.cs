@@ -64,6 +64,34 @@ internal class MySqlBulkInsertProvider(ILogger<MySqlBulkInsertProvider> logger) 
         bulkCopy.DestinationTableName = tableName;
         bulkCopy.BulkCopyTimeout = options.GetCopyTimeoutInSeconds();
 
+        // Handle progress notifications
+        if (options is { NotifyProgressAfter: not null, OnProgress: not null })
+        {
+            bulkCopy.NotifyAfter = options.NotifyProgressAfter.Value;
+
+            bulkCopy.MySqlRowsCopied += (sender, e) =>
+            {
+                options.OnProgress(e.RowsCopied);
+
+                if (ctk.IsCancellationRequested)
+                {
+                    e.Abort = true;
+                }
+            };
+        }
+
+        // If no progress notification is set, we still need to handle cancellation.
+        else
+        {
+            bulkCopy.MySqlRowsCopied += (sender, e) =>
+            {
+                if (ctk.IsCancellationRequested)
+                {
+                    e.Abort = true;
+                }
+            };
+        }
+
         var sourceOrdinal = 0;
         foreach (var prop in properties)
         {
@@ -72,7 +100,7 @@ internal class MySqlBulkInsertProvider(ILogger<MySqlBulkInsertProvider> logger) 
         }
 
         var dataReader = new EnumerableDataReader<T>(entities, properties, options);
-        
+
         if (sync)
         {
             // ReSharper disable once MethodHasAsyncOverloadWithCancellation

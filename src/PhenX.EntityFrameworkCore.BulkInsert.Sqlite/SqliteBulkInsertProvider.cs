@@ -49,7 +49,7 @@ internal class SqliteBulkInsertProvider(ILogger<SqliteBulkInsertProvider>? logge
             return SqliteType.Integer;
         }
 
-        if (string.Equals(storeType, "FLOAT", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(storeType, "FLOAT", StringComparison.OrdinalIgnoreCase) || string.Equals(storeType, "REAL", StringComparison.OrdinalIgnoreCase))
         {
             return SqliteType.Real;
         }

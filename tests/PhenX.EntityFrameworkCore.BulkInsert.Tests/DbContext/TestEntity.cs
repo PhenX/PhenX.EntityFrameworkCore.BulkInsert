@@ -19,6 +19,12 @@ public class TestEntity : TestEntityBase
     [Column("some_price")]
     public decimal Price { get; set; }
 
+    [Column("some_float")]
+    public float Float { get; set; } = 10.1f;
+
+    [Column("some_double")]
+    public double Double { get; set; } = 10.1d;
+
     [Column("the_identifier")]
     public Guid Identifier { get; set; }
 

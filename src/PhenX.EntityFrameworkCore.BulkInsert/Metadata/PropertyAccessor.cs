@@ -1,64 +1,94 @@
 using System.Linq.Expressions;
 using System.Reflection;
 
+using Microsoft.EntityFrameworkCore.Metadata;
+
 namespace PhenX.EntityFrameworkCore.BulkInsert.Metadata;
 
 internal static class PropertyAccessor
 {
-    public static Func<object, object?> CreateGetter(PropertyInfo propertyInfo, LambdaExpression? converter = null)
+    public static Func<object, object?> CreateGetter(
+        PropertyInfo propertyInfo,
+        IComplexProperty? complexProperty = null,
+        LambdaExpression? converter = null)
     {
         ArgumentNullException.ThrowIfNull(propertyInfo);
-        var getMethod = propertyInfo.GetMethod ?? throw new ArgumentException("Property does not have a getter.");
 
+        // instance => { }
         var instanceParam = Expression.Parameter(typeof(object), "instance");
 
-        // Convert object to the declaring type
-        Expression typedInstance = propertyInfo.DeclaringType!.IsValueType
-            ? Expression.Unbox(instanceParam, propertyInfo.DeclaringType)
-            : Expression.Convert(instanceParam, propertyInfo.DeclaringType);
+        Expression body;
 
-        // Call Getter
-        Expression getterExpression = Expression.Call(typedInstance, getMethod);
+        if (complexProperty == null)
+        {
+            var propDeclaringType = propertyInfo.DeclaringType!;
 
-        var propertyType = propertyInfo.PropertyType;
+            // Convert object to the declaring type
+            var typedInstance = GetTypedInstance(propDeclaringType, instanceParam);
+
+            // instance => ((TEntity)instance).Property
+            body = Expression.Property(typedInstance, propertyInfo);
+        }
+        else
+        {
+            // Nested access: ((TEntity)instance).ComplexProp.Property
+            var complexPropInfo = complexProperty.PropertyInfo!;
+            var complexPropDeclaringType = complexPropInfo.DeclaringType!;
+
+            var typedInstance = GetTypedInstance(complexPropDeclaringType, instanceParam);
+
+            // instance => ((TEntity)instance).ComplexProp
+            Expression complexAccess = Expression.Property(typedInstance, complexPropInfo);
+
+            // instance => ((TEntity)instance).ComplexProp.Property
+            body = Expression.Property(complexAccess, propertyInfo);
+        }
 
         // If the converter is provided, we call it
         if (converter != null)
         {
             // Validate the converter input type matches property type
             var converterParamType = converter.Parameters[0].Type;
-            if (!converterParamType.IsAssignableFrom(propertyType) && !propertyType.IsAssignableFrom(converterParamType))
+            if (!converterParamType.IsAssignableFrom(body.Type) && !body.Type.IsAssignableFrom(converterParamType))
             {
-                throw new ArgumentException($"Converter input must be assignable from property type ({propertyType} -> {converterParamType})");
+                throw new ArgumentException($"Converter input must be assignable from property type ({body.Type} -> {converterParamType})");
             }
 
-            // If property type != converter param, convert
-            var converterInput = getterExpression;
-            if (converterParamType != propertyType)
+            Expression converterInput = body;
+            if (converterParamType != body.Type)
             {
-                converterInput = Expression.Convert(getterExpression, converterParamType);
+                // instance => converter((TConverterType)body)
+                converterInput = Expression.Convert(body, converterParamType);
             }
 
+            // instance => converter(body)
             var invokeConverter = Expression.Invoke(converter, converterInput);
 
-            if (propertyType.IsClass)
+            if (body.Type.IsClass)
             {
-                var nullCondition = Expression.Equal(getterExpression, Expression.Constant(null, propertyType));
-                var nullResult = Expression.Constant(null, converter.ReturnType);
-                getterExpression = Expression.Condition(nullCondition, nullResult, invokeConverter);
+                // instance => body == null ? null : converter(body)
+                var nullCondition = Expression.Equal(body, Expression.Constant(null, body.Type));
+                var nullResult = Expression.Constant(null, invokeConverter.Type);
+
+                body = Expression.Condition(nullCondition, nullResult, invokeConverter);
             }
             else
             {
-                getterExpression = invokeConverter;
+                body = invokeConverter;
             }
-
-            propertyType = getterExpression.Type;
         }
 
-        var finalExpression = propertyType.IsValueType
-            ? Expression.Convert(getterExpression, typeof(object))
-            : getterExpression;
+        var finalExpression = body.Type.IsValueType
+            ? Expression.Convert(body, typeof(object))
+            : body;
 
         return Expression.Lambda<Func<object, object?>>(finalExpression, instanceParam).Compile();
+    }
+
+    private static UnaryExpression GetTypedInstance(Type propDeclaringType, ParameterExpression instanceParam)
+    {
+        return propDeclaringType.IsValueType
+            ? Expression.Unbox(instanceParam, propDeclaringType)
+            : Expression.Convert(instanceParam, propDeclaringType);
     }
 }

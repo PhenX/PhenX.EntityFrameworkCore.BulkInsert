@@ -59,13 +59,13 @@ public abstract class BasicTestsBase<TDbContext>(TestDbContainer dbContainer) : 
             {
                 TestRun = _run,
                 JsonArray = [1],
-                JsonObject = new JsonDbObject { Code = 1, Name = "Test1" },
+                JsonObject = new OwnedObject { Code = 1, Name = "Test1" },
             },
             new TestEntityWithJson
             {
                 TestRun = _run,
                 JsonArray = [2],
-                JsonObject = new JsonDbObject { Code = 2, Name = "Test2" },
+                JsonObject = new OwnedObject { Code = 2, Name = "Test2" },
             },
         };
 
@@ -442,5 +442,42 @@ public abstract class BasicTestsBase<TDbContext>(TestDbContainer dbContainer) : 
                 .RespectingRuntimeTypes()
                 .Excluding(e => e.Id)
             );
+    }
+
+    [SkippableTheory]
+    [CombinatorialData]
+    public async Task InsertsEntities_WithComplexType(InsertStrategy strategy)
+    {
+        // Arrange
+        var entities = new List<TestEntityWithComplexType>
+        {
+            new TestEntityWithComplexType
+            {
+                TestRun = _run,
+                Id = 1,
+                OwnedComplexType = new OwnedObject
+                {
+                    Code = 1,
+                    Name = "Name1",
+                }
+            },
+            new TestEntityWithComplexType
+            {
+                TestRun = _run,
+                Id = 2,
+                OwnedComplexType = new OwnedObject
+                {
+                    Code = 2,
+                    Name = "Name2",
+                }
+            }
+        };
+
+        // Act
+        var insertedEntities = await _context.InsertWithStrategyAsync(strategy, entities);
+
+        // Assert
+        insertedEntities.Should().BeEquivalentTo(entities,
+            o => o.RespectingRuntimeTypes().Excluding(e => e.Id));
     }
 }

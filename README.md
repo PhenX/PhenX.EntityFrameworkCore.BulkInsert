@@ -153,8 +153,8 @@ await dbContext.ExecuteBulkInsertAsync(entities, onConflict: new OnConflictOptio
 ## Roadmap
 
 - [ ] [Add support for navigation properties](https://github.com/PhenX/PhenX.EntityFrameworkCore.BulkInsert/issues/2)
-- [ ] [Add support for complex types](https://github.com/PhenX/PhenX.EntityFrameworkCore.BulkInsert/issues/3)
-- [ ] Add support for owned types
+- [x] [Add support for complex types](https://github.com/PhenX/PhenX.EntityFrameworkCore.BulkInsert/issues/3)
+- [x] Add support for owned types
 - [ ] Add support for shadow properties
 - [ ] Add support for TPT (Table Per Type) inheritance
 - [ ] Add support for TPC (Table Per Concrete Type) inheritance

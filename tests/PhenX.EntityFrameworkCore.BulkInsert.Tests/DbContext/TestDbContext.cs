@@ -10,6 +10,7 @@ public class TestDbContext : TestDbContextBase
     public DbSet<TestEntityWithJson> TestEntitiesWithJson { get; set; } = null!;
     public DbSet<TestEntityWithGuidId> TestEntitiesWithGuidId { get; set; } = null!;
     public DbSet<TestEntityWithConverters> TestEntitiesWithConverter { get; set; } = null!;
+    public DbSet<TestEntityWithComplexType> TestEntitiesWithComplexType { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -25,6 +26,13 @@ public class TestDbContext : TestDbContextBase
         {
             builder.Property(e => e.Id)
                 .ValueGeneratedNever();
+        });
+
+        modelBuilder.Entity<TestEntityWithComplexType>(builder =>
+        {
+            builder
+                .ComplexProperty(e => e.OwnedComplexType)
+                .IsRequired();
         });
     }
 }

@@ -6,23 +6,39 @@ using PhenX.EntityFrameworkCore.BulkInsert.Options;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Metadata;
 
-internal sealed class ColumnMetadata(IProperty property,  SqlDialectBuilder dialect)
+internal sealed class ColumnMetadata
 {
-    private readonly Func<object, object?> _getter = BuildGetter(property);
+    public ColumnMetadata(IProperty property,  SqlDialectBuilder dialect, IComplexProperty? complexProperty = null)
+    {
+        StoreObjectIdentifier? ownerTable = complexProperty != null
+            ? StoreObjectIdentifier.Table(complexProperty.DeclaringType.GetTableName()!, complexProperty.DeclaringType.GetSchema())
+            : null;
 
-    public IProperty Property { get; } = property;
+        _getter = BuildGetter(property, complexProperty);
+        Property = property;
+        PropertyName = property.Name;
+        ColumnName = ownerTable == null ? property.GetColumnName() : property.GetColumnName(ownerTable.Value)!;
+        QuotedColumName = dialect.Quote(ColumnName);
+        StoreDefinition = GetStoreDefinition(property);
+        ClrType = property.ClrType;
+        IsGenerated = property.ValueGenerated != ValueGenerated.Never;
+    }
 
-    public string PropertyName { get; } = property.Name;
+    private readonly Func<object, object?> _getter;
 
-    public string ColumnName { get; } = property.GetColumnName();
+    public IProperty Property { get; }
 
-    public string QuotedColumName { get; } = dialect.Quote(property.GetColumnName());
+    public string PropertyName { get; }
 
-    public string StoreDefinition { get; } = GetStoreDefinition(property);
+    public string ColumnName { get; }
 
-    public Type ClrType { get; } = property.ClrType;
+    public string QuotedColumName { get; }
 
-    public bool IsGenerated { get; } = property.ValueGenerated != ValueGenerated.Never;
+    public string StoreDefinition { get; }
+
+    public Type ClrType { get; }
+
+    public bool IsGenerated { get; }
 
     public object GetValue(object entity, BulkInsertOptions options)
     {
@@ -43,7 +59,7 @@ internal sealed class ColumnMetadata(IProperty property,  SqlDialectBuilder dial
         return result ?? DBNull.Value;
     }
 
-    private static Func<object, object?> BuildGetter(IProperty property)
+    private static Func<object, object?> BuildGetter(IProperty property, IComplexProperty? complexProperty)
     {
         var valueConverter =
             property.GetValueConverter() ??
@@ -51,7 +67,7 @@ internal sealed class ColumnMetadata(IProperty property,  SqlDialectBuilder dial
 
         var propInfo = property.PropertyInfo!;
 
-        return PropertyAccessor.CreateGetter(propInfo, valueConverter?.ConvertToProviderExpression);
+        return PropertyAccessor.CreateGetter(propInfo, complexProperty, valueConverter?.ConvertToProviderExpression);
     }
 
     private static string GetStoreDefinition(IProperty property)

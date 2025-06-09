@@ -5,37 +5,58 @@ using PhenX.EntityFrameworkCore.BulkInsert.Dialect;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Metadata;
 
-internal sealed class TableMetadata(IEntityType entityType, SqlDialectBuilder dialect)
+internal sealed class TableMetadata
 {
-    private IReadOnlyList<ColumnMetadata>? _notGeneratedColumns;
-    private IReadOnlyList<ColumnMetadata>? _primaryKeys;
+    private ColumnMetadata[]? _notGeneratedColumns;
+    private ColumnMetadata[]? _primaryKeys;
 
-    public string QuotedTableName { get; } =
-        dialect.QuoteTableName(entityType.GetSchema(), entityType.GetTableName()!);
+    private readonly IEntityType _entityType;
 
-    public string TableName { get; } =
-        entityType.GetTableName() ?? throw new InvalidOperationException("Canot determine table name.");
+    public string QuotedTableName { get; }
 
-    public IReadOnlyList<ColumnMetadata> Columns { get; } =
-        entityType.GetProperties().Where(p => !p.IsShadowProperty()).Select(x => new ColumnMetadata(x, dialect)).ToList();
+    public string TableName { get; }
 
-    public IReadOnlyList<ColumnMetadata> PrimaryKey =>
-        _primaryKeys ??= GetPrimaryKey();
+    private ColumnMetadata[] Columns { get; }
 
-    public IReadOnlyList<ColumnMetadata> GetColumns(bool includeGenerated = true)
+    public TableMetadata(IEntityType entityType, SqlDialectBuilder dialect)
+    {
+        _entityType = entityType;
+        TableName = entityType.GetTableName() ?? throw new InvalidOperationException("Cannot determine table name.");
+        QuotedTableName = dialect.QuoteTableName(entityType.GetSchema(), TableName);
+        Columns = GetColumns(entityType, dialect);
+    }
+
+    private static ColumnMetadata[] GetColumns(IEntityType entityType, SqlDialectBuilder dialect)
+    {
+        var properties = entityType.GetProperties()
+            .Where(p => !p.IsShadowProperty())
+            .Select(x => new ColumnMetadata(x, dialect));
+
+        var complexProperties = entityType.GetComplexProperties()
+            .SelectMany(cp => cp.ComplexType
+                .GetProperties()
+                .Where(p => !p.IsShadowProperty())
+                .Select(x => new ColumnMetadata(x, dialect, cp)));
+
+        return properties.Concat(complexProperties).ToArray();
+    }
+
+    public ColumnMetadata[] PrimaryKey => _primaryKeys ??= GetPrimaryKey();
+
+    public ColumnMetadata[] GetColumns(bool includeGenerated = true)
     {
         if (includeGenerated)
         {
             return Columns;
         }
 
-        return _notGeneratedColumns ??= Columns.Where(x => !x.IsGenerated).ToList();
+        return _notGeneratedColumns ??= Columns.Where(x => !x.IsGenerated).ToArray();
     }
 
     public string GetQuotedColumnName(string propertyName)
     {
         var property = Columns.FirstOrDefault(x => x.PropertyName == propertyName)
-            ?? throw new InvalidOperationException($"Property {propertyName} not found in entity type {entityType.Name}.");
+            ?? throw new InvalidOperationException($"Property {propertyName} not found in entity type {_entityType.Name}.");
 
         return property.QuotedColumName;
     }
@@ -43,15 +64,17 @@ internal sealed class TableMetadata(IEntityType entityType, SqlDialectBuilder di
     public string GetColumnName(string propertyName)
     {
         var property = Columns.FirstOrDefault(x => x.PropertyName == propertyName)
-            ?? throw new InvalidOperationException($"Property {propertyName} not found in entity type {entityType.Name}.");
+            ?? throw new InvalidOperationException($"Property {propertyName} not found in entity type {_entityType.Name}.");
 
         return property.ColumnName;
     }
 
-    private List<ColumnMetadata> GetPrimaryKey()
+    private ColumnMetadata[] GetPrimaryKey()
     {
-        var primaryKey = entityType.FindPrimaryKey()?.Properties ?? [];
+        var primaryKey = _entityType.FindPrimaryKey()?.Properties ?? [];
 
-        return Columns.Where(x => primaryKey.Any(y => x.PropertyName == y.Name)).ToList();
+        return Columns
+            .Where(x => primaryKey.Any(y => x.PropertyName == y.Name))
+            .ToArray();
     }
 }

@@ -3,13 +3,11 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContext;
 
-[Table("test_entity_json")]
-public class TestEntityWithJson : TestEntityBase
+[Table("test_entity_complex_type")]
+public class TestEntityWithComplexType : TestEntityBase
 {
     [Key]
     public int Id { get; set; }
 
-    public List<int> JsonArray { get; set; } = [];
-
-    public OwnedObject? JsonObject { get; set; }
+    public OwnedObject OwnedComplexType { get; set; } = null!;
 }

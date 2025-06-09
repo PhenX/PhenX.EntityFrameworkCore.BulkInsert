@@ -40,7 +40,7 @@ internal class OracleDialectBuilder : SqlDialectBuilder
             {
                 matchColumns = GetColumns(target, onConflictTyped.Match);
             }
-            else if (target.PrimaryKey.Count > 0)
+            else if (target.PrimaryKey.Length > 0)
             {
                 matchColumns = target.PrimaryKey.Select(x => x.QuotedColumName);
             }

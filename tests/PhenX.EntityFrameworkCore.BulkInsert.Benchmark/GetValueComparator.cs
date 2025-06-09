@@ -76,7 +76,7 @@ public partial class GetValueComparator
                 ? expression
                 : null;
 
-            return PropertyAccessor.CreateGetter(propertyInfo, converter);
+            return PropertyAccessor.CreateGetter(propertyInfo, converter: converter);
         })
         .ToArray();
 

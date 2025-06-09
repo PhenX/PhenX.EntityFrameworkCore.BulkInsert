@@ -1,6 +1,6 @@
 ﻿namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContext;
 
-public class JsonDbObject
+public class OwnedObject
 {
     public int Code { get; set; }
 

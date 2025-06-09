@@ -22,7 +22,7 @@ internal class PostgreSqlDialectBuilder : SqlDialectBuilder
         {
             base.AppendConflictMatch(sql, target, conflict);
         }
-        else if (target.PrimaryKey.Count > 0)
+        else if (target.PrimaryKey.Length > 0)
         {
             sql.Append(' ');
             sql.AppendLine("(");

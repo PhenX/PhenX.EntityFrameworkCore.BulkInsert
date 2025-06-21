@@ -38,10 +38,6 @@ export default defineConfig({
                 text: 'Documentation',
                 link: '/documentation',
             },
-            {
-                text: 'Limitations',
-                link: '/limitations',
-            },
         ],
 
         sidebar: [

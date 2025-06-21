@@ -8,7 +8,7 @@ const umamiScript: HeadConfig = ["script", {
 
 const baseHeaders: HeadConfig[] = [];
 
-const headers = process.env.NODE_ENV === "production" ?
+const headers = process.env.GITHUB_PAGES === "true" ?
     [...baseHeaders, umamiScript] :
     baseHeaders;
 

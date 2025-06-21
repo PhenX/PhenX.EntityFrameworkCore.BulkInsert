@@ -91,3 +91,7 @@ fabric.properties
 
 # Visual Studio Files
 .vs
+
+# Vitepress
+docs/.vitepress/dist
+docs/.vitepress/cache

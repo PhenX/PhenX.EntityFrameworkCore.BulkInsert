@@ -1,14 +1,27 @@
-import {defineConfig} from 'vitepress'
+import {defineConfig} from 'vitepress';
+
+const umamiScript: HeadConfig = ["script", {
+    defer: "true",
+    src: "https://cloud.umami.is/script.js",
+    "data-website-id": "8bd6aedb-a830-4127-bd2c-abe704095784",
+}]
+
+const baseHeaders: HeadConfig[] = [];
+
+const headers = process.env.NODE_ENV === "production" ?
+    [...baseHeaders, umamiScript] :
+    baseHeaders;
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
     title: "PhenX EFCore BulkInsert",
     description: "Super fast bulk insert for EF Core",
     base: '/PhenX.EntityFrameworkCore.BulkInsert/',
+    head: headers,
     themeConfig: {
         outline: "deep",
         search: {
-            provider: 'local'
+            provider: 'local',
         },
 
         // https://vitepress.dev/reference/default-theme-config
@@ -20,45 +33,42 @@ export default defineConfig({
         sidebar: [
             {
                 text: 'Getting started',
-                items: [
-                    {text: 'Installation', link: '/getting-started#installation'},
-                    {text: 'Usage', link: '/getting-started#usage'},
-                ]
+                link: '/getting-started#installation',
             },
             {
                 text: 'Documentation',
-                link: '/documentation'
+                link: '/documentation',
             },
             {
                 text: 'Limitations',
-                link: '/limitations'
+                link: '/limitations',
             },
         ],
 
         editLink: {
             pattern: 'https://github.com/PhenX/PhenX.EntityFrameworkCore.BulkInsert/edit/main/README.md/edit/main/docs/:path',
-            text: 'Edit this page on GitHub'
+            text: 'Edit this page on GitHub',
         },
 
         lastUpdated: {
             text: 'Updated at',
             formatOptions: {
                 dateStyle: 'full',
-                timeStyle: 'medium'
-            }
+                timeStyle: 'medium',
+            },
         },
 
         socialLinks: [
             {
                 icon: 'github', link: 'https://github.com/PhenX/PhenX.EntityFrameworkCore.BulkInsert',
-            }
+            },
         ],
 
         externalLinkIcon: true,
 
         footer: {
             message: 'Released under the MIT License.',
-            copyright: 'Copyright © 2025-present Fabien Ménager'
-        }
+            copyright: 'Copyright © 2025-present Fabien Ménager',
+        },
     }
 })

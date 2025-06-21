@@ -4,6 +4,7 @@ import {defineConfig} from 'vitepress'
 export default defineConfig({
     title: "PhenX EFCore BulkInsert",
     description: "Super fast bulk insert for EF Core",
+    base: '/PhenX.EntityFrameworkCore.BulkInsert/',
     themeConfig: {
         outline: "deep",
         search: {

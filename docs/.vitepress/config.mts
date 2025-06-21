@@ -26,14 +26,28 @@ export default defineConfig({
 
         // https://vitepress.dev/reference/default-theme-config
         nav: [
-            {text: 'Home', link: '/'},
-            {text: 'Documentation', link: '/documentation'},
+            {
+                text: 'Home',
+                link: '/',
+            },
+            {
+                text: 'Getting started',
+                link: '/getting-started',
+            },
+            {
+                text: 'Documentation',
+                link: '/documentation',
+            },
+            {
+                text: 'Limitations',
+                link: '/limitations',
+            },
         ],
 
         sidebar: [
             {
                 text: 'Getting started',
-                link: '/getting-started#installation',
+                link: '/getting-started',
             },
             {
                 text: 'Documentation',

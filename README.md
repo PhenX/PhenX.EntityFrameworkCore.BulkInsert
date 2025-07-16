@@ -173,10 +173,6 @@ Legend :
  * `EFCore_BulkExtensions`: https://github.com/borisdj/EFCore.BulkExtensions
  * `Linq2Db`: https://github.com/linq2db/linq2db
 
-SQL Server results with 500 000 rows :
-
-![bench-sqlserver.png](https://raw.githubusercontent.com/PhenX/PhenX.EntityFrameworkCore.BulkInsert/refs/heads/main/images/bench-sqlserver.png)
-
 PostgreSQL results with 500 000 rows :
 
 ![bench-postgresql.png](https://raw.githubusercontent.com/PhenX/PhenX.EntityFrameworkCore.BulkInsert/refs/heads/main/images/bench-postgresql.png)
@@ -189,9 +185,7 @@ MySQL results with 500 000 rows :
 
 ![bench-mysql.png](https://raw.githubusercontent.com/PhenX/PhenX.EntityFrameworkCore.BulkInsert/refs/heads/main/images/bench-mysql.png)
 
-Oracle results with 500 000 rows :
-
-![bench-oracle.png](https://raw.githubusercontent.com/PhenX/PhenX.EntityFrameworkCore.BulkInsert/refs/heads/main/images/bench-oracle.png)
+Where are the SQL Server and Oracle benchmarks? [You can run them yourself](https://www.google.com/search?q=dewitt+clause).
 
 ## Contributing
 

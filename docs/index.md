@@ -82,26 +82,4 @@ The benchmark code is available on [GitHub](https://github.com/PhenX/PhenX.Entit
 | Z_EntityFramework_Extensions_EFCore  | 3.008 s |  1.34 | 200000.0000 | 1000.0000 |         - | 1613.93 MB |        2.91 |
 | EFCore_BulkExtensions                | 2.850 s |  1.27 | 102000.0000 | 1000.0000 |         - |  820.09 MB |        1.48 |
 
-### SQL Server
-
-![SQL Server benchmark results](images/bench-sqlserver.png)
-
-| Method                               |    Mean | Ratio |       Gen0 |       Gen1 |      Gen2 | Allocated | Alloc Ratio |
-|--------------------------------------|--------:|------:|-----------:|-----------:|----------:|----------:|------------:|
-| PhenX_EntityFrameworkCore_BulkInsert | 3.072 s |  1.01 | 11000.0000 |  1000.0000 |         - |  87.76 MB |        1.00 |
-| RawInsert                            | 3.926 s |  1.29 | 38000.0000 | 16000.0000 | 1000.0000 | 310.32 MB |        3.54 |
-| Linq2Db                              | 3.294 s |  1.08 | 56000.0000 |  1000.0000 |         - |  450.2 MB |        5.13 |
-| Z_EntityFramework_Extensions_EFCore  | 3.773 s |  1.24 | 35000.0000 |  1000.0000 |         - | 297.98 MB |        3.40 |
-| EFCore_BulkExtensions                | 7.375 s |  2.42 | 48000.0000 | 11000.0000 | 1000.0000 | 461.71 MB |        5.26 |
-
-### Oracle
-
-![Oracle benchmark results](images/bench-oracle.png)
-
-| Method                               |     Mean | Ratio |        Gen0 |        Gen1 |      Gen2 | Allocated | Alloc Ratio |
-|--------------------------------------|---------:|------:|------------:|------------:|----------:|----------:|------------:|
-| PhenX_EntityFrameworkCore_BulkInsert |  4.943 s |  1.01 |  99000.0000 |  43000.0000 | 2000.0000 | 781.07 MB |        1.00 |
-| RawInsert                            | 13.651 s |  2.78 | 115000.0000 |  48000.0000 | 3000.0000 | 907.65 MB |        1.16 |
-| Linq2Db                              |       NA |     ? |          NA |          NA |        NA |        NA |           ? |
-| Z_EntityFramework_Extensions_EFCore  |  5.251 s |  1.07 | 107000.0000 | 101000.0000 |         - |  873.4 MB |        1.12 |
-| EFCore_BulkExtensions                |       NA |     ? |          NA |          NA |        NA |        NA |           ? |
+Where are the SQL Server and Oracle benchmarks? [You can run them yourself](https://www.google.com/search?q=dewitt+clause).

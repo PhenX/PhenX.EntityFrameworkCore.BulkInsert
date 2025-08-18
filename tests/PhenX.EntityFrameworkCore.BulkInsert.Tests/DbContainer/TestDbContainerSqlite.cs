@@ -1,8 +1,8 @@
-using DotNet.Testcontainers.Containers;
-
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
 using PhenX.EntityFrameworkCore.BulkInsert.Sqlite;
+using PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContext;
 
 using Xunit;
 
@@ -14,24 +14,29 @@ public class TestDbContainerSqliteCollection : ICollectionFixture<TestDbContaine
     public const string Name = "Sqlite";
 }
 
-public class TestDbContainerSqlite : TestDbContainer
+public sealed class TestDbContainerSqlite : IDbContextFactory, IDisposable
 {
-    protected override IDatabaseContainer? GetDbContainer() => null;
+    private SqliteConnection? _connection;
 
-    protected override string GetConnectionString(string databaseName)
+    public async Task<TDbContext> CreateContextAsync<TDbContext>(string databaseName) where TDbContext : TestDbContextBase, new()
     {
-        return $"Data Source={Guid.NewGuid()}.db";
+        _connection = new SqliteConnection("DataSource=:memory:");
+        await _connection.OpenAsync();
+
+        await using var attachCommand = new SqliteCommand($"ATTACH DATABASE ':memory:' as {databaseName}", _connection);
+        await attachCommand.ExecuteNonQueryAsync();
+
+        var dbContext = new TDbContext
+        {
+            ConfigureOptions = builder => builder.UseSqlite(_connection).UseBulkInsertSqlite(),
+        };
+        await dbContext.Database.EnsureCreatedAsync();
+
+        return dbContext;
     }
 
-    protected override void Configure(DbContextOptionsBuilder optionsBuilder, string databaseName)
+    public void Dispose()
     {
-        optionsBuilder
-            .UseSqlite(GetConnectionString(databaseName))
-            .UseBulkInsertSqlite();
-    }
-
-    protected override Task EnsureConnectedAsync<TDbContext>(TDbContext context, string databaseName)
-    {
-        return Task.CompletedTask;
+        _connection?.Dispose();
     }
 }

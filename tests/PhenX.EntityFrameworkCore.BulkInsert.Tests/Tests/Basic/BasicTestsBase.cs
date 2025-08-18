@@ -12,7 +12,7 @@ using Xunit;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.Tests.Basic;
 
-public abstract class BasicTestsBase<TDbContext>(TestDbContainer dbContainer) : IAsyncLifetime
+public abstract class BasicTestsBase<TDbContext>(IDbContextFactory dbContainer) : IAsyncLifetime
     where TDbContext : TestDbContext, new()
 {
     private readonly Guid _run = Guid.NewGuid();

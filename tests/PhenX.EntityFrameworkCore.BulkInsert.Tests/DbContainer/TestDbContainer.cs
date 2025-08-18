@@ -1,5 +1,8 @@
 using System.Data.Common;
+using System.Reflection;
 
+using DotNet.Testcontainers.Builders;
+using DotNet.Testcontainers.Configurations;
 using DotNet.Testcontainers.Containers;
 
 using Microsoft.EntityFrameworkCore;
@@ -7,47 +10,42 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 using PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContext;
 
-using Xunit;
+using Testcontainers.Xunit;
+
+using Xunit.Abstractions;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContainer;
 
-public abstract class TestDbContainer : IAsyncLifetime
+public abstract class TestDbContainer<TBuilderEntity, TContainerEntity>(IMessageSink messageSink) : DbContainerFixture<TBuilderEntity, TContainerEntity>(messageSink), IDbContextFactory
+    where TBuilderEntity : IContainerBuilder<TBuilderEntity, TContainerEntity, IContainerConfiguration>, new()
+    where TContainerEntity : IContainer, IDatabaseContainer
 {
-    private readonly TimeSpan _waitTime = TimeSpan.FromSeconds(30);
-    private readonly HashSet<string> _connected = [];
-    protected readonly IDatabaseContainer? DbContainer;
+    protected abstract void Configure(DbContextOptionsBuilder optionsBuilder, string databaseName);
 
-    protected TestDbContainer()
+    protected abstract TBuilderEntity CreateBuilder();
+
+    protected virtual string DbmsName => typeof(TContainerEntity).Name.Replace("Container", "");
+
+    protected override TBuilderEntity Configure()
     {
-        DbContainer = GetDbContainer();
+        var targetFramework = GetType().Assembly.GetCustomAttributes<AssemblyMetadataAttribute>().FirstOrDefault(e => e.Key == "TargetFramework")?.Value ?? "NA";
+        return CreateBuilder()
+            .WithReuse(true)
+            .WithName($"PhenX.EntityFrameworkCore.BulkInsert.Tests.{DbmsName}-{targetFramework}")
+            .WithWaitStrategy(Wait.ForUnixContainer().UntilDatabaseIsAvailable(DbProviderFactory));
     }
-
-    protected abstract IDatabaseContainer? GetDbContainer();
 
     protected virtual string GetConnectionString(string databaseName)
     {
-        if (DbContainer == null)
-        {
-            return string.Empty;
-        }
-
-        var builder = new DbConnectionStringBuilder()
-        {
-            ConnectionString = DbContainer.GetConnectionString()
-        };
-
+        var builder = DbProviderFactory.CreateConnectionStringBuilder() ?? new DbConnectionStringBuilder();
+        builder.ConnectionString = ConnectionString;
         builder["database"] = databaseName;
         return builder.ToString();
     }
 
-    protected abstract void Configure(DbContextOptionsBuilder optionsBuilder, string databaseName);
-
-    public async Task InitializeAsync()
+    protected virtual async Task EnsureDatabaseCreatedAsync(Microsoft.EntityFrameworkCore.DbContext dbContext)
     {
-        if (DbContainer != null)
-        {
-            await DbContainer.StartAsync();
-        }
+        await dbContext.Database.EnsureCreatedAsync();
     }
 
     public async Task<TDbContext> CreateContextAsync<TDbContext>(string databaseName)
@@ -62,39 +60,8 @@ public abstract class TestDbContainer : IAsyncLifetime
             }
         };
 
-        if (_connected.Add(databaseName))
-        {
-            await EnsureConnectedAsync(dbContext, databaseName);
-        }
-
-        try
-        {
-            await dbContext.Database.EnsureCreatedAsync();
-        }
-        catch
-        {
-            // Often fails with SQL server.
-        }
+        await EnsureDatabaseCreatedAsync(dbContext);
 
         return dbContext;
-    }
-
-    protected virtual async Task EnsureConnectedAsync<TDbContext>(TDbContext context, string databaseName)
-        where TDbContext : TestDbContextBase
-    {
-        using var cts = new CancellationTokenSource(_waitTime);
-
-        while (!await context.Database.CanConnectAsync(cts.Token))
-        {
-            await Task.Delay(100, cts.Token);
-        }
-    }
-
-    public async Task DisposeAsync()
-    {
-        if (DbContainer != null)
-        {
-            await DbContainer.DisposeAsync();
-        }
     }
 }

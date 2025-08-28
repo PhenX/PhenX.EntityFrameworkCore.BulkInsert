@@ -19,7 +19,7 @@ Install the NuGet package for your database provider:
       <td>
 
 ```shell
-Install-Package PhenX.EntityFrameworkCore.BulkInsert.PostgreSql
+Install-Package PhenX.EntityFrameworkCore.BulkInsert.SqlServer
 ```
 </td>
       <td><a href="https://www.nuget.org/packages/PhenX.EntityFrameworkCore.BulkInsert.SqlServer"><img src="https://img.shields.io/nuget/v/PhenX.EntityFrameworkCore.BulkInsert.SqlServer.svg" alt="NuGet"></a></td>
@@ -28,7 +28,7 @@ Install-Package PhenX.EntityFrameworkCore.BulkInsert.PostgreSql
       <td>
 
 ```shell
-Install-Package PhenX.EntityFrameworkCore.BulkInsert.Sqlite
+Install-Package PhenX.EntityFrameworkCore.BulkInsert.PostgreSql
 ```
 </td>
       <td><a href="https://www.nuget.org/packages/PhenX.EntityFrameworkCore.BulkInsert.PostgreSql"><img src="https://img.shields.io/nuget/v/PhenX.EntityFrameworkCore.BulkInsert.PostgreSql.svg" alt="NuGet"></a></td>

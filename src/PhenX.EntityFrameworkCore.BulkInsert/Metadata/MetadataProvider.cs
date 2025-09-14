@@ -33,11 +33,11 @@ internal sealed class MetadataProvider
 
             var provider = context.GetService<IBulkInsertProvider>();
 
-            tables =
-                context.Model.GetEntityTypes()
+            tables = context.Model.GetEntityTypes()
+                .GroupBy(x => x.ClrType)
                 .ToDictionary(
-                    x => x.ClrType,
-                    x => new TableMetadata(x, provider.SqlDialect));
+                    x => x.Key,
+                    x => new TableMetadata(x.First(), provider.SqlDialect));
 
             _tablesPerContext[type] = tables;
 

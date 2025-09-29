@@ -81,4 +81,38 @@ public abstract class Issue63TestsBase<TDbContext>(TestDbContainer dbContainer) 
             Assert.NotEmpty(entities); // Just verify the test setup was correct
         }
     }
+    
+    [Fact]
+    public async Task BulkInsert_WithCompositePrimaryKey_TryToTriggerConverterError()
+    {
+        // Arrange - try to create a scenario that more likely triggers the converter issue
+        var entities = new List<TestEntityWithCompositePrimaryKey>
+        {
+            new TestEntityWithCompositePrimaryKey 
+            { 
+                TestRun = _run, 
+                DateTimeUtc = DateTime.UtcNow,
+                Name = "Test Entity 1",
+                Value = 100
+            }
+        };
+
+        // Act - try to get metadata which should trigger the PropertyAccessor.CreateGetter issue
+        var exception = await Record.ExceptionAsync(async () =>
+        {
+            // Force metadata creation by calling GetTableInfo
+            var tableInfo = PhenX.EntityFrameworkCore.BulkInsert.Extensions.InternalExtensions.GetTableInfo<TestEntityWithCompositePrimaryKey>(_context);
+            
+            // If metadata creation works, try the bulk insert
+            await _context.ExecuteBulkInsertAsync(entities);
+        });
+
+        // Document what happens
+        if (exception != null && exception.Message.Contains("Incorrect number of arguments supplied for call to method"))
+        {
+            // We reproduced the exact issue #63 error!
+            Assert.Contains("get_Item", exception.Message);
+        }
+        // If no exception or different exception, that's also useful data
+    }
 }

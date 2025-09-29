@@ -47,6 +47,12 @@ internal static class PropertyAccessor
         // If the converter is provided, we call it
         if (converter != null)
         {
+            // Validate that the converter has the expected structure
+            if (converter.Parameters == null || converter.Parameters.Count != 1)
+            {
+                throw new ArgumentException($"Converter must have exactly one parameter, but has {converter.Parameters?.Count ?? 0} parameters");
+            }
+            
             // Validate the converter input type matches property type
             var converterParamType = converter.Parameters[0].Type;
             if (!converterParamType.IsAssignableFrom(body.Type) && !body.Type.IsAssignableFrom(converterParamType))

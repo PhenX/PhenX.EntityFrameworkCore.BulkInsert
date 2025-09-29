@@ -11,6 +11,7 @@ public class TestDbContext : TestDbContextBase
     public DbSet<TestEntityWithGuidId> TestEntitiesWithGuidId { get; set; } = null!;
     public DbSet<TestEntityWithConverters> TestEntitiesWithConverter { get; set; } = null!;
     public DbSet<TestEntityWithComplexType> TestEntitiesWithComplexType { get; set; } = null!;
+    public DbSet<TestEntityWithCompositePrimaryKey> TestEntitiesWithCompositePrimaryKey { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

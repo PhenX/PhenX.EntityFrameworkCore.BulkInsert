@@ -11,6 +11,8 @@ public class TestDbContext : TestDbContextBase
     public DbSet<TestEntityWithGuidId> TestEntitiesWithGuidId { get; set; } = null!;
     public DbSet<TestEntityWithConverters> TestEntitiesWithConverter { get; set; } = null!;
     public DbSet<TestEntityWithComplexType> TestEntitiesWithComplexType { get; set; } = null!;
+    public DbSet<Student> Students { get; set; } = null!;
+    public DbSet<Course> Courses { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -34,6 +36,21 @@ public class TestDbContext : TestDbContextBase
                 .ComplexProperty(e => e.OwnedComplexType)
                 .IsRequired();
         });
+
+        // Many-to-many with shadow property
+        modelBuilder.Entity<Student>()
+            .HasMany(s => s.Courses)
+            .WithMany(c => c.Students)
+            .UsingEntity<Dictionary<string, object>>(
+                "StudentCourse",
+                j => j.HasOne<Course>().WithMany().HasForeignKey("CourseId"),
+                j => j.HasOne<Student>().WithMany().HasForeignKey("StudentId"),
+                j =>
+                {
+                    j.Property<DateTime>("EnrolledAt");
+                    j.HasKey("StudentId", "CourseId");
+                }
+            );
     }
 }
 
@@ -131,6 +148,3 @@ public class TestDbContextOracle : TestDbContext
         });
     }
 }
-
-
-

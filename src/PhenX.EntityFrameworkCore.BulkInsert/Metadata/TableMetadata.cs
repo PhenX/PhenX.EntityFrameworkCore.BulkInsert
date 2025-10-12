@@ -26,16 +26,32 @@ internal sealed class TableMetadata
         Columns = GetColumns(entityType, dialect);
     }
 
+    private static bool CanHandleProperty(IProperty property)
+    {
+        if (property.PropertyInfo == null || property.IsShadowProperty())
+        {
+            return false;
+        }
+
+        var getMethod = property.PropertyInfo.GetGetMethod();
+        if (getMethod == null || getMethod.GetParameters().Length > 0)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
     private static ColumnMetadata[] GetColumns(IEntityType entityType, SqlDialectBuilder dialect)
     {
         var properties = entityType.GetProperties()
-            .Where(p => !p.IsShadowProperty())
+            .Where(CanHandleProperty)
             .Select(x => new ColumnMetadata(x, dialect));
 
         var complexProperties = entityType.GetComplexProperties()
             .SelectMany(cp => cp.ComplexType
                 .GetProperties()
-                .Where(p => !p.IsShadowProperty())
+                .Where(CanHandleProperty)
                 .Select(x => new ColumnMetadata(x, dialect, cp)));
 
         return properties.Concat(complexProperties).ToArray();

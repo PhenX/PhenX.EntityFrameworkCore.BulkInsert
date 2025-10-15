@@ -64,7 +64,8 @@ internal static class PropertyAccessor
             // instance => converter(body)
             var invokeConverter = Expression.Invoke(converter, converterInput);
 
-            if (body.Type.IsClass)
+            // If the property is a reference type, we need to check for null before calling the converter
+            if (body.Type.IsClass && !invokeConverter.Type.IsValueType)
             {
                 // instance => body == null ? null : converter(body)
                 var nullCondition = Expression.Equal(body, Expression.Constant(null, body.Type));

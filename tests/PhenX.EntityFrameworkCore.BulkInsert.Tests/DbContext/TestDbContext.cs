@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
+using SmartEnum.EFCore;
+
 namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContext;
 
 public class TestDbContext : TestDbContextBase
@@ -11,12 +13,15 @@ public class TestDbContext : TestDbContextBase
     public DbSet<TestEntityWithGuidId> TestEntitiesWithGuidId { get; set; } = null!;
     public DbSet<TestEntityWithConverters> TestEntitiesWithConverter { get; set; } = null!;
     public DbSet<TestEntityWithComplexType> TestEntitiesWithComplexType { get; set; } = null!;
+    public DbSet<TestEntityWithSmartEnum> TestEntitiesWithSmartEnum { get; set; } = null!;
     public DbSet<Student> Students { get; set; } = null!;
     public DbSet<Course> Courses { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        modelBuilder.ConfigureSmartEnum();
 
         modelBuilder.Entity<TestEntityWithConverters>(builder =>
         {

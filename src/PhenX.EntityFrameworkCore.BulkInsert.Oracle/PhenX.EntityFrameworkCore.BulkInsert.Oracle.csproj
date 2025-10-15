@@ -5,8 +5,8 @@
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Oracle.EntityFrameworkCore" Condition="'$(TargetFramework)' == 'net8.0'" Version="8.23.80" />
-      <PackageReference Include="Oracle.EntityFrameworkCore" Condition="'$(TargetFramework)' == 'net9.0'" Version="9.23.80" />
+      <PackageReference Include="Oracle.EntityFrameworkCore" Condition="'$(TargetFramework)' == 'net8.0'" Version="8.23.90" />
+      <PackageReference Include="Oracle.EntityFrameworkCore" Condition="'$(TargetFramework)' == 'net9.0'" Version="9.23.90" />
     </ItemGroup>
 
 </Project>

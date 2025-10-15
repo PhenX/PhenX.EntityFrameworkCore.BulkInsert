@@ -43,6 +43,10 @@
       <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL.NetTopologySuite" Version="9.0.4" />
       <PackageReference Include="Pomelo.EntityFrameworkCore.MySql.NetTopologySuite" Version="9.0.0" />
     </ItemGroup>
+  
+    <ItemGroup Label="Specific dependencies">
+      <PackageReference Include="Ardalis.SmartEnum.EFCore" Version="8.2.0" />
+    </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\..\src\PhenX.EntityFrameworkCore.BulkInsert.MySql\PhenX.EntityFrameworkCore.BulkInsert.MySql.csproj" />

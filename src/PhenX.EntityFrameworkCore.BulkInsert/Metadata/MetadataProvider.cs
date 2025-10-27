@@ -34,6 +34,9 @@ internal sealed class MetadataProvider
             var provider = context.GetService<IBulkInsertProvider>();
 
             tables = context.Model.GetEntityTypes()
+                // Filter out entities without an associated table
+                // See also https://learn.microsoft.com/en-us/ef/core/modeling/keyless-entity-types
+                .Where(x => x.GetTableName() is not null)
                 .GroupBy(x => x.ClrType)
                 .ToDictionary(
                     x => x.Key,

@@ -6,8 +6,6 @@ namespace PhenX.EntityFrameworkCore.BulkInsert;
 
 internal static class Helpers
 {
-    private static readonly Random Random = new();
-
     public static StringBuilder AppendJoin<T>(this StringBuilder sb, string separator, IEnumerable<T> items, Action<StringBuilder, T> formatter)
     {
         var first = true;
@@ -41,7 +39,7 @@ internal static class Helpers
 
         for (var i = 0; i < length; i++)
         {
-            sb.Append(chars[Random.Next(chars.Length)]);
+            sb.Append(chars[Random.Shared.Next(chars.Length)]);
         }
 
         return sb.ToString();

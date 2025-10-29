@@ -239,6 +239,9 @@ public abstract class BasicTestsBase<TDbContext>(TestDbContainer dbContainer) : 
     [CombinatorialData]
     public async Task InsertEntities_WithOpenTransaction_MultipleInserts(InsertStrategy strategy)
     {
+        // Oracle: ORA-39822: A new direct path operation is not allowed in the current transaction.
+        Skip.If(_context.IsProvider(ProviderType.Oracle));
+
         // Arrange
         var entities = new List<TestEntity>
         {

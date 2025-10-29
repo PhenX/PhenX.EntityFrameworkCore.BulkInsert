@@ -24,7 +24,7 @@ internal class OracleBulkInsertProvider(ILogger<OracleBulkInsertProvider>? logge
     /// The temporary table name is generated with a GUID to ensure uniqueness, but limited to less than 30 characters,
     /// because Oracle prior 12.2 has a limit of 30 characters for identifiers.
     /// </summary>
-    protected override string GetTempTableName(string tableName) => $"#temp_bulk_insert_{Guid.NewGuid().ToString("N")[..8]}";
+    protected override string GetTempTableName(string tableName) => $"#temp_bulk_insert__{Helpers.RandomString(6)}";
 
     protected override OracleBulkInsertOptions CreateDefaultOptions() => new()
     {

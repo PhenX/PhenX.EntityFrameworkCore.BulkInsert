@@ -19,7 +19,7 @@ internal class MySqlBulkInsertProvider(ILogger<MySqlBulkInsertProvider> logger) 
     protected override string AddTableCopyBulkInsertId => $"ALTER TABLE {{0}} ADD {BulkInsertId} INT AUTO_INCREMENT PRIMARY KEY;";
 
     /// <inheritdoc />
-    protected override string GetTempTableName(string tableName) => $"#_temp_bulk_insert_{tableName}";
+    protected override string GetTempTableName(string tableName) => $"#_temp_bulk_insert_{tableName}_{Helpers.RandomString(6)}";
 
     /// <inheritdoc />
     protected override MySqlBulkInsertOptions CreateDefaultOptions() => new()

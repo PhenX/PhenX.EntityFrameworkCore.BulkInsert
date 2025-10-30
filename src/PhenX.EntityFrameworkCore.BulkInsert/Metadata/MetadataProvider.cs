@@ -34,6 +34,13 @@ internal sealed class MetadataProvider
                 throw new InvalidOperationException($"The type '{modelType.FullName}' is not part of the model for the current context.");
             }
 
+
+            // Filter out entities without an associated table
+            // See also https://learn.microsoft.com/en-us/ef/core/modeling/keyless-entity-types
+            if (entityType.GetTableName() is null)
+            {
+            }
+
             var provider = context.GetService<IBulkInsertProvider>();
 
             var tableMetadata = new TableMetadata(entityType, provider.SqlDialect);

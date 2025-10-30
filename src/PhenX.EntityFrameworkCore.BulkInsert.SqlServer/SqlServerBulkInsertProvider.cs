@@ -17,7 +17,7 @@ internal class SqlServerBulkInsertProvider(ILogger<SqlServerBulkInsertProvider>?
     protected override string AddTableCopyBulkInsertId => $"ALTER TABLE {{0}} ADD {BulkInsertId} INT IDENTITY PRIMARY KEY;";
 
     /// <inheritdoc />
-    protected override string GetTempTableName(string tableName) => $"#_temp_bulk_insert_{tableName}";
+    protected override string GetTempTableName(string tableName) => $"#_temp_bulk_insert_{tableName}_{Helpers.RandomString(6)}";
 
     protected override SqlServerBulkInsertOptions CreateDefaultOptions() => new()
     {

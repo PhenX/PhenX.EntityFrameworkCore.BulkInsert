@@ -235,6 +235,34 @@ public abstract class BasicTestsBase<TDbContext>(TestDbContainer dbContainer) : 
         Assert.Empty(insertedEntities);
     }
 
+    [SkippableTheory]
+    [CombinatorialData]
+    public async Task InsertEntities_WithOpenTransaction_MultipleInserts(InsertStrategy strategy)
+    {
+        // Oracle: ORA-39822: A new direct path operation is not allowed in the current transaction.
+        Skip.If(_context.IsProvider(ProviderType.Oracle));
+
+        // Arrange
+        var entities = new List<TestEntity>
+        {
+            new TestEntity { TestRun = _run, Name = $"{_run}_EntityWithTx1" },
+            new TestEntity { TestRun = _run, Name = $"{_run}_EntityWithTx2" },
+            new TestEntity { TestRun = _run, Name = $"{_run}_EntityWithTx3" },
+            new TestEntity { TestRun = _run, Name = $"{_run}_EntityWithTx4" },
+        };
+
+        // Act
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+
+        var batches = entities.Chunk(2);
+        foreach (var batch in batches)
+        {
+            await _context.InsertWithStrategyAsync(strategy, batch.ToList());
+        }
+
+        await transaction.CommitAsync();
+    }
+
     [SkippableFact]
     public async Task ThrowsWhenUsingWrongConfigurationType()
     {

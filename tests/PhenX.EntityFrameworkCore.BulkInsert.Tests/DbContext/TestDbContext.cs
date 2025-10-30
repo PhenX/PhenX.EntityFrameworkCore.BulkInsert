@@ -56,6 +56,15 @@ public class TestDbContext : TestDbContextBase
                     j.HasKey("StudentId", "CourseId");
                 }
             );
+
+        // Keyless entity type
+        modelBuilder.Entity<TestEntityKeyless>(builder =>
+        {
+            builder.HasNoKey();
+            // ToView will use the given table name read-only, it doesn't have to actually be a database view.
+            // We just reuse the table for the standard TestEntity.
+            builder.ToView("test_entity");
+        });
     }
 }
 

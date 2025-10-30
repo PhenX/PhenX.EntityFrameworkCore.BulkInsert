@@ -60,11 +60,20 @@ internal class OracleDialectBuilder : SqlDialectBuilder
             q.AppendJoin(" AND ", matchColumns, (b, col) => b.Append($"{PseudoTableInserted}.{col} = {PseudoTableExcluded}.{col}"));
             q.AppendLine(")");
 
+            // WHEN NOT MATCHED clause should come before WHEN MATCHED in Oracle
+            q.Append("WHEN NOT MATCHED THEN INSERT (");
+            q.AppendColumns(insertedColumns);
+            q.AppendLine(")");
+
+            q.Append("VALUES (");
+            q.AppendJoin(", ", insertedColumns, (b, col) => b.Append($"{PseudoTableExcluded}.{col.QuotedColumName}"));
+            q.Append(")");
+
             if (onConflictTyped.Update != null)
             {
                 var columns = target.GetColumns(false);
 
-                q.Append("WHEN MATCHED");
+                q.Append(" WHEN MATCHED");
 
                 if (onConflictTyped.RawWhere != null || onConflictTyped.Where != null)
                 {
@@ -77,18 +86,11 @@ internal class OracleDialectBuilder : SqlDialectBuilder
                     AppendConflictCondition(q, target, context, onConflictTyped);
                 }
 
-                q.AppendLine(" THEN UPDATE SET ");
+                q.Append(" THEN UPDATE SET ");
                 q.AppendJoin(", ", GetUpdates(context, target, columns, onConflictTyped.Update));
-                q.AppendLine();
             }
 
-            q.Append("WHEN NOT MATCHED THEN INSERT (");
-            q.AppendColumns(insertedColumns);
-            q.AppendLine(")");
-
-            q.Append("VALUES (");
-            q.AppendJoin(", ", insertedColumns, (b, col) => b.Append($"{PseudoTableExcluded}.{col.QuotedColumName}"));
-            q.AppendLine(")");
+            q.AppendLine();
         }
 
         // No conflict handling

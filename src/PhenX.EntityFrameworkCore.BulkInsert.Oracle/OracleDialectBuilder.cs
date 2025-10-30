@@ -49,41 +49,48 @@ internal class OracleDialectBuilder : SqlDialectBuilder
                 throw new InvalidOperationException("Table has no primary key that can be used for conflict detection.");
             }
 
-            q.AppendLine($"MERGE INTO {target.QuotedTableName} AS {PseudoTableInserted}");
+            q.AppendLine($"MERGE INTO {target.QuotedTableName} {PseudoTableInserted}");
 
             q.Append("USING (SELECT ");
             q.AppendColumns(insertedColumns);
-            q.Append($" FROM {source}) AS {PseudoTableExcluded} (");
-            q.AppendColumns(insertedColumns);
-            q.AppendLine(")");
-
-            q.Append("ON ");
-            q.AppendJoin(" AND ", matchColumns, (b, col) => b.Append($"{PseudoTableInserted}.{col} = {PseudoTableExcluded}.{col}"));
+            q.Append($" FROM {source}) {PseudoTableExcluded}");
             q.AppendLine();
 
-            if (onConflictTyped.Update != null)
-            {
-                var columns = target.GetColumns(false);
+            q.Append("ON (");
+            q.AppendJoin(" AND ", matchColumns, (b, col) => b.Append($"{PseudoTableInserted}.{col} = {PseudoTableExcluded}.{col}"));
+            q.AppendLine(")");
 
-                q.AppendLine("WHEN MATCHED THEN UPDATE SET ");
-                q.AppendJoin(", ", GetUpdates(context, target, columns, onConflictTyped.Update));
-                q.AppendLine();
-            }
-
+            // WHEN NOT MATCHED clause should come before WHEN MATCHED in Oracle
             q.Append("WHEN NOT MATCHED THEN INSERT (");
             q.AppendColumns(insertedColumns);
             q.AppendLine(")");
 
             q.Append("VALUES (");
             q.AppendJoin(", ", insertedColumns, (b, col) => b.Append($"{PseudoTableExcluded}.{col.QuotedColumName}"));
-            q.AppendLine(")");
+            q.Append(")");
 
-            if (returnedColumns.Count != 0)
+            if (onConflictTyped.Update != null)
             {
-                q.Append("OUTPUT ");
-                q.AppendJoin(", ", returnedColumns, (b, col) => b.Append($"{PseudoTableInserted}.{col.QuotedColumName} AS {col.QuotedColumName}"));
-                q.AppendLine();
+                var columns = target.GetColumns(false);
+
+                q.Append(" WHEN MATCHED");
+
+                if (onConflictTyped.RawWhere != null || onConflictTyped.Where != null)
+                {
+                    if (onConflictTyped is { RawWhere: not null, Where: not null })
+                    {
+                        throw new ArgumentException("Cannot specify both RawWhere and Where in OnConflictOptions.");
+                    }
+
+                    q.Append(" AND ");
+                    AppendConflictCondition(q, target, context, onConflictTyped);
+                }
+
+                q.Append(" THEN UPDATE SET ");
+                q.AppendJoin(", ", GetUpdates(context, target, columns, onConflictTyped.Update));
             }
+
+            q.AppendLine();
         }
 
         // No conflict handling

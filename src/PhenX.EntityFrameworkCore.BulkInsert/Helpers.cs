@@ -27,4 +27,21 @@ internal static class Helpers
     {
         return sb.AppendJoin(", ", columns.Select(c => c.QuotedColumName));
     }
+
+    /// <summary>
+    /// Generates a random alphanumeric string of the specified length.
+    /// </summary>
+    public static string RandomString(int length)
+    {
+        const string chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+
+        var sb = new StringBuilder(length);
+
+        for (var i = 0; i < length; i++)
+        {
+            sb.Append(chars[Random.Shared.Next(chars.Length)]);
+        }
+
+        return sb.ToString();
+    }
 }

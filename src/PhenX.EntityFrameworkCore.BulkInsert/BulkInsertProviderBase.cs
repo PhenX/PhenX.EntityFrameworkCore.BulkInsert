@@ -19,7 +19,7 @@ internal abstract class BulkInsertProviderBase<TDialect, TOptions>(ILogger? logg
 
     protected abstract string AddTableCopyBulkInsertId { get; }
 
-    protected virtual string GetTempTableName(string tableName) => $"_temp_bulk_insert_{tableName}";
+    protected virtual string GetTempTableName(string tableName) => $"_temp_bulk_insert_{tableName}_{Helpers.RandomString(6)}";
 
     protected override async IAsyncEnumerable<T> BulkInsertReturnEntities<T>(
         bool sync,
@@ -124,6 +124,7 @@ internal abstract class BulkInsertProviderBase<TDialect, TOptions>(ILogger? logg
             await connection.Close(sync, ctk);
         }
     }
+
     private async Task<string> PerformBulkInsertAsync<T>(
         bool sync,
         DbContext context,

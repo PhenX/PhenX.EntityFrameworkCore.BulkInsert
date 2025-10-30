@@ -56,9 +56,9 @@ internal class OracleDialectBuilder : SqlDialectBuilder
             q.Append($" FROM {source}) {PseudoTableExcluded}");
             q.AppendLine();
 
-            q.Append("ON ");
+            q.Append("ON (");
             q.AppendJoin(" AND ", matchColumns, (b, col) => b.Append($"{PseudoTableInserted}.{col} = {PseudoTableExcluded}.{col}"));
-            q.AppendLine();
+            q.AppendLine(")");
 
             if (onConflictTyped.Update != null)
             {

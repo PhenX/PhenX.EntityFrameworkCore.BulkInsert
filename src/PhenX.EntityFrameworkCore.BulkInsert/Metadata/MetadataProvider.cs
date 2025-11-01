@@ -7,44 +7,46 @@ namespace PhenX.EntityFrameworkCore.BulkInsert.Metadata;
 
 internal sealed class MetadataProvider
 {
-    private Dictionary<Type, Dictionary<Type, TableMetadata>> _tablesPerContext = new();
+    private readonly Dictionary<Type, Dictionary<Type, TableMetadata>> _tablesPerContext = new();
 
     public TableMetadata GetTableInfo<T>(DbContext context)
-    {
-        var tables = GetTables(context);
-
-        if (!tables.TryGetValue(typeof(T), out var table))
-        {
-            throw new InvalidOperationException($"Cannot find metadata for type '{typeof(T)}'.");
-        }
-
-        return table;
-    }
-
-    private Dictionary<Type, TableMetadata> GetTables(DbContext context)
     {
         lock (_tablesPerContext)
         {
             var type = context.GetType();
-            if (_tablesPerContext.TryGetValue(context.GetType(), out var tables))
+
+            if (!_tablesPerContext.TryGetValue(type, out var tables))
             {
-                return tables;
+                tables = new Dictionary<Type, TableMetadata>();
+                _tablesPerContext[type] = tables;
+            }
+
+            var modelType = typeof(T);
+
+            if (tables.TryGetValue(modelType, out var table))
+            {
+                return table;
+            }
+
+            var entityType = context.Model.FindEntityType(modelType);
+            if (entityType == null)
+            {
+                throw new InvalidOperationException($"The type '{modelType.FullName}' is not part of the model for the current context.");
+            }
+
+            // Filter out entities without an associated table
+            // See also https://learn.microsoft.com/en-us/ef/core/modeling/keyless-entity-types
+            if (entityType.GetTableName() is null)
+            {
+                throw new InvalidOperationException($"The type '{modelType.FullName}' is not mapped to a table in the database or is keyless.");
             }
 
             var provider = context.GetService<IBulkInsertProvider>();
 
-            tables = context.Model.GetEntityTypes()
-                // Filter out entities without an associated table
-                // See also https://learn.microsoft.com/en-us/ef/core/modeling/keyless-entity-types
-                .Where(x => x.GetTableName() is not null)
-                .GroupBy(x => x.ClrType)
-                .ToDictionary(
-                    x => x.Key,
-                    x => new TableMetadata(x.First(), provider.SqlDialect));
+            var tableMetadata = new TableMetadata(entityType, provider.SqlDialect);
+            tables[modelType] = tableMetadata;
 
-            _tablesPerContext[type] = tables;
-
-            return tables;
+            return tableMetadata;
         }
     }
 }

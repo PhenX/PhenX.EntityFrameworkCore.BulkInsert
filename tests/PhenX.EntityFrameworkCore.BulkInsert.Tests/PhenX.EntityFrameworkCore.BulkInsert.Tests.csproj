@@ -9,43 +9,37 @@
     </PropertyGroup>
 
     <ItemGroup Label="Test infrastructure">
-        <PackageReference Include="coverlet.collector" Version="6.0.4">
+        <PackageReference Include="coverlet.collector">
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="FluentAssertions" Version="7.2.0" />
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
-        <PackageReference Include="xunit" Version="2.9.3" />
-        <PackageReference Include="Xunit.Combinatorial" Version="1.6.24" />
-        <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+        <PackageReference Include="FluentAssertions" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" />
+        <PackageReference Include="xunit" />
+        <PackageReference Include="Xunit.Combinatorial" />
+        <PackageReference Include="xunit.runner.visualstudio">
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Xunit.SkippableFact" Version="1.5.23" />
+        <PackageReference Include="Xunit.SkippableFact" />
     </ItemGroup>
 
     <ItemGroup Label="Test containers">
-        <PackageReference Include="Testcontainers" Version="4.7.0" />
-        <PackageReference Include="Testcontainers.PostgreSql" Version="4.7.0" />
-        <PackageReference Include="Testcontainers.MsSql" Version="4.7.0" />
-        <PackageReference Include="Testcontainers.MySql" Version="4.7.0" />
-        <PackageReference Include="Testcontainers.Oracle" Version="4.7.0" />
+        <PackageReference Include="Testcontainers" />
+        <PackageReference Include="Testcontainers.PostgreSql" />
+        <PackageReference Include="Testcontainers.MsSql" />
+        <PackageReference Include="Testcontainers.MySql" />
+        <PackageReference Include="Testcontainers.Oracle" />
     </ItemGroup>
 
-    <ItemGroup Label="NetTopologySuite net8.0" Condition="'$(TargetFramework)' == 'net8.0'">
-      <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer.NetTopologySuite" Version="8.0.20" />
-      <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL.NetTopologySuite" Version="8.0.11" />
-      <PackageReference Include="Pomelo.EntityFrameworkCore.MySql.NetTopologySuite" Version="8.0.3" />
-    </ItemGroup>
-
-    <ItemGroup Label="NetTopologySuite net9.0" Condition="'$(TargetFramework)' == 'net9.0'">
-      <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer.NetTopologySuite" Version="9.0.9" />
-      <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL.NetTopologySuite" Version="9.0.4" />
-      <PackageReference Include="Pomelo.EntityFrameworkCore.MySql.NetTopologySuite" Version="9.0.0" />
+    <ItemGroup Label="NetTopologySuite">
+      <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer.NetTopologySuite" />
+      <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL.NetTopologySuite" />
+      <PackageReference Include="Pomelo.EntityFrameworkCore.MySql.NetTopologySuite" />
     </ItemGroup>
 
     <ItemGroup Label="Specific dependencies">
-      <PackageReference Include="Ardalis.SmartEnum.EFCore" Version="8.2.0" />
+      <PackageReference Include="Ardalis.SmartEnum.EFCore" />
     </ItemGroup>
 
     <ItemGroup>

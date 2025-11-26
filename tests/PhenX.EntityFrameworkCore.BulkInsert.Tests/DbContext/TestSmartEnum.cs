@@ -8,5 +8,9 @@ public class TestSmartEnum : SmartEnum<TestSmartEnum>
     {
     }
 
+#if NET10_OR_GREATER
     public static readonly TestSmartEnum Value = new TestSmartEnum("test", 1);
+#else
+    public static readonly new TestSmartEnum Value = new TestSmartEnum("test", 1);
+#endif
 }

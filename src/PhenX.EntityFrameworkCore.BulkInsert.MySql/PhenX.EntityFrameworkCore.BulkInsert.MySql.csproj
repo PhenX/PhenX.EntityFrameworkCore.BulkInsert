@@ -1,5 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
     <!-- Ignore error for preview version of Pomelo.EntityFrameworkCore.MySql -->
     <NoWarn>$(NoWarn);NU5104</NoWarn>
   </PropertyGroup>

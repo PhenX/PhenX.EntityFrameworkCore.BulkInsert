@@ -90,7 +90,7 @@ public abstract class VariousTestsBase<TDbContext>(TestDbContainer dbContainer) 
     [CombinatorialData]
     public async Task InsertEntities_WithSpecialColumnNames_Merge(InsertStrategy strategy)
     {
-        Skip.If(_context.IsProvider(ProviderType.MySql));
+        Skip.If(_context.IsProvider(ProviderType.MySql, ProviderType.Oracle));
 
         // Arrange
         var entities = new List<TestEntityWithSpecialColumnNames>

@@ -59,7 +59,7 @@ internal class OracleBulkInsertProvider(ILogger<OracleBulkInsertProvider>? logge
 
         using var bulkCopy = new OracleBulkCopy(connection, options.CopyOptions);
 
-        bulkCopy.DestinationTableName = tableInfo.QuotedTableName;
+        bulkCopy.DestinationTableName = tableName;
         bulkCopy.BatchSize = options.BatchSize;
         bulkCopy.BulkCopyTimeout = options.GetCopyTimeoutInSeconds();
 

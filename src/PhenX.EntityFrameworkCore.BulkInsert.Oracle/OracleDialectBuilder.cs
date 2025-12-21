@@ -69,7 +69,7 @@ internal class OracleDialectBuilder : SqlDialectBuilder
             q.AppendJoin(" AND ", matchColumns, (b, col) => b.Append($"{PseudoTableInserted}.{col} = {PseudoTableExcluded}.{col}"));
             q.AppendLine(")");
 
-            // Oracle MERGE puts WHEN NOT MATCHED before WHEN MATCHED for insert-first logic
+            // Oracle MERGE syntax: WHEN NOT MATCHED clause for inserts, followed by WHEN MATCHED clause for updates
             q.Append("WHEN NOT MATCHED THEN INSERT (");
             q.AppendColumns(insertedColumns);
             q.AppendLine(")");

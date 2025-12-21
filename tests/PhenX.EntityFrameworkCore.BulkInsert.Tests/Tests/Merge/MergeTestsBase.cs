@@ -126,6 +126,8 @@ public abstract class MergeTestsBase<TDbContext>(TestDbContainer dbContainer) : 
     public async Task InsertEntities_WithConflict_SingleColumn(InsertStrategy strategy)
     {
         Skip.If(_context.IsProvider(ProviderType.MySql));
+        // Oracle MERGE does not support returning entities
+        Skip.If(_context.IsProvider(ProviderType.Oracle));
 
         // Arrange
         _context.TestEntities.Add(new TestEntity { TestRun = _run,Name = $"{_run}_Entity1" });
@@ -194,6 +196,8 @@ public abstract class MergeTestsBase<TDbContext>(TestDbContainer dbContainer) : 
     public async Task InsertEntities_WithConflict_RawCondition(InsertStrategy strategy)
     {
         Skip.If(_context.IsProvider(ProviderType.MySql));
+        // Oracle MERGE does not support returning entities
+        Skip.If(_context.IsProvider(ProviderType.Oracle));
 
         // Arrange
         _context.TestEntities.Add(new TestEntity { TestRun = _run, Name = $"{_run}_Entity1", Price = 10 });
@@ -237,6 +241,8 @@ public abstract class MergeTestsBase<TDbContext>(TestDbContainer dbContainer) : 
     public async Task InsertEntities_WithConflict_ExpressionCondition(InsertStrategy strategy)
     {
         Skip.If(_context.IsProvider(ProviderType.MySql));
+        // Oracle MERGE does not support returning entities
+        Skip.If(_context.IsProvider(ProviderType.Oracle));
 
         // Arrange
         _context.TestEntities.Add(new TestEntity { TestRun = _run, Name = $"{_run}_Entity1", Price = 10 });
@@ -280,6 +286,8 @@ public abstract class MergeTestsBase<TDbContext>(TestDbContainer dbContainer) : 
     public async Task InsertEntities_WithConflict_ComplexExpressionCondition(InsertStrategy strategy)
     {
         Skip.If(_context.IsProvider(ProviderType.MySql));
+        // Oracle MERGE does not support returning entities
+        Skip.If(_context.IsProvider(ProviderType.Oracle));
 
         // Arrange
         _context.TestEntities.Add(new TestEntity { TestRun = _run, Name = $"{_run}_Entity1", Price = 10 });
@@ -312,6 +320,8 @@ public abstract class MergeTestsBase<TDbContext>(TestDbContainer dbContainer) : 
     public async Task InsertEntities_WithConflict_MultipleColumns(InsertStrategy strategy)
     {
         Skip.If(_context.IsProvider(ProviderType.MySql));
+        // Oracle MERGE does not support returning entities
+        Skip.If(_context.IsProvider(ProviderType.Oracle));
 
         // Arrange
         _context.TestEntities.Add(new TestEntity { TestRun = _run, Name = $"{_run}_Entity1", Price = 10 });

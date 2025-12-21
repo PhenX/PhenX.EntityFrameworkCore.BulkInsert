@@ -35,6 +35,12 @@ internal class OracleDialectBuilder : SqlDialectBuilder
         // Merge handling
         if (onConflict is OnConflictOptions<T> onConflictTyped)
         {
+            // Oracle MERGE doesn't support returning entities
+            if (returnedColumns.Count != 0)
+            {
+                throw new NotSupportedException("Oracle MERGE does not support returning entities. Use ExecuteBulkInsertAsync without returning results when using conflict resolution.");
+            }
+
             IEnumerable<string> matchColumns;
             if (onConflictTyped.Match != null)
             {
@@ -49,27 +55,21 @@ internal class OracleDialectBuilder : SqlDialectBuilder
                 throw new InvalidOperationException("Table has no primary key that can be used for conflict detection.");
             }
 
-            q.AppendLine($"MERGE INTO {target.QuotedTableName} AS {PseudoTableInserted}");
+            // Oracle MERGE syntax does NOT use AS for table aliases
+            q.AppendLine($"MERGE INTO {target.QuotedTableName} {PseudoTableInserted}");
 
             q.Append("USING (SELECT ");
             q.AppendColumns(insertedColumns);
-            q.Append($" FROM {source}) AS {PseudoTableExcluded} (");
-            q.AppendColumns(insertedColumns);
-            q.AppendLine(")");
-
-            q.Append("ON ");
-            q.AppendJoin(" AND ", matchColumns, (b, col) => b.Append($"{PseudoTableInserted}.{col} = {PseudoTableExcluded}.{col}"));
+            // Oracle MERGE syntax does NOT use AS for subquery aliases
+            q.Append($" FROM {source}) {PseudoTableExcluded}");
             q.AppendLine();
 
-            if (onConflictTyped.Update != null)
-            {
-                var columns = target.GetColumns(false);
+            // Oracle requires ON clause conditions to be wrapped in parentheses
+            q.Append("ON (");
+            q.AppendJoin(" AND ", matchColumns, (b, col) => b.Append($"{PseudoTableInserted}.{col} = {PseudoTableExcluded}.{col}"));
+            q.AppendLine(")");
 
-                q.AppendLine("WHEN MATCHED THEN UPDATE SET ");
-                q.AppendJoin(", ", GetUpdates(context, target, columns, onConflictTyped.Update));
-                q.AppendLine();
-            }
-
+            // Oracle MERGE puts WHEN NOT MATCHED before WHEN MATCHED for insert-first logic
             q.Append("WHEN NOT MATCHED THEN INSERT (");
             q.AppendColumns(insertedColumns);
             q.AppendLine(")");
@@ -78,10 +78,25 @@ internal class OracleDialectBuilder : SqlDialectBuilder
             q.AppendJoin(", ", insertedColumns, (b, col) => b.Append($"{PseudoTableExcluded}.{col.QuotedColumName}"));
             q.AppendLine(")");
 
-            if (returnedColumns.Count != 0)
+            if (onConflictTyped.Update != null)
             {
-                q.Append("OUTPUT ");
-                q.AppendJoin(", ", returnedColumns, (b, col) => b.Append($"{PseudoTableInserted}.{col.QuotedColumName} AS {col.QuotedColumName}"));
+                var columns = target.GetColumns(false);
+
+                q.Append("WHEN MATCHED ");
+
+                if (onConflictTyped.RawWhere != null || onConflictTyped.Where != null)
+                {
+                    if (onConflictTyped is { RawWhere: not null, Where: not null })
+                    {
+                        throw new ArgumentException("Cannot specify both RawWhere and Where in OnConflictOptions.");
+                    }
+
+                    q.Append("AND ");
+                    AppendConflictCondition(q, target, context, onConflictTyped);
+                }
+
+                q.AppendLine("THEN UPDATE SET ");
+                q.AppendJoin(", ", GetUpdates(context, target, columns, onConflictTyped.Update));
                 q.AppendLine();
             }
         }

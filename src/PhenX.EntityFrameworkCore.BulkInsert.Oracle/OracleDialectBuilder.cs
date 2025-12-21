@@ -42,17 +42,32 @@ internal class OracleDialectBuilder : SqlDialectBuilder
             }
 
             IEnumerable<string> matchColumns;
+            IReadOnlyList<string> matchColumnsList;
             if (onConflictTyped.Match != null)
             {
-                matchColumns = GetColumns(target, onConflictTyped.Match);
+                matchColumnsList = GetColumns(target, onConflictTyped.Match).ToList();
             }
             else if (target.PrimaryKey.Length > 0)
             {
-                matchColumns = target.PrimaryKey.Select(x => x.QuotedColumName);
+                matchColumnsList = target.PrimaryKey.Select(x => x.QuotedColumName).ToList();
             }
             else
             {
                 throw new InvalidOperationException("Table has no primary key that can be used for conflict detection.");
+            }
+            matchColumns = matchColumnsList;
+
+            // Validate that all match columns are available in the source subquery
+            var insertedColumnNames = insertedColumns.Select(c => c.QuotedColumName).ToHashSet();
+            var missingMatchColumns = matchColumnsList.Where(c => !insertedColumnNames.Contains(c)).ToList();
+            if (missingMatchColumns.Count != 0)
+            {
+                throw new InvalidOperationException(
+                    $"Oracle MERGE requires match columns to be present in the source data. " +
+                    $"The following match columns are not available: {string.Join(", ", missingMatchColumns)}. " +
+                    $"This can happen when using auto-generated primary key columns for conflict detection. " +
+                    $"Use the 'Match' option to specify non-generated columns for conflict detection, " +
+                    $"or set 'CopyGeneratedColumns = true' if the generated column values are provided.");
             }
 
             // Oracle MERGE syntax does NOT use AS for table aliases
@@ -80,8 +95,6 @@ internal class OracleDialectBuilder : SqlDialectBuilder
 
             if (onConflictTyped.Update != null)
             {
-                var columns = target.GetColumns(false);
-
                 q.Append("WHEN MATCHED ");
 
                 if (onConflictTyped.RawWhere != null || onConflictTyped.Where != null)
@@ -96,7 +109,17 @@ internal class OracleDialectBuilder : SqlDialectBuilder
                 }
 
                 q.AppendLine("THEN UPDATE SET ");
-                q.AppendJoin(", ", GetUpdates(context, target, columns, onConflictTyped.Update));
+                // Oracle MERGE: columns in ON clause cannot be updated, so exclude match columns
+                // Use insertedColumns instead of all columns because the USING subquery only contains insertedColumns
+                var matchColumnSet = matchColumnsList.ToHashSet();
+                var updateableColumns = insertedColumns.Where(c => !matchColumnSet.Contains(c.QuotedColumName)).ToList();
+                if (updateableColumns.Count == 0)
+                {
+                    throw new InvalidOperationException(
+                        "Oracle MERGE cannot update any columns because all available columns are used in the ON clause for conflict detection. " +
+                        "Specify different columns in the 'Match' option or use specific columns in the 'Update' expression.");
+                }
+                q.AppendJoin(", ", GetUpdates(context, target, updateableColumns, onConflictTyped.Update));
                 q.AppendLine();
             }
         }

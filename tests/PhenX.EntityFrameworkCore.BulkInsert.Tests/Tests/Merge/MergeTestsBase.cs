@@ -33,6 +33,8 @@ public abstract class MergeTestsBase<TDbContext>(TestDbContainer dbContainer) : 
     {
         Skip.If(_context.IsProvider(ProviderType.PostgreSql));
         Skip.If(_context.IsProvider(ProviderType.SqlServer));
+        // Oracle MERGE requires match columns to be in the source data; auto-generated Id is not available
+        Skip.If(_context.IsProvider(ProviderType.Oracle));
 
         // Arrange
         var entities = new List<TestEntity>

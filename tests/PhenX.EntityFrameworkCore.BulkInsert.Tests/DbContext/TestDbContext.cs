@@ -14,6 +14,7 @@ public class TestDbContext : TestDbContextBase
     public DbSet<TestEntityWithConverters> TestEntitiesWithConverter { get; set; } = null!;
     public DbSet<TestEntityWithComplexType> TestEntitiesWithComplexType { get; set; } = null!;
     public DbSet<TestEntityWithSmartEnum> TestEntitiesWithSmartEnum { get; set; } = null!;
+    public DbSet<TestEntityWithSpecialColumnNames> TestEntitiesWithSpecialColumnNames { get; set; } = null!;
     public DbSet<Student> Students { get; set; } = null!;
     public DbSet<Course> Courses { get; set; } = null!;
 

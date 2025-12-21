@@ -41,25 +41,23 @@ internal class OracleDialectBuilder : SqlDialectBuilder
                 throw new NotSupportedException("Oracle MERGE does not support returning entities. Use ExecuteBulkInsertAsync without returning results when using conflict resolution.");
             }
 
-            IEnumerable<string> matchColumns;
-            IReadOnlyList<string> matchColumnsList;
+            IReadOnlyList<string> matchColumns;
             if (onConflictTyped.Match != null)
             {
-                matchColumnsList = GetColumns(target, onConflictTyped.Match).ToList();
+                matchColumns = GetColumns(target, onConflictTyped.Match).ToList();
             }
             else if (target.PrimaryKey.Length > 0)
             {
-                matchColumnsList = target.PrimaryKey.Select(x => x.QuotedColumName).ToList();
+                matchColumns = target.PrimaryKey.Select(x => x.QuotedColumName).ToList();
             }
             else
             {
                 throw new InvalidOperationException("Table has no primary key that can be used for conflict detection.");
             }
-            matchColumns = matchColumnsList;
 
             // Validate that all match columns are available in the source subquery
             var insertedColumnNames = insertedColumns.Select(c => c.QuotedColumName).ToHashSet();
-            var missingMatchColumns = matchColumnsList.Where(c => !insertedColumnNames.Contains(c)).ToList();
+            var missingMatchColumns = matchColumns.Where(c => !insertedColumnNames.Contains(c)).ToList();
             if (missingMatchColumns.Count != 0)
             {
                 throw new InvalidOperationException(
@@ -111,7 +109,7 @@ internal class OracleDialectBuilder : SqlDialectBuilder
                 q.AppendLine("THEN UPDATE SET ");
                 // Oracle MERGE: columns in ON clause cannot be updated, so exclude match columns
                 // Use insertedColumns instead of all columns because the USING subquery only contains insertedColumns
-                var matchColumnSet = matchColumnsList.ToHashSet();
+                var matchColumnSet = matchColumns.ToHashSet();
                 var updateableColumns = insertedColumns.Where(c => !matchColumnSet.Contains(c.QuotedColumName)).ToList();
                 if (updateableColumns.Count == 0)
                 {

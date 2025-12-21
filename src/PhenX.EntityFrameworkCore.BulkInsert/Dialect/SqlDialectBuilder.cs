@@ -246,7 +246,7 @@ internal abstract class SqlDialectBuilder
             {
                 foreach (var arg in newExpr.Arguments.Zip(newExpr.Members, (expr, member) => (expr, member)))
                 {
-                    yield return $"{table.GetColumnName(arg.member.Name)} = {ToSqlExpression<T>(context, table, arg.expr, lambda)}";
+                    yield return $"{table.GetQuotedColumnName(arg.member.Name)} = {ToSqlExpression<T>(context, table, arg.expr, lambda)}";
                 }
 
                 break;
@@ -255,13 +255,13 @@ internal abstract class SqlDialectBuilder
             {
                 foreach (var binding in memberInit.Bindings.OfType<MemberAssignment>())
                 {
-                    yield return $"{table.GetColumnName(binding.Member.Name)} = {ToSqlExpression<T>(context, table, binding.Expression, lambda)}";
+                    yield return $"{table.GetQuotedColumnName(binding.Member.Name)} = {ToSqlExpression<T>(context, table, binding.Expression, lambda)}";
                 }
 
                 break;
             }
             case MemberExpression memberExpr:
-                yield return $"{table.GetColumnName(memberExpr.Member.Name)} = {ToSqlExpression<T>(context, table, memberExpr, lambda)}";
+                yield return $"{table.GetQuotedColumnName(memberExpr.Member.Name)} = {ToSqlExpression<T>(context, table, memberExpr, lambda)}";
                 break;
 
             case ParameterExpression parameterExpr when (parameterExpr.Type == typeof(T)):

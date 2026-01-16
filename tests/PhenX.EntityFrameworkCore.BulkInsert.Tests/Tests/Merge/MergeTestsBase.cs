@@ -387,7 +387,7 @@ public abstract class MergeTestsBase<TDbContext>(TestDbContainer dbContainer) : 
         }
 
         // Act - Second insert with update on conflict
-        // Using 'inserted' parameter to update all columns (both behave the same for ParameterExpression case)
+        // The ParameterExpression case in GetUpdates generates UPDATE statements for all columns
         var updatedEntities = await _context.InsertWithStrategyAsync(strategy, insertedEntities, o => o.CopyGeneratedColumns = true,
             onConflict: new OnConflictOptions<TestEntityWithComplexType>
             {
@@ -412,7 +412,7 @@ public abstract class MergeTestsBase<TDbContext>(TestDbContainer dbContainer) : 
         // Oracle MERGE does not support returning entities
         Skip.If(_context.IsProvider(ProviderType.Oracle));
 
-        // Arrange
+        // Arrange - initial Code values are 10 and 20
         var entities = new List<TestEntityWithComplexType>
         {
             new TestEntityWithComplexType
@@ -430,7 +430,7 @@ public abstract class MergeTestsBase<TDbContext>(TestDbContainer dbContainer) : 
         // Act - First insert (without CopyGeneratedColumns - returns generated IDs via RETURNING)
         var insertedEntities = await _context.InsertWithStrategyAsync(strategy, entities);
 
-        // Update the complex property name
+        // Update the complex property - new Code values will be original + 100 (110 and 120)
         foreach (var entity in insertedEntities)
         {
             entity.OwnedComplexType.Name = $"Changed_{entity.OwnedComplexType.Name}";
@@ -446,7 +446,8 @@ public abstract class MergeTestsBase<TDbContext>(TestDbContainer dbContainer) : 
                 Where = (inserted, excluded) => excluded.OwnedComplexType.Code > inserted.OwnedComplexType.Code
             });
 
-        // Assert - entities should be updated because excluded.Code (110, 120) > inserted.Code (10, 20)
+        // Assert - entities should be updated because the new Code values (110, 120)
+        // are greater than the existing values in the database (10, 20)
         Assert.Equal(2, updatedEntities.Count);
         Assert.All(updatedEntities, e =>
         {

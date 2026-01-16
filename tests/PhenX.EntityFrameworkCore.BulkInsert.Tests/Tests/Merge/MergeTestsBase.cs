@@ -348,4 +348,110 @@ public abstract class MergeTestsBase<TDbContext>(TestDbContainer dbContainer) : 
         Assert.Contains(insertedEntities, e => e.Name == $"{_run}_Entity2");
         Assert.Contains(insertedEntities, e => e.Name == $"{_run}_Entity1 - Conflict" && e.Price == 0);
     }
+
+    [SkippableTheory]
+    [InlineData(InsertStrategy.InsertReturn)]
+    [InlineData(InsertStrategy.InsertReturnAsync)]
+    public async Task InsertEntities_WithComplexType_UpdateAll(InsertStrategy strategy)
+    {
+        Skip.If(_context.IsProvider(ProviderType.MySql));
+        // Oracle MERGE does not support returning entities
+        Skip.If(_context.IsProvider(ProviderType.Oracle));
+
+        // Arrange
+        var entities = new List<TestEntityWithComplexType>
+        {
+            new TestEntityWithComplexType
+            {
+                TestRun = _run,
+                OwnedComplexType = new OwnedObject { Code = 1, Name = "Name1" }
+            },
+            new TestEntityWithComplexType
+            {
+                TestRun = _run,
+                OwnedComplexType = new OwnedObject { Code = 2, Name = "Name2" }
+            }
+        };
+
+        // Act - First insert (without CopyGeneratedColumns - returns generated IDs via RETURNING)
+        var insertedEntities = await _context.InsertWithStrategyAsync(strategy, entities);
+
+        // Update the complex properties
+        foreach (var entity in insertedEntities)
+        {
+            entity.OwnedComplexType = new OwnedObject
+            {
+                Code = entity.OwnedComplexType.Code + 100,
+                Name = $"Updated_{entity.OwnedComplexType.Name}"
+            };
+        }
+
+        // Act - Second insert with update on conflict
+        // Using 'inserted' parameter to update all columns (both behave the same for ParameterExpression case)
+        var updatedEntities = await _context.InsertWithStrategyAsync(strategy, insertedEntities, o => o.CopyGeneratedColumns = true,
+            onConflict: new OnConflictOptions<TestEntityWithComplexType>
+            {
+                Update = (inserted, excluded) => inserted,
+            });
+
+        // Assert - complex properties should be updated
+        Assert.Equal(2, updatedEntities.Count);
+        Assert.All(updatedEntities, e =>
+        {
+            Assert.StartsWith("Updated_", e.OwnedComplexType.Name);
+            Assert.True(e.OwnedComplexType.Code > 100);
+        });
+    }
+
+    [SkippableTheory]
+    [InlineData(InsertStrategy.InsertReturn)]
+    [InlineData(InsertStrategy.InsertReturnAsync)]
+    public async Task InsertEntities_WithComplexType_UpdateWithWhere(InsertStrategy strategy)
+    {
+        Skip.If(_context.IsProvider(ProviderType.MySql));
+        // Oracle MERGE does not support returning entities
+        Skip.If(_context.IsProvider(ProviderType.Oracle));
+
+        // Arrange
+        var entities = new List<TestEntityWithComplexType>
+        {
+            new TestEntityWithComplexType
+            {
+                TestRun = _run,
+                OwnedComplexType = new OwnedObject { Code = 10, Name = "Original1" }
+            },
+            new TestEntityWithComplexType
+            {
+                TestRun = _run,
+                OwnedComplexType = new OwnedObject { Code = 20, Name = "Original2" }
+            }
+        };
+
+        // Act - First insert (without CopyGeneratedColumns - returns generated IDs via RETURNING)
+        var insertedEntities = await _context.InsertWithStrategyAsync(strategy, entities);
+
+        // Update the complex property name
+        foreach (var entity in insertedEntities)
+        {
+            entity.OwnedComplexType.Name = $"Changed_{entity.OwnedComplexType.Name}";
+            entity.OwnedComplexType.Code = entity.OwnedComplexType.Code + 100;
+        }
+
+        // Act - Second insert updating complex properties with a WHERE condition
+        // This tests that complex property access works correctly in the Where clause
+        var updatedEntities = await _context.InsertWithStrategyAsync(strategy, insertedEntities, o => o.CopyGeneratedColumns = true,
+            onConflict: new OnConflictOptions<TestEntityWithComplexType>
+            {
+                Update = (inserted, excluded) => inserted,
+                Where = (inserted, excluded) => excluded.OwnedComplexType.Code > inserted.OwnedComplexType.Code
+            });
+
+        // Assert - entities should be updated because excluded.Code (110, 120) > inserted.Code (10, 20)
+        Assert.Equal(2, updatedEntities.Count);
+        Assert.All(updatedEntities, e =>
+        {
+            Assert.StartsWith("Changed_", e.OwnedComplexType.Name);
+            Assert.True(e.OwnedComplexType.Code > 100);
+        });
+    }
 }

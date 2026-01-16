@@ -297,15 +297,20 @@ internal abstract class SqlDialectBuilder
             case MemberExpression memberExpr:
                 var columnName = table.GetColumnName(memberExpr.Member.Name);
 
+                // Traverse up the expression chain to find the root parameter
+                // This handles both simple properties (e.g., excluded.Name) and
+                // complex properties (e.g., excluded.ComplexObject.Property)
+                var rootParam = GetRootParameter(memberExpr);
+
                 // If the member expression is a property of the current lambda
-                if (lambda is { Parameters.Count: > 1 } && memberExpr.Expression is ParameterExpression paramExpr)
+                if (lambda is { Parameters.Count: > 1 } && rootParam != null)
                 {
-                    if (paramExpr.Name == lambda.Parameters[0].Name)
+                    if (rootParam.Name == lambda.Parameters[0].Name)
                     {
                         return GetInsertedColumnName(columnName);
                     }
 
-                    if (paramExpr.Name == lambda.Parameters[1].Name)
+                    if (rootParam.Name == lambda.Parameters[1].Name)
                     {
                         return GetExcludedColumnName(columnName);
                     }
@@ -404,5 +409,32 @@ internal abstract class SqlDialectBuilder
             default:
                 throw new NotSupportedException($"Expression not supported: {expr.NodeType}");
         }
+    }
+
+    /// <summary>
+    /// Traverses up a member expression chain to find the root parameter expression.
+    /// This handles both simple properties (e.g., excluded.Name) and complex properties (e.g., excluded.ComplexObject.Property).
+    /// </summary>
+    private static ParameterExpression? GetRootParameter(MemberExpression memberExpr)
+    {
+        Expression? current = memberExpr.Expression;
+        while (current != null)
+        {
+            if (current is ParameterExpression param)
+            {
+                return param;
+            }
+
+            if (current is MemberExpression nested)
+            {
+                current = nested.Expression;
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        return null;
     }
 }

@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFrameworks>net9.0;</TargetFrameworks> <!-- Override TargetFrameworks (with an s) from Directory.Build.props -->
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 

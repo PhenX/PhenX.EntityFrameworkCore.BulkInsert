@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+    <TargetFrameworks>net8.0;net9.0</TargetFrameworks> <!-- net10.0 not supported by Pomelo.EntityFrameworkCore.MySql yet -->
     <!-- Ignore error for preview version of Pomelo.EntityFrameworkCore.MySql -->
     <NoWarn>$(NoWarn);NU5104</NoWarn>
   </PropertyGroup>
@@ -13,6 +13,7 @@
     <PackageReference Include="NetTopologySuite" Version="2.6.0" />
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Condition="'$(TargetFramework)' == 'net8.0'" Version="8.0.*" />
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Condition="'$(TargetFramework)' == 'net9.0'" Version="9.0.*" />
+    <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Condition="'$(TargetFramework)' == 'net10.0' And '$(MysqlSupported)' == 'true'" Version="10.0.*" />
   </ItemGroup>
 
 </Project>

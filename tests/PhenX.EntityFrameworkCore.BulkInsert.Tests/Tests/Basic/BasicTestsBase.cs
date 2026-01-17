@@ -3,7 +3,6 @@ using FluentAssertions.Extensions;
 
 using PhenX.EntityFrameworkCore.BulkInsert.Enums;
 using PhenX.EntityFrameworkCore.BulkInsert.Extensions;
-using PhenX.EntityFrameworkCore.BulkInsert.MySql;
 using PhenX.EntityFrameworkCore.BulkInsert.SqlServer;
 using PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContainer;
 using PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContext;
@@ -277,13 +276,15 @@ public abstract class BasicTestsBase<TDbContext>(TestDbContainer dbContainer) : 
         };
 
         // Act & Assert
+#if !NETCOREAPP1_0_OR_GREATER
         if (_context.IsProvider(ProviderType.SqlServer))
         {
             await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-                await _context.ExecuteBulkInsertAsync(entities, (MySqlBulkInsertOptions _) =>
+                await _context.ExecuteBulkInsertAsync(entities, (PhenX.EntityFrameworkCore.BulkInsert.MySql.MySqlBulkInsertOptions _) =>
                 {
                 }));
         }
+#endif
 
         if (_context.IsProvider(ProviderType.MySql))
         {

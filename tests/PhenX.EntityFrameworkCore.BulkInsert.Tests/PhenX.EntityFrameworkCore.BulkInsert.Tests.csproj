@@ -1,7 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <Nullable>enable</Nullable>
         <IsPackable>false</IsPackable>
         <IsTestProject>true</IsTestProject>
     </PropertyGroup>
@@ -20,6 +19,10 @@
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
         <PackageReference Include="Xunit.SkippableFact" Version="1.5.23" />
+    </ItemGroup>
+
+    <ItemGroup Label="Exclude MySql tests" Condition="'$(MysqlSupported)' != 'true'">
+        <Compile Remove="**\*MySql*.cs" />
     </ItemGroup>
 
     <ItemGroup Label="Test containers">
@@ -42,12 +45,18 @@
       <PackageReference Include="Pomelo.EntityFrameworkCore.MySql.NetTopologySuite" Version="9.0.0" />
     </ItemGroup>
 
+    <ItemGroup Label="NetTopologySuite net10.0" Condition="'$(TargetFramework)' == 'net10.0'">
+      <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer.NetTopologySuite" Version="10.0.2" />
+      <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL.NetTopologySuite" Version="10.0.0" />
+      <PackageReference Include="Pomelo.EntityFrameworkCore.MySql.NetTopologySuite" Version="10.0.0" Condition="'$(MysqlSupported)' == 'true'" />
+    </ItemGroup>
+
     <ItemGroup Label="Specific dependencies">
       <PackageReference Include="Ardalis.SmartEnum.EFCore" Version="8.2.0" />
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\src\PhenX.EntityFrameworkCore.BulkInsert.MySql\PhenX.EntityFrameworkCore.BulkInsert.MySql.csproj" />
+      <ProjectReference Include="..\..\src\PhenX.EntityFrameworkCore.BulkInsert.MySql\PhenX.EntityFrameworkCore.BulkInsert.MySql.csproj" Condition="'$(MysqlSupported)' == 'true'" />
       <ProjectReference Include="..\..\src\PhenX.EntityFrameworkCore.BulkInsert.Oracle\PhenX.EntityFrameworkCore.BulkInsert.Oracle.csproj" />
       <ProjectReference Include="..\..\src\PhenX.EntityFrameworkCore.BulkInsert.PostgreSql\PhenX.EntityFrameworkCore.BulkInsert.PostgreSql.csproj" />
       <ProjectReference Include="..\..\src\PhenX.EntityFrameworkCore.BulkInsert.Sqlite\PhenX.EntityFrameworkCore.BulkInsert.Sqlite.csproj" />

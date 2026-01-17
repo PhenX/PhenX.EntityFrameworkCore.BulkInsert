@@ -2,6 +2,7 @@
   <Folder Name="/root/">
     <File Path=".editorconfig" />
     <File Path=".gitignore" />
+    <File Path="Directory.Build.props" />
     <File Path="LICENSE" />
     <File Path="README.md" />
   </Folder>
@@ -15,7 +16,6 @@
     <Project Path="src/PhenX.EntityFrameworkCore.BulkInsert/PhenX.EntityFrameworkCore.BulkInsert.csproj" />
   </Folder>
   <Folder Name="/tests/">
-    <File Path="tests/Directory.Build.props" />
     <Project Path="tests/PhenX.EntityFrameworkCore.BulkInsert.Benchmark/PhenX.EntityFrameworkCore.BulkInsert.Benchmark.csproj" />
     <Project Path="tests/PhenX.EntityFrameworkCore.BulkInsert.Tests/PhenX.EntityFrameworkCore.BulkInsert.Tests.csproj" />
   </Folder>

@@ -34,8 +34,8 @@ public abstract class VariousTestsBase<TDbContext>(TestDbContainer dbContainer) 
         // Arrange
         var entities = new List<TestEntityWithSmartEnum>
         {
-            new TestEntityWithSmartEnum { TestRun = _run, Enum = TestSmartEnum.Value},
-            new TestEntityWithSmartEnum { TestRun = _run, Enum = TestSmartEnum.Value}
+            new TestEntityWithSmartEnum { TestRun = _run, Enum = TestSmartEnum.Test},
+            new TestEntityWithSmartEnum { TestRun = _run, Enum = TestSmartEnum.Test}
         };
 
         // Act

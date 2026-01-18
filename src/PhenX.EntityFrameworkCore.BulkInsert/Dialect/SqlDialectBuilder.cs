@@ -413,7 +413,7 @@ internal abstract class SqlDialectBuilder
 
     /// <summary>
     /// Extracts update SQL statements from a MemberInitExpression, handling both simple properties
-    /// and nested complex property initializations.
+    /// and nested complex property initializations recursively.
     /// </summary>
     /// <param name="context">DB context</param>
     /// <param name="table">Table metadata</param>
@@ -428,16 +428,15 @@ internal abstract class SqlDialectBuilder
             // Check if the binding expression is a nested MemberInitExpression (complex property assignment)
             if (binding.Expression is MemberInitExpression nestedMemberInit)
             {
-                // Recursively process nested complex property assignments
-                foreach (var nestedBinding in nestedMemberInit.Bindings.OfType<MemberAssignment>())
+                // Recursively process nested complex property assignments to handle arbitrary nesting levels
+                foreach (var update in GetUpdatesFromMemberInit<T>(context, table, nestedMemberInit, lambda))
                 {
-                    // For complex properties, the column name is the nested property name (e.g., "Code", "Name")
-                    yield return $"{table.GetQuotedColumnName(nestedBinding.Member.Name)} = {ToSqlExpression<T>(context, table, nestedBinding.Expression, lambda)}";
+                    yield return update;
                 }
             }
             else
             {
-                // Simple property assignment
+                // Simple property assignment - the column name is the property name
                 yield return $"{table.GetQuotedColumnName(binding.Member.Name)} = {ToSqlExpression<T>(context, table, binding.Expression, lambda)}";
             }
         }

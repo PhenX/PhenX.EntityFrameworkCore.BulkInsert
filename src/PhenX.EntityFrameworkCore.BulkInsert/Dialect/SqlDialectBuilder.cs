@@ -253,9 +253,9 @@ internal abstract class SqlDialectBuilder
             }
             case MemberInitExpression memberInit:
             {
-                foreach (var binding in memberInit.Bindings.OfType<MemberAssignment>())
+                foreach (var updateSql in GetUpdatesFromMemberInit<T>(context, table, memberInit, lambda))
                 {
-                    yield return $"{table.GetQuotedColumnName(binding.Member.Name)} = {ToSqlExpression<T>(context, table, binding.Expression, lambda)}";
+                    yield return updateSql;
                 }
 
                 break;
@@ -408,6 +408,38 @@ internal abstract class SqlDialectBuilder
 
             default:
                 throw new NotSupportedException($"Expression not supported: {expr.NodeType}");
+        }
+    }
+
+    /// <summary>
+    /// Extracts update SQL statements from a MemberInitExpression, handling both simple properties
+    /// and nested complex property initializations.
+    /// </summary>
+    /// <param name="context">DB context</param>
+    /// <param name="table">Table metadata</param>
+    /// <param name="memberInit">The member initialization expression</param>
+    /// <param name="lambda">Current lambda expression</param>
+    /// <typeparam name="T">Entity type</typeparam>
+    /// <returns>SQL update statements for each property assignment</returns>
+    private IEnumerable<string> GetUpdatesFromMemberInit<T>(DbContext context, TableMetadata table, MemberInitExpression memberInit, LambdaExpression lambda)
+    {
+        foreach (var binding in memberInit.Bindings.OfType<MemberAssignment>())
+        {
+            // Check if the binding expression is a nested MemberInitExpression (complex property assignment)
+            if (binding.Expression is MemberInitExpression nestedMemberInit)
+            {
+                // Recursively process nested complex property assignments
+                foreach (var nestedBinding in nestedMemberInit.Bindings.OfType<MemberAssignment>())
+                {
+                    // For complex properties, the column name is the nested property name (e.g., "Code", "Name")
+                    yield return $"{table.GetQuotedColumnName(nestedBinding.Member.Name)} = {ToSqlExpression<T>(context, table, nestedBinding.Expression, lambda)}";
+                }
+            }
+            else
+            {
+                // Simple property assignment
+                yield return $"{table.GetQuotedColumnName(binding.Member.Name)} = {ToSqlExpression<T>(context, table, binding.Expression, lambda)}";
+            }
         }
     }
 

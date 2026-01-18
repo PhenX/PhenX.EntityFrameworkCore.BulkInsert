@@ -85,11 +85,13 @@ public abstract partial class LibComparator
             // Use BeginBinaryImport for PostgreSQL
             RawInsertPostgreSql();
         }
+#if MYSQL_SUPPORTED
         else if (DbContext.Database.ProviderName!.Contains("MySql", StringComparison.InvariantCultureIgnoreCase))
         {
             // Use MySqlBulkCopy for PostgreSQL
             RawInsertMySql();
         }
+#endif
         else if (DbContext.Database.ProviderName!.Contains("Oracle", StringComparison.InvariantCultureIgnoreCase))
         {
             // Use OracleBulkCopy for Oracle

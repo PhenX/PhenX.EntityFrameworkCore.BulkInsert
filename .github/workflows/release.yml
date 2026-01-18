@@ -52,6 +52,9 @@ jobs:
       - name: Test net9.0
         run: dotnet test --configuration Release --no-restore --no-build --verbosity normal --framework net9.0
 
+      - name: Test net10.0
+        run: dotnet test --configuration Release --no-restore --no-build --verbosity normal --framework net10.0
+
       - name: Pack nuget packages
         run: dotnet pack --configuration Release --no-restore --no-build --output nupkgs /p:PackageVersion=$VERSION
 

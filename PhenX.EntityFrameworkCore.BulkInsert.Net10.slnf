@@ -1,0 +1,14 @@
+﻿{
+  "solution": {
+    "path": "PhenX.EntityFrameworkCore.BulkInsert.slnx",
+    "projects": [
+      "src\\PhenX.EntityFrameworkCore.BulkInsert.Oracle\\PhenX.EntityFrameworkCore.BulkInsert.Oracle.csproj",
+      "src\\PhenX.EntityFrameworkCore.BulkInsert.PostgreSql\\PhenX.EntityFrameworkCore.BulkInsert.PostgreSql.csproj",
+      "src\\PhenX.EntityFrameworkCore.BulkInsert.Sqlite\\PhenX.EntityFrameworkCore.BulkInsert.Sqlite.csproj",
+      "src\\PhenX.EntityFrameworkCore.BulkInsert.SqlServer\\PhenX.EntityFrameworkCore.BulkInsert.SqlServer.csproj",
+      "src\\PhenX.EntityFrameworkCore.BulkInsert\\PhenX.EntityFrameworkCore.BulkInsert.csproj",
+      "tests\\PhenX.EntityFrameworkCore.BulkInsert.Benchmark\\PhenX.EntityFrameworkCore.BulkInsert.Benchmark.csproj",
+      "tests\\PhenX.EntityFrameworkCore.BulkInsert.Tests\\PhenX.EntityFrameworkCore.BulkInsert.Tests.csproj"
+    ]
+  }
+}

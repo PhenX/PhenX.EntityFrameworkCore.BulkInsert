@@ -29,5 +29,6 @@
         <!-- Pomelo.EntityFrameworkCore.MySql.NetTopologySuite is not yet available for .NET 10.0 -->
         <MysqlSupported>true</MysqlSupported>
         <MysqlSupported Condition="'$(TargetFramework)' == 'net10.0'">false</MysqlSupported>
+        <Constants Condition="'$(MysqlSupported)' == 'true'">$(Constants);MYSQL_SUPPORTED</Constants>
     </PropertyGroup>
 </Project>

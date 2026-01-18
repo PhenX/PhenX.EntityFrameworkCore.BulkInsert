@@ -4,7 +4,9 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
+#if MYSQL_SUPPORTED
 using MySqlConnector;
+#endif
 
 using Npgsql;
 
@@ -144,6 +146,7 @@ public abstract partial class LibComparator
         }
     }
 
+#if MYSQL_SUPPORTED
     private void RawInsertMySql()
     {
         var connection = (MySqlConnection)DbContext.Database.GetDbConnection();
@@ -196,6 +199,7 @@ public abstract partial class LibComparator
             bulkCopy.WriteToServer(dataTable);
         }
     }
+#endif
 
     private void RawInsertOracle()
     {

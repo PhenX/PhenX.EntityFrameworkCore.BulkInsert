@@ -21,10 +21,6 @@
         <PackageReference Include="Xunit.SkippableFact" Version="1.5.23" />
     </ItemGroup>
 
-    <ItemGroup Label="Exclude MySql tests" Condition="'$(MysqlSupported)' != 'true'">
-        <Compile Remove="**\*MySql*.cs" />
-    </ItemGroup>
-
     <ItemGroup Label="Test containers">
         <PackageReference Include="Testcontainers" Version="4.7.0" />
         <PackageReference Include="Testcontainers.PostgreSql" Version="4.7.0" />
@@ -53,6 +49,10 @@
 
     <ItemGroup Label="Specific dependencies">
       <PackageReference Include="Ardalis.SmartEnum.EFCore" Version="8.2.0" />
+    </ItemGroup>
+
+    <ItemGroup Label="Exclude MySql code" Condition="'$(MysqlSupported)' != 'true'">
+      <Compile Remove="**\*MySql*.cs" />
     </ItemGroup>
 
     <ItemGroup>

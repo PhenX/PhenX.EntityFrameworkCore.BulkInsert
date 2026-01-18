@@ -416,7 +416,7 @@ internal abstract class SqlDialectBuilder
     /// This handles both simple properties (e.g., excluded.Name) and complex properties (e.g., excluded.ComplexObject.Property).
     /// </summary>
     /// <param name="memberExpr">The member expression to traverse.</param>
-    /// <returns>The root parameter expression if found; otherwise, null if the chain contains unsupported expression types.</returns>
+    /// <returns>The root parameter expression if found; otherwise, null if the expression chain doesn't contain a parameter.</returns>
     private static ParameterExpression? GetRootParameter(MemberExpression memberExpr)
     {
         Expression? current = memberExpr.Expression;

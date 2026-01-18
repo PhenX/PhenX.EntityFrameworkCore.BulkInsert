@@ -253,9 +253,9 @@ internal abstract class SqlDialectBuilder
             }
             case MemberInitExpression memberInit:
             {
-                foreach (var binding in memberInit.Bindings.OfType<MemberAssignment>())
+                foreach (var updateSql in GetUpdatesFromMemberInit<T>(context, table, memberInit, lambda))
                 {
-                    yield return $"{table.GetQuotedColumnName(binding.Member.Name)} = {ToSqlExpression<T>(context, table, binding.Expression, lambda)}";
+                    yield return updateSql;
                 }
 
                 break;
@@ -297,15 +297,20 @@ internal abstract class SqlDialectBuilder
             case MemberExpression memberExpr:
                 var columnName = table.GetColumnName(memberExpr.Member.Name);
 
+                // Traverse up the expression chain to find the root parameter
+                // This handles both simple properties (e.g., excluded.Name) and
+                // complex properties (e.g., excluded.ComplexObject.Property)
+                var rootParam = GetRootParameter(memberExpr);
+
                 // If the member expression is a property of the current lambda
-                if (lambda is { Parameters.Count: > 1 } && memberExpr.Expression is ParameterExpression paramExpr)
+                if (lambda is { Parameters.Count: > 1 } && rootParam != null)
                 {
-                    if (paramExpr.Name == lambda.Parameters[0].Name)
+                    if (rootParam.Name == lambda.Parameters[0].Name)
                     {
                         return GetInsertedColumnName(columnName);
                     }
 
-                    if (paramExpr.Name == lambda.Parameters[1].Name)
+                    if (rootParam.Name == lambda.Parameters[1].Name)
                     {
                         return GetExcludedColumnName(columnName);
                     }
@@ -404,5 +409,65 @@ internal abstract class SqlDialectBuilder
             default:
                 throw new NotSupportedException($"Expression not supported: {expr.NodeType}");
         }
+    }
+
+    /// <summary>
+    /// Extracts update SQL statements from a MemberInitExpression, handling both simple properties
+    /// and nested complex property initializations recursively.
+    /// </summary>
+    /// <param name="context">DB context</param>
+    /// <param name="table">Table metadata</param>
+    /// <param name="memberInit">The member initialization expression</param>
+    /// <param name="lambda">Current lambda expression</param>
+    /// <typeparam name="T">Entity type</typeparam>
+    /// <returns>SQL update statements for each property assignment</returns>
+    private IEnumerable<string> GetUpdatesFromMemberInit<T>(DbContext context, TableMetadata table, MemberInitExpression memberInit, LambdaExpression lambda)
+    {
+        foreach (var binding in memberInit.Bindings.OfType<MemberAssignment>())
+        {
+            // Check if the binding expression is a nested MemberInitExpression (complex property assignment)
+            if (binding.Expression is MemberInitExpression nestedMemberInit)
+            {
+                // Recursively process nested complex property assignments to handle arbitrary nesting levels
+                foreach (var update in GetUpdatesFromMemberInit<T>(context, table, nestedMemberInit, lambda))
+                {
+                    yield return update;
+                }
+            }
+            else
+            {
+                // Simple property assignment - the column name is the property name
+                yield return $"{table.GetQuotedColumnName(binding.Member.Name)} = {ToSqlExpression<T>(context, table, binding.Expression, lambda)}";
+            }
+        }
+    }
+
+    /// <summary>
+    /// Traverses up a member expression chain to find the root parameter expression.
+    /// This handles both simple properties (e.g., excluded.Name) and complex properties (e.g., excluded.ComplexObject.Property).
+    /// </summary>
+    /// <param name="memberExpr">The member expression to traverse.</param>
+    /// <returns>The root parameter expression if found; otherwise, null if the expression chain doesn't contain a parameter.</returns>
+    private static ParameterExpression? GetRootParameter(MemberExpression memberExpr)
+    {
+        Expression? current = memberExpr.Expression;
+        while (current != null)
+        {
+            if (current is ParameterExpression param)
+            {
+                return param;
+            }
+
+            if (current is MemberExpression nested)
+            {
+                current = nested.Expression;
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        return null;
     }
 }

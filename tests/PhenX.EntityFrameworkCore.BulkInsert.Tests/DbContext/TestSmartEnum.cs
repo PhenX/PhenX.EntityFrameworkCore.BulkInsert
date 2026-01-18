@@ -8,5 +8,5 @@ public class TestSmartEnum : SmartEnum<TestSmartEnum>
     {
     }
 
-    public static readonly TestSmartEnum Value = new TestSmartEnum("test", 1);
+    public static readonly TestSmartEnum Test = new TestSmartEnum("test", 1);
 }

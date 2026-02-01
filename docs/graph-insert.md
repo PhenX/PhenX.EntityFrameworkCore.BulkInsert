@@ -39,7 +39,7 @@ await dbContext.ExecuteBulkInsertAsync(blogs, options =>
 ## Performance Considerations
 
 - Graph insert is inherently slower than flat insert due to FK propagation overhead
-- For entities with identity columns, the library uses `ExecuteBulkInsertReturnEntities` internally to retrieve generated IDs
+- For entities with identity columns, the library uses `ExecuteBulkInsertReturnEntitiesAsync` internally to retrieve generated IDs
 - Consider using client-generated keys (GUIDs with `ValueGeneratedNever()`) to avoid ID propagation overhead
 - Use `MaxGraphDepth` to limit traversal for large/deep graphs
 - Use `IncludeNavigations` or `ExcludeNavigations` to reduce the scope of insertions

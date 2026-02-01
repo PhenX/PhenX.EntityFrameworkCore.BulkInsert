@@ -55,6 +55,8 @@ internal sealed class GraphEntityCollector
     {
         _options = options;
         _graphMetadata = new GraphMetadata(context, options);
+        // Use ReferenceEqualityComparer to track visited entity instances by reference,
+        // not by property values, to correctly handle cycles in the object graph
         _visited = new HashSet<object>(ReferenceEqualityComparer.Instance);
         _entitiesByType = [];
         _joinRecords = [];

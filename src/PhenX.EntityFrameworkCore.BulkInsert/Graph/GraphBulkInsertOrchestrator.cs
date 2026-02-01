@@ -226,7 +226,13 @@ internal sealed class GraphBulkInsertOrchestrator
     {
         if (originalEntities.Count != insertedEntities.Count)
         {
-            // Can't reliably map back
+            // Count mismatch - this can happen if the bulk insert operation
+            // doesn't preserve order. Log a warning for debugging purposes.
+            // The graph insert will continue but FK propagation may be incomplete.
+            System.Diagnostics.Debug.WriteLine(
+                $"Warning: IncludeGraph ID propagation failed for {typeof(TEntity).Name}. " +
+                $"Original count: {originalEntities.Count}, Inserted count: {insertedEntities.Count}. " +
+                "Foreign key values may not be correctly propagated to dependent entities.");
             return;
         }
 
@@ -288,6 +294,9 @@ internal sealed class GraphBulkInsertOrchestrator
                 var joinEntry = Activator.CreateInstance(joinEntityType);
                 if (joinEntry == null)
                 {
+                    System.Diagnostics.Debug.WriteLine(
+                        $"Warning: IncludeGraph failed to create join entry for {joinEntityType.Name}. " +
+                        "Many-to-many relationship may be incomplete.");
                     continue;
                 }
 

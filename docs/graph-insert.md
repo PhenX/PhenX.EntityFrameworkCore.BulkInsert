@@ -1,5 +1,7 @@
 # Graph Insert (Navigation Properties)
 
+> ℹ️ This feature is not available for Oracle and MySQL providers due to limitations in retrieving generated IDs.
+
 This library supports bulk inserting entire object graphs, including entities with their related navigation properties.
 
 ## Enabling Graph Insert

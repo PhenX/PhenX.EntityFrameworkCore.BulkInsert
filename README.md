@@ -136,6 +136,8 @@ var blogs = new List<Blog>
 await dbContext.ExecuteBulkInsertAsync(blogs, o => o.IncludeGraph = true);
 ```
 
+> ℹ️ This feature is not available for Oracle and MySQL providers due to limitations in retrieving generated IDs.
+
 See [Graph Insert documentation](https://phenx.github.io/PhenX.EntityFrameworkCore.BulkInsert/graph-insert.html) for details.
 
 ### Conflict resolution / merge / upsert

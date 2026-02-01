@@ -204,3 +204,36 @@ Enable streaming bulk copy for SQL Server
 * Default: `unset` (PostgreSQL only)
 
 Custom PostgreSQL type providers for handling specific data types.
+
+### IncludeGraph
+
+* Type: `bool`
+* Default: `false`
+
+When enabled, recursively inserts all reachable entities via navigation properties.
+This includes one-to-one, one-to-many, many-to-one, and many-to-many relationships.
+
+See [Graph Insert documentation](./graph-insert.md) for details.
+
+### MaxGraphDepth
+
+* Type: `int`
+* Default: `0` (unlimited)
+
+Maximum depth for graph traversal when `IncludeGraph` is enabled.
+Use 0 for unlimited depth.
+
+### IncludeNavigations
+
+* Type: `HashSet<string>?`
+* Default: `null` (all navigations)
+
+Navigation properties to explicitly include when `IncludeGraph` is enabled.
+If empty and `IncludeGraph` is true, all navigation properties are included.
+
+### ExcludeNavigations
+
+* Type: `HashSet<string>?`
+* Default: `null` (none)
+
+Navigation properties to explicitly exclude when `IncludeGraph` is enabled.

@@ -300,7 +300,7 @@ internal sealed class GraphBulkInsertOrchestrator
                 }
 
                 // Check if the join entity is a dictionary (shared-type entity)
-                var isDictionary = joinEntry is IDictionary<string, object>;
+                var dictEntry = joinEntry as IDictionary<string, object>;
 
                 // Set FK values for left entity
                 for (var i = 0; i < fk.Properties.Count; i++)
@@ -309,9 +309,9 @@ internal sealed class GraphBulkInsertOrchestrator
                     var pkProp = fk.PrincipalKey.Properties[i];
 
                     var pkValue = GetPropertyValue(record.LeftEntity, pkProp.Name);
-                    if (isDictionary)
+                    if (dictEntry != null)
                     {
-                        ((IDictionary<string, object>)joinEntry)[fkProp.Name] = pkValue!;
+                        dictEntry[fkProp.Name] = pkValue!;
                     }
                     else
                     {
@@ -326,9 +326,9 @@ internal sealed class GraphBulkInsertOrchestrator
                     var pkProp = inverseFk.PrincipalKey.Properties[i];
 
                     var pkValue = GetPropertyValue(record.RightEntity, pkProp.Name);
-                    if (isDictionary)
+                    if (dictEntry != null)
                     {
-                        ((IDictionary<string, object>)joinEntry)[fkProp.Name] = pkValue!;
+                        dictEntry[fkProp.Name] = pkValue!;
                     }
                     else
                     {

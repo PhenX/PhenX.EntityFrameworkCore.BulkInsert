@@ -160,6 +160,13 @@ public static partial class PublicExtensions
 
         if (options.IncludeGraph)
         {
+            if (onConflict != null)
+            {
+                throw new InvalidOperationException(
+                    "OnConflict options cannot be used together with IncludeGraph. " +
+                    "Either disable IncludeGraph or remove the onConflict parameter.");
+            }
+
             var orchestrator = new GraphBulkInsertOrchestrator();
             await orchestrator.InsertGraphAsync(context, entities, options, provider, cancellationToken);
             return;
@@ -214,6 +221,13 @@ public static partial class PublicExtensions
 
         if (options.IncludeGraph)
         {
+            if (onConflict != null)
+            {
+                throw new InvalidOperationException(
+                    "OnConflict options cannot be used together with IncludeGraph. " +
+                    "Either disable IncludeGraph or remove the onConflict parameter.");
+            }
+
             var orchestrator = new GraphBulkInsertOrchestrator();
             orchestrator.InsertGraphAsync(context, entities, options, provider, CancellationToken.None)
                 .GetAwaiter().GetResult();

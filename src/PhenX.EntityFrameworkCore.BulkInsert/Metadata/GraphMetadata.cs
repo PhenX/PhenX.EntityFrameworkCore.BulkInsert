@@ -100,13 +100,9 @@ internal sealed class GraphMetadata
 
         // Get dependencies (types that this type references via FKs)
         var navigations = GetNavigations(type);
-        foreach (var nav in navigations)
+        foreach (var nav in navigations.Where(n => n.IsDependentToPrincipal && validTypes.Contains(n.TargetType) && n.TargetType != type))
         {
-            // Only consider dependent-to-principal navigations (this entity has the FK)
-            if (nav.IsDependentToPrincipal && validTypes.Contains(nav.TargetType) && nav.TargetType != type)
-            {
-                TopologicalSort(nav.TargetType, validTypes, visited, visiting, result);
-            }
+            TopologicalSort(nav.TargetType, validTypes, visited, visiting, result);
         }
 
         visiting.Remove(type);

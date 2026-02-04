@@ -359,4 +359,79 @@ public abstract class GraphTestsBase<TDbContext>(TestDbContainer dbContainer) : 
         var insertedPosts = _context.Posts.Where(p => p.TestRun == _run).ToList();
         insertedPosts.Should().HaveCount(1);
     }
+
+    [SkippableFact]
+    public async Task InsertGraph_SelfReferencing_InsertsRootOnly()
+    {
+        // Arrange - Self-referencing hierarchies require multiple inserts in order
+        // This test verifies that root entities without parents can be inserted
+        var rootCategory = new Category
+        {
+            TestRun = _run,
+            Name = $"{_run}_RootCategory",
+            Parent = null,
+            ParentId = null
+        };
+
+        // Act
+        await _context.ExecuteBulkInsertAsync(new[] { rootCategory }, options =>
+        {
+            options.IncludeGraph = true;
+        });
+
+        // Assert
+        var insertedCategories = _context.Categories.Where(c => c.TestRun == _run).ToList();
+        insertedCategories.Should().HaveCount(1);
+
+        var insertedRoot = insertedCategories.First();
+        insertedRoot.Id.Should().BeGreaterThan(0);
+        insertedRoot.ParentId.Should().BeNull();
+    }
+
+    [SkippableFact]
+    public async Task InsertGraph_ManyToMany_TraversesRelatedEntities()
+    {
+        // Note: Many-to-many join table insertion requires explicit join entity types.
+        // Dictionary<string, object> join entities are not supported by the bulk insert infrastructure.
+        // This test verifies that many-to-many navigations are traversed and related entities are collected.
+
+        // Arrange - Create a post with tags
+        var tag1 = new Tag { TestRun = _run, Name = $"{_run}_Tag1" };
+        var tag2 = new Tag { TestRun = _run, Name = $"{_run}_Tag2" };
+
+        var blog = new Blog
+        {
+            TestRun = _run,
+            Name = $"{_run}_BlogWithTaggedPost",
+            Posts = new List<Post>
+            {
+                new Post
+                {
+                    TestRun = _run,
+                    Title = $"{_run}_TaggedPost",
+                    Tags = new List<Tag> { tag1, tag2 }
+                }
+            }
+        };
+
+        // Act
+        await _context.ExecuteBulkInsertAsync(new[] { blog }, options =>
+        {
+            options.IncludeGraph = true;
+        });
+
+        // Assert - Verify the entities were inserted (even if join table wasn't populated)
+        var insertedBlog = _context.Blogs.FirstOrDefault(b => b.TestRun == _run);
+        insertedBlog.Should().NotBeNull();
+        insertedBlog!.Id.Should().BeGreaterThan(0);
+
+        var insertedPost = _context.Posts.FirstOrDefault(p => p.TestRun == _run);
+        insertedPost.Should().NotBeNull();
+        insertedPost!.Id.Should().BeGreaterThan(0);
+
+        // Tags should be inserted as they were traversed via many-to-many navigation
+        var insertedTags = _context.Tags.Where(t => t.TestRun == _run).ToList();
+        insertedTags.Should().HaveCount(2);
+        insertedTags.Should().AllSatisfy(t => t.Id.Should().BeGreaterThan(0));
+    }
 }

@@ -121,7 +121,6 @@ internal sealed class GraphBulkInsertOrchestrator
         // For each FK relationship, propagate PK values from parent entities
         foreach (var fk in efEntityType.GetForeignKeys())
         {
-            var principalEntityType = fk.PrincipalEntityType;
             var dependentNavigation = fk.DependentToPrincipal;
 
             if (dependentNavigation == null)
@@ -300,6 +299,9 @@ internal sealed class GraphBulkInsertOrchestrator
                     continue;
                 }
 
+                // Check if the join entity is a dictionary (shared-type entity)
+                var isDictionary = joinEntry is IDictionary<string, object>;
+
                 // Set FK values for left entity
                 for (var i = 0; i < fk.Properties.Count; i++)
                 {
@@ -307,7 +309,14 @@ internal sealed class GraphBulkInsertOrchestrator
                     var pkProp = fk.PrincipalKey.Properties[i];
 
                     var pkValue = GetPropertyValue(record.LeftEntity, pkProp.Name);
-                    SetPropertyValue(joinEntry, fkProp.Name, pkValue);
+                    if (isDictionary)
+                    {
+                        ((IDictionary<string, object>)joinEntry)[fkProp.Name] = pkValue!;
+                    }
+                    else
+                    {
+                        SetPropertyValue(joinEntry, fkProp.Name, pkValue);
+                    }
                 }
 
                 // Set FK values for right entity
@@ -317,7 +326,14 @@ internal sealed class GraphBulkInsertOrchestrator
                     var pkProp = inverseFk.PrincipalKey.Properties[i];
 
                     var pkValue = GetPropertyValue(record.RightEntity, pkProp.Name);
-                    SetPropertyValue(joinEntry, fkProp.Name, pkValue);
+                    if (isDictionary)
+                    {
+                        ((IDictionary<string, object>)joinEntry)[fkProp.Name] = pkValue!;
+                    }
+                    else
+                    {
+                        SetPropertyValue(joinEntry, fkProp.Name, pkValue);
+                    }
                 }
 
                 joinEntities.Add(joinEntry);
@@ -353,7 +369,12 @@ internal sealed class GraphBulkInsertOrchestrator
             .GetMethod(nameof(IBulkInsertProvider.BulkInsert))!
             .MakeGenericMethod(joinEntityType);
 
-        var task = (Task)method.Invoke(provider, [false, context, tableInfo, joinEntities, options, null, ctk])!;
+        var result = method.Invoke(provider, [false, context, tableInfo, joinEntities, options, null, ctk]);
+        if (result is not Task task)
+        {
+            throw new InvalidOperationException(
+                $"The BulkInsert method for join entity type '{joinEntityType.Name}' did not return a Task as expected.");
+        }
         await task;
     }
 

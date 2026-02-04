@@ -131,4 +131,7 @@ await dbContext.ExecuteBulkInsertAsync(new[] { blog }, o =>
 
 - **Shadow foreign keys**: Currently not supported. Add a CLR property for foreign keys.
 - **Circular references**: Handled gracefully by tracking visited entities, but may result in incomplete graphs.
+- **Owned entities**: Owned entity types are not included in graph traversal and are not inserted when using `IncludeGraph = true`.
+- **Self-referencing hierarchies**: Multi-level self-referencing hierarchies (e.g., Category → Children) require multiple insert operations. Root entities can be inserted, but nested children with FK references to other entities of the same type within the same batch are not supported.
+- **Many-to-many join tables**: Entities on both sides of many-to-many relationships are traversed and inserted. However, automatic join table population only works with explicit join entity types (not `Dictionary<string, object>` shared-type entities).
 - **OnConflict/Upsert**: Not currently supported with `IncludeGraph = true`.

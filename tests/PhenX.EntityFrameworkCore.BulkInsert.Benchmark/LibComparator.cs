@@ -19,6 +19,12 @@ public abstract partial class LibComparator
     [Params(500_000/*, 1_000_000/*, 10_000_000*/)]
     public int N;
 
+    /// <summary>
+    /// Set to true to benchmark with IncludeGraph option enabled.
+    /// Default is false, which runs the benchmark exactly as before.
+    /// </summary>
+    public bool UseIncludeGraph { get; set; } = false;
+
     private IList<TestEntity> data = [];
     protected TestDbContext DbContext { get; set; } = null!;
 
@@ -58,7 +64,10 @@ public abstract partial class LibComparator
     [Benchmark(Baseline = true)]
     public async Task PhenX_EntityFrameworkCore_BulkInsert()
     {
-        await DbContext.ExecuteBulkInsertAsync(data);
+        await DbContext.ExecuteBulkInsertAsync(data, options =>
+        {
+            options.IncludeGraph = UseIncludeGraph;
+        });
     }
     //
     // [Benchmark]

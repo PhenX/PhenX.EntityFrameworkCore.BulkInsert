@@ -19,18 +19,40 @@ public abstract partial class LibComparator
     [Params(500_000/*, 1_000_000/*, 10_000_000*/)]
     public int N;
 
+    /// <summary>
+    /// Set to true to benchmark with IncludeGraph option enabled.
+    /// When true, each entity will have 2 child entities for graph insertion benchmarking.
+    /// Default is false, which runs the benchmark exactly as before (flat entities only).
+    /// </summary>
+    public bool UseIncludeGraph { get; set; } = false;
+
     private IList<TestEntity> data = [];
     protected TestDbContext DbContext { get; set; } = null!;
 
     [IterationSetup]
     public void IterationSetup()
     {
-        data = Enumerable.Range(1, N).Select(i => new TestEntity
+        data = Enumerable.Range(1, N).Select(i =>
         {
-            Name = $"Entity{i}",
-            Price = (decimal)(i * 0.1),
-            Identifier = Guid.NewGuid(),
-            NumericEnumValue = (NumericEnum)(i % 2),
+            var entity = new TestEntity
+            {
+                Name = $"Entity{i}",
+                Price = (decimal)(i * 0.1),
+                Identifier = Guid.NewGuid(),
+                NumericEnumValue = (NumericEnum)(i % 2),
+            };
+
+            // When UseIncludeGraph is true, add child entities for graph insertion benchmarking
+            if (UseIncludeGraph)
+            {
+                entity.Children = new List<TestEntityChild>
+                {
+                    new TestEntityChild { Description = $"Child1 of Entity{i}", Quantity = i },
+                    new TestEntityChild { Description = $"Child2 of Entity{i}", Quantity = i * 2 },
+                };
+            }
+
+            return entity;
         }).ToList();
 
         ConfigureDbContext();
@@ -58,7 +80,10 @@ public abstract partial class LibComparator
     [Benchmark(Baseline = true)]
     public async Task PhenX_EntityFrameworkCore_BulkInsert()
     {
-        await DbContext.ExecuteBulkInsertAsync(data);
+        await DbContext.ExecuteBulkInsertAsync(data, options =>
+        {
+            options.IncludeGraph = UseIncludeGraph;
+        });
     }
     //
     // [Benchmark]
@@ -70,6 +95,12 @@ public abstract partial class LibComparator
     [Benchmark]
     public void RawInsert()
     {
+        if (UseIncludeGraph)
+        {
+            // Raw insert doesn't support graph insertion - skip when UseIncludeGraph is true
+            return;
+        }
+
         if (DbContext.Database.ProviderName!.Contains("SqlServer", StringComparison.InvariantCultureIgnoreCase))
         {
             // Use SqlBulkCopy for SQL Server
@@ -102,6 +133,12 @@ public abstract partial class LibComparator
     [Benchmark]
     public async Task Linq2Db()
     {
+        if (UseIncludeGraph)
+        {
+            // Linq2Db doesn't support graph insertion - skip when UseIncludeGraph is true
+            return;
+        }
+
         await DbContext.BulkCopyAsync(new BulkCopyOptions
         {
             BulkCopyType = BulkCopyType.ProviderSpecific,
@@ -111,7 +148,7 @@ public abstract partial class LibComparator
     [Benchmark]
     public async Task Z_EntityFramework_Extensions_EFCore()
     {
-        await DbContext.BulkInsertOptimizedAsync(data, options => options.IncludeGraph = false);
+        await DbContext.BulkInsertOptimizedAsync(data, options => options.IncludeGraph = UseIncludeGraph);
     }
 
     // [Benchmark]
@@ -125,8 +162,8 @@ public abstract partial class LibComparator
     {
         await DbContext.BulkInsertAsync(data, options =>
         {
-            options.IncludeGraph = false;
-            options.PreserveInsertOrder = false;
+            options.IncludeGraph = UseIncludeGraph;
+            options.PreserveInsertOrder = UseIncludeGraph; // Required for graph insertion
         });
     }
 

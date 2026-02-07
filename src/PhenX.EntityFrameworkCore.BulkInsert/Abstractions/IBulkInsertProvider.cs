@@ -40,6 +40,12 @@ internal interface IBulkInsertProvider
     SqlDialectBuilder SqlDialect { get; }
 
     /// <summary>
+    /// Returns whether this provider supports returning generated IDs efficiently.
+    /// Required for IncludeGraph when entities have identity columns.
+    /// </summary>
+    bool SupportsOutputInsertedIds { get; }
+
+    /// <summary>
     /// Make the default options for the provider, can be a subclass of <see cref="BulkInsertOptions"/>.
     /// </summary>
     internal BulkInsertOptions CreateDefaultOptions();

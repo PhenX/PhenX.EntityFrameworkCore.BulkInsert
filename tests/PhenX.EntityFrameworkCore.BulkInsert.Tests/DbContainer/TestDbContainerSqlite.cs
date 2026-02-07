@@ -23,9 +23,6 @@ public sealed class TestDbContainerSqlite : IDbContextFactory, IDisposable
         _connection = new SqliteConnection("DataSource=:memory:");
         await _connection.OpenAsync();
 
-        await using var attachCommand = new SqliteCommand($"ATTACH DATABASE ':memory:' as {databaseName}", _connection);
-        await attachCommand.ExecuteNonQueryAsync();
-
         var dbContext = new TDbContext
         {
             ConfigureOptions = builder => builder.UseSqlite(_connection).UseBulkInsertSqlite(),

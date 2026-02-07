@@ -23,13 +23,13 @@ public class TestDbContainerMySqlCollection : ICollectionFixture<TestDbContainer
 
 public class TestDbContainerMySql(IMessageSink messageSink) : TestDbContainer<MySqlBuilder, MySqlContainer>(messageSink)
 {
-    private static readonly ServerVersion ServerVersion = ServerVersion.Create(new Version(8, 0), ServerType.MySql);
+    private static readonly ServerVersion MySqlServerVersion = ServerVersion.Create(new Version(8, 0), ServerType.MySql);
 
     public override DbProviderFactory DbProviderFactory => MySqlConnectorFactory.Instance;
 
-    protected override MySqlBuilder CreateBuilder() => new($"{ServerVersion.TypeIdentifier}:{ServerVersion.Version}");
+    protected override MySqlBuilder CreateBuilder() => new($"{MySqlServerVersion.TypeIdentifier}:{MySqlServerVersion.Version}");
 
-    protected override string DbmsName => ServerVersion.Type.ToString();
+    protected override string DbmsName => MySqlServerVersion.Type.ToString();
 
     protected override MySqlBuilder Configure()
     {
@@ -49,7 +49,7 @@ public class TestDbContainerMySql(IMessageSink messageSink) : TestDbContainer<My
         var connectionString = GetConnectionString(databaseName);
 
         optionsBuilder
-            .UseMySql(connectionString, ServerVersion, o =>
+            .UseMySql(connectionString, MySqlServerVersion, o =>
             {
                 o.UseNetTopologySuite();
             })

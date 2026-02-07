@@ -1,29 +1,7 @@
 ﻿<Project>
 
-    <PropertyGroup>
-        <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
-        <LanguageVersion>12</LanguageVersion>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-        <NeutralLanguage>en</NeutralLanguage>
-        <EnableNETAnalyzers>true</EnableNETAnalyzers>
-<!--        <AnalysisMode>AllEnabledByDefault</AnalysisMode>-->
-        <TreatWarningsAsErrors Condition="$(Configuration) != 'Debug'">true</TreatWarningsAsErrors>
-    </PropertyGroup>
-
-    <PropertyGroup>
-        <Authors>Fabien Ménager</Authors>
-        <Description>Super fast bulk insertion for Entity Framework Core on SQL Server, PostgreSQL and SQLite</Description>
-        <Copyright>Fabien Ménager © 2025</Copyright>
-        <PackageProjectUrl>https://github.com/PhenX/PhenX.EntityFrameworkCore.BulkInsert</PackageProjectUrl>
-        <RepositoryUrl>https://github.com/PhenX/PhenX.EntityFrameworkCore.BulkInsert</RepositoryUrl>
-        <RepositoryType>git</RepositoryType>
-        <PackageLicenseExpression>MIT</PackageLicenseExpression>
-        <PackageTags>sql sqlite postgresql entity-framework sqlbulkcopy efcore entity-framework-core sqlserver bulk-insert</PackageTags>
-        <PackageReadmeFile>README.md</PackageReadmeFile>
-        <PackageIcon>icon.png</PackageIcon>
-        <PackageReleaseNotes>https://github.com/PhenX/PhenX.EntityFrameworkCore.BulkInsert/releases</PackageReleaseNotes>
-    </PropertyGroup>
+    <!-- Import parents Directory.Build.props files -->
+    <Import Project="$(MSBuildThisFileDirectory)..\Directory.Build.props" Condition="Exists('$(MSBuildThisFileDirectory)..\Directory.Build.props')" />
 
     <ItemGroup>
         <None Include="$(MSBuildThisFileDirectory)..\README.md" Pack="true" PackagePath="\" />
@@ -47,7 +25,7 @@
 
     <ItemGroup Label="Package References">
         <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All"/>
-        <PackageReference Include="JetBrains.Annotations" Version="2025.2.2" />
+        <PackageReference Include="JetBrains.Annotations" Version="2025.2.4" />
     </ItemGroup>
 
 </Project>

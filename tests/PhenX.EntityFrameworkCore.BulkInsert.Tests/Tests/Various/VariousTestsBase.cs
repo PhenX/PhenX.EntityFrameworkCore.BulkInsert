@@ -10,7 +10,7 @@ using Xunit;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.Tests.Various;
 
-public abstract class VariousTestsBase<TDbContext>(IDbContextFactory dbContainer) : IAsyncLifetime
+public abstract class VariousTestsBase<TDbContext>(IDbContextFactory dbContextFactory) : IAsyncLifetime
     where TDbContext : TestDbContext, new()
 {
     private readonly Guid _run = Guid.NewGuid();
@@ -18,7 +18,7 @@ public abstract class VariousTestsBase<TDbContext>(IDbContextFactory dbContainer
 
     public async Task InitializeAsync()
     {
-        _context = await dbContainer.CreateContextAsync<TDbContext>("various");
+        _context = await dbContextFactory.CreateContextAsync<TDbContext>("various");
     }
 
     public Task DisposeAsync()

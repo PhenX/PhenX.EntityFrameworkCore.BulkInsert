@@ -1,12 +1,17 @@
-using DotNet.Testcontainers.Containers;
+using System.Data.Common;
 
 using Microsoft.EntityFrameworkCore;
 
+using MySqlConnector;
+
 using PhenX.EntityFrameworkCore.BulkInsert.MySql;
+
+using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
 
 using Testcontainers.MySql;
 
 using Xunit;
+using Xunit.Abstractions;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContainer;
 
@@ -16,16 +21,22 @@ public class TestDbContainerMySqlCollection : ICollectionFixture<TestDbContainer
     public const string Name = "MySql";
 }
 
-public class TestDbContainerMySql() : TestDbContainer
+public class TestDbContainerMySql(IMessageSink messageSink) : TestDbContainer<MySqlBuilder, MySqlContainer>(messageSink)
 {
-    protected override IDatabaseContainer? GetDbContainer()
+    private static readonly ServerVersion MySqlServerVersion = ServerVersion.Create(new Version(8, 0), ServerType.MySql);
+
+    public override DbProviderFactory DbProviderFactory => MySqlConnectorFactory.Instance;
+
+    protected override MySqlBuilder CreateBuilder() => new($"{MySqlServerVersion.TypeIdentifier}:{MySqlServerVersion.Version}");
+
+    protected override string DbmsName => MySqlServerVersion.Type.ToString();
+
+    protected override MySqlBuilder Configure()
     {
-        return new MySqlBuilder()
+        return base.Configure()
             .WithCommand("--log-bin-trust-function-creators=1", "--local-infile=1", "--innodb-print-all-deadlocks=ON")
-            .WithReuse(true)
             .WithUsername("root")
-            .WithPassword("root")
-            .Build();
+            .WithPassword("root");
     }
 
     protected override string GetConnectionString(string databaseName)
@@ -38,18 +49,10 @@ public class TestDbContainerMySql() : TestDbContainer
         var connectionString = GetConnectionString(databaseName);
 
         optionsBuilder
-            .UseMySql(connectionString, ServerVersion.AutoDetect(connectionString), o =>
+            .UseMySql(connectionString, MySqlServerVersion, o =>
             {
                 o.UseNetTopologySuite();
             })
             .UseBulkInsertMySql();
-    }
-
-    protected override async Task EnsureConnectedAsync<TDbContext>(TDbContext context, string databaseName)
-    {
-        var container = (MySqlContainer)DbContainer!;
-
-        await container.ExecScriptAsync($"CREATE DATABASE `{databaseName}`");
-        await base.EnsureConnectedAsync(context, databaseName);
     }
 }

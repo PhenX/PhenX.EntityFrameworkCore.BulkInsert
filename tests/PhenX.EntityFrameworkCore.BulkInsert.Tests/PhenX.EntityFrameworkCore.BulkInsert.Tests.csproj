@@ -8,6 +8,10 @@
         <IsTestProject>true</IsTestProject>
     </PropertyGroup>
 
+    <ItemGroup Label="Assembly metadata">
+        <AssemblyMetadata Include="TargetFramework" Value="$(TargetFramework)" />
+    </ItemGroup>
+
     <ItemGroup Label="Test infrastructure">
         <PackageReference Include="coverlet.collector" Version="6.0.4">
           <PrivateAssets>all</PrivateAssets>
@@ -25,11 +29,12 @@
     </ItemGroup>
 
     <ItemGroup Label="Test containers">
-        <PackageReference Include="Testcontainers" Version="4.7.0" />
-        <PackageReference Include="Testcontainers.PostgreSql" Version="4.7.0" />
-        <PackageReference Include="Testcontainers.MsSql" Version="4.7.0" />
-        <PackageReference Include="Testcontainers.MySql" Version="4.7.0" />
-        <PackageReference Include="Testcontainers.Oracle" Version="4.7.0" />
+        <PackageReference Include="Testcontainers" Version="4.10.0" />
+        <PackageReference Include="Testcontainers.PostgreSql" Version="4.10.0" />
+        <PackageReference Include="Testcontainers.MsSql" Version="4.10.0" />
+        <PackageReference Include="Testcontainers.MySql" Version="4.10.0" />
+        <PackageReference Include="Testcontainers.Oracle" Version="4.10.0" />
+        <PackageReference Include="Testcontainers.Xunit" Version="4.10.0" />
     </ItemGroup>
 
     <ItemGroup Label="NetTopologySuite net8.0" Condition="'$(TargetFramework)' == 'net8.0'">

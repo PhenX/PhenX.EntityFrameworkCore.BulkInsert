@@ -1,12 +1,15 @@
-using DotNet.Testcontainers.Containers;
+using System.Data.Common;
 
 using Microsoft.EntityFrameworkCore;
+
+using Npgsql;
 
 using PhenX.EntityFrameworkCore.BulkInsert.PostgreSql;
 
 using Testcontainers.PostgreSql;
 
 using Xunit;
+using Xunit.Abstractions;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContainer;
 
@@ -16,18 +19,12 @@ public class TestDbContainerPostgreSqlCollection : ICollectionFixture<TestDbCont
     public const string Name = "PostgreSql";
 }
 
-public class TestDbContainerPostgreSql : TestDbContainer
+public class TestDbContainerPostgreSql(IMessageSink messageSink) : TestDbContainer<PostgreSqlBuilder, PostgreSqlContainer>(messageSink)
 {
-    protected override IDatabaseContainer? GetDbContainer()
-    {
-        return new PostgreSqlBuilder()
-            .WithImage("postgis/postgis") // Geo GeoSpatial support.
-            .WithReuse(true)
-            .WithDatabase("testdb")
-            .WithUsername("testuser")
-            .WithPassword("testpassword")
-            .Build();
-    }
+    public override DbProviderFactory DbProviderFactory => NpgsqlFactory.Instance;
+
+    // GeoSpatial support, using imresamu/postgis instead of postgis/postgis for arm64 support, see https://github.com/postgis/docker-postgis/issues/216#issuecomment-2936824962
+    protected override PostgreSqlBuilder CreateBuilder() => new("imresamu/postgis:17-3.5");
 
     protected override void Configure(DbContextOptionsBuilder optionsBuilder, string databaseName)
     {
@@ -37,13 +34,5 @@ public class TestDbContainerPostgreSql : TestDbContainer
                 o.UseNetTopologySuite();
             })
             .UseBulkInsertPostgreSql();
-    }
-
-    protected override async Task EnsureConnectedAsync<TDbContext>(TDbContext context, string databaseName)
-    {
-        var container = (PostgreSqlContainer)DbContainer!;
-
-        await container.ExecScriptAsync($"CREATE DATABASE \"{databaseName}\"");
-        await base.EnsureConnectedAsync(context, databaseName);
     }
 }

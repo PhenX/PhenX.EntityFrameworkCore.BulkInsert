@@ -10,7 +10,7 @@ using Xunit;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.Tests.Merge;
 
-public abstract class MergeTestsBase<TDbContext>(TestDbContainer dbContainer) : IAsyncLifetime
+public abstract class MergeTestsBase<TDbContext>(IDbContextFactory dbContextFactory) : IAsyncLifetime
     where TDbContext : TestDbContext, new()
 {
     private readonly Guid _run = Guid.NewGuid();
@@ -18,7 +18,7 @@ public abstract class MergeTestsBase<TDbContext>(TestDbContainer dbContainer) : 
 
     public async Task InitializeAsync()
     {
-        _context = await dbContainer.CreateContextAsync<TDbContext>("basic");
+        _context = await dbContextFactory.CreateContextAsync<TDbContext>("basic");
     }
 
     public Task DisposeAsync()
@@ -347,5 +347,171 @@ public abstract class MergeTestsBase<TDbContext>(TestDbContainer dbContainer) : 
         Assert.Equal(2, insertedEntities.Count);
         Assert.Contains(insertedEntities, e => e.Name == $"{_run}_Entity2");
         Assert.Contains(insertedEntities, e => e.Name == $"{_run}_Entity1 - Conflict" && e.Price == 0);
+    }
+
+    [SkippableTheory]
+    [InlineData(InsertStrategy.InsertReturn)]
+    [InlineData(InsertStrategy.InsertReturnAsync)]
+    public async Task InsertEntities_WithComplexType_UpdateAll(InsertStrategy strategy)
+    {
+        Skip.If(_context.IsProvider(ProviderType.MySql));
+        // Oracle MERGE does not support returning entities
+        Skip.If(_context.IsProvider(ProviderType.Oracle));
+
+        // Arrange
+        var entities = new List<TestEntityWithComplexType>
+        {
+            new TestEntityWithComplexType
+            {
+                TestRun = _run,
+                OwnedComplexType = new OwnedObject { Code = 1, Name = "Name1" }
+            },
+            new TestEntityWithComplexType
+            {
+                TestRun = _run,
+                OwnedComplexType = new OwnedObject { Code = 2, Name = "Name2" }
+            }
+        };
+
+        // Act - First insert (without CopyGeneratedColumns - returns generated IDs via RETURNING)
+        var insertedEntities = await _context.InsertWithStrategyAsync(strategy, entities);
+
+        // Update the complex properties
+        foreach (var entity in insertedEntities)
+        {
+            entity.OwnedComplexType = new OwnedObject
+            {
+                Code = entity.OwnedComplexType.Code + 100,
+                Name = $"Updated_{entity.OwnedComplexType.Name}"
+            };
+        }
+
+        // Act - Second insert with update on conflict
+        // The ParameterExpression case in GetUpdates generates UPDATE statements for all columns
+        var updatedEntities = await _context.InsertWithStrategyAsync(strategy, insertedEntities, o => o.CopyGeneratedColumns = true,
+            onConflict: new OnConflictOptions<TestEntityWithComplexType>
+            {
+                Update = (inserted, excluded) => inserted,
+            });
+
+        // Assert - complex properties should be updated
+        Assert.Equal(2, updatedEntities.Count);
+        Assert.All(updatedEntities, e =>
+        {
+            Assert.StartsWith("Updated_", e.OwnedComplexType.Name);
+            Assert.True(e.OwnedComplexType.Code > 100);
+        });
+    }
+
+    [SkippableTheory]
+    [InlineData(InsertStrategy.InsertReturn)]
+    [InlineData(InsertStrategy.InsertReturnAsync)]
+    public async Task InsertEntities_WithComplexType_UpdateWithWhere(InsertStrategy strategy)
+    {
+        Skip.If(_context.IsProvider(ProviderType.MySql));
+        // Oracle MERGE does not support returning entities
+        Skip.If(_context.IsProvider(ProviderType.Oracle));
+
+        // Arrange - initial Code values are 10 and 20
+        var entities = new List<TestEntityWithComplexType>
+        {
+            new TestEntityWithComplexType
+            {
+                TestRun = _run,
+                OwnedComplexType = new OwnedObject { Code = 10, Name = "Original1" }
+            },
+            new TestEntityWithComplexType
+            {
+                TestRun = _run,
+                OwnedComplexType = new OwnedObject { Code = 20, Name = "Original2" }
+            }
+        };
+
+        // Act - First insert (without CopyGeneratedColumns - returns generated IDs via RETURNING)
+        var insertedEntities = await _context.InsertWithStrategyAsync(strategy, entities);
+
+        // Update the complex property - new Code values will be original + 100 (110 and 120)
+        foreach (var entity in insertedEntities)
+        {
+            entity.OwnedComplexType.Name = $"Changed_{entity.OwnedComplexType.Name}";
+            entity.OwnedComplexType.Code = entity.OwnedComplexType.Code + 100;
+        }
+
+        // Act - Second insert updating complex properties with a WHERE condition
+        // This tests that complex property access works correctly in the Where clause
+        var updatedEntities = await _context.InsertWithStrategyAsync(strategy, insertedEntities, o => o.CopyGeneratedColumns = true,
+            onConflict: new OnConflictOptions<TestEntityWithComplexType>
+            {
+                Update = (inserted, excluded) => inserted,
+                Where = (inserted, excluded) => excluded.OwnedComplexType.Code > inserted.OwnedComplexType.Code
+            });
+
+        // Assert - entities should be updated because the new Code values (110, 120)
+        // are greater than the existing values in the database (10, 20)
+        Assert.Equal(2, updatedEntities.Count);
+        Assert.All(updatedEntities, e =>
+        {
+            Assert.StartsWith("Changed_", e.OwnedComplexType.Name);
+            Assert.True(e.OwnedComplexType.Code > 100);
+        });
+    }
+
+    [SkippableTheory]
+    [InlineData(InsertStrategy.InsertReturn)]
+    [InlineData(InsertStrategy.InsertReturnAsync)]
+    public async Task InsertEntities_WithComplexType_UpdateComplexPropertyConditionally(InsertStrategy strategy)
+    {
+        Skip.If(_context.IsProvider(ProviderType.MySql));
+        // Oracle MERGE does not support returning entities
+        Skip.If(_context.IsProvider(ProviderType.Oracle));
+
+        // Arrange - Create entities with different Code values
+        var entities = new List<TestEntityWithComplexType>
+        {
+            new TestEntityWithComplexType
+            {
+                TestRun = _run,
+                OwnedComplexType = new OwnedObject { Code = 50, Name = "LowCode" }
+            },
+            new TestEntityWithComplexType
+            {
+                TestRun = _run,
+                OwnedComplexType = new OwnedObject { Code = 150, Name = "HighCode" }
+            }
+        };
+
+        // Act - First insert (returns entities with generated IDs)
+        var insertedEntities = await _context.InsertWithStrategyAsync(strategy, entities);
+
+        // Update both entities with new values
+        foreach (var entity in insertedEntities)
+        {
+            entity.OwnedComplexType.Code = entity.OwnedComplexType.Code + 10;
+            entity.OwnedComplexType.Name = $"Modified_{entity.OwnedComplexType.Name}";
+        }
+
+        // Act - Update using nested MemberInitExpression for complex property assignment
+        // Note: entities with Code >= 100 (original value) will not be updated due to WHERE clause
+        var updatedEntities = await _context.InsertWithStrategyAsync(strategy, insertedEntities,
+            o => o.CopyGeneratedColumns = true,
+            onConflict: new OnConflictOptions<TestEntityWithComplexType>
+            {
+                Update = (inserted, excluded) => new TestEntityWithComplexType
+                {
+                    OwnedComplexType = new OwnedObject
+                    {
+                        Code = excluded.OwnedComplexType.Code,
+                        Name = excluded.OwnedComplexType.Name
+                    }
+                },
+                Where = (inserted, excluded) => inserted.OwnedComplexType.Code < 100
+            });
+
+        // Assert - Only the entity with original Code < 100 should be updated (Code was 50, now 60)
+        // The one with original Code >= 100 is not updated but is also not returned by RETURNING clause
+        Assert.Single(updatedEntities);
+        var updatedEntity = updatedEntities.Single();
+        Assert.Equal(60, updatedEntity.OwnedComplexType.Code);
+        Assert.Equal("Modified_LowCode", updatedEntity.OwnedComplexType.Name);
     }
 }

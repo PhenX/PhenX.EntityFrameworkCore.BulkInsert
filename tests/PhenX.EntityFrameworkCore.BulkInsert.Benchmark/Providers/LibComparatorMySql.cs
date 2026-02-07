@@ -22,7 +22,7 @@ public class LibComparatorMySql : LibComparator
 
     protected override IDatabaseContainer? GetDbContainer()
     {
-        return new MySqlBuilder()
+        return new MySqlBuilder("mysql:8.0")
             .WithCommand("--log-bin-trust-function-creators=1", "--local-infile=1")
             .Build();
     }

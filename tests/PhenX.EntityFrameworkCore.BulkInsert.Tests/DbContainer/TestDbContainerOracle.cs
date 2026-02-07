@@ -1,12 +1,15 @@
-using DotNet.Testcontainers.Containers;
+using System.Data.Common;
 
 using Microsoft.EntityFrameworkCore;
+
+using Oracle.ManagedDataAccess.Client;
 
 using PhenX.EntityFrameworkCore.BulkInsert.Oracle;
 
 using Testcontainers.Oracle;
 
 using Xunit;
+using Xunit.Abstractions;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContainer;
 
@@ -16,32 +19,16 @@ public class TestDbContainerOracleCollection : ICollectionFixture<TestDbContaine
     public const string Name = "Oracle";
 }
 
-public class TestDbContainerOracle : TestDbContainer
+public class TestDbContainerOracle(IMessageSink messageSink) : TestDbContainer<OracleBuilder, OracleContainer>(messageSink)
 {
-    protected override IDatabaseContainer? GetDbContainer()
-    {
-        return new OracleBuilder()
-            .WithImage("gvenzl/oracle-free:23-slim-faststart")
-            .WithReuse(true)
-            .Build();
-    }
+    public override DbProviderFactory DbProviderFactory => OracleClientFactory.Instance;
+
+    protected override OracleBuilder CreateBuilder() => new("gvenzl/oracle-free:23-slim-faststart");
 
     protected override void Configure(DbContextOptionsBuilder optionsBuilder, string databaseName)
     {
         optionsBuilder
-            .UseOracle(GetConnectionString(databaseName))
+            .UseOracle(ConnectionString)
             .UseBulkInsertOracle();
-    }
-
-    protected override string GetConnectionString(string databaseName)
-    {
-        if (DbContainer == null)
-        {
-            return string.Empty;
-        }
-
-        var port = DbContainer.GetMappedPublicPort(1521);
-
-        return $"Data Source=(DESCRIPTION = (ADDRESS_LIST = (ADDRESS = (PROTOCOL = TCP)(HOST = localhost)(PORT = {port})) ) (CONNECT_DATA = (SERVICE_NAME = FREEPDB1) ) );User ID=oracle;Password=oracle";
     }
 }

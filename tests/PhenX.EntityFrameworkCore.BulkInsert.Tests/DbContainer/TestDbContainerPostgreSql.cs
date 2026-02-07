@@ -23,7 +23,7 @@ public class TestDbContainerPostgreSql(IMessageSink messageSink) : TestDbContain
 {
     public override DbProviderFactory DbProviderFactory => NpgsqlFactory.Instance;
 
-    // GeoSpatial support, using imresamu/postgis instead of postgis/postgis for arm64 support, see https://github.com/postgis/docker-postgis/issues/216#issuecomment-2936824962)
+    // GeoSpatial support, using imresamu/postgis instead of postgis/postgis for arm64 support, see https://github.com/postgis/docker-postgis/issues/216#issuecomment-2936824962
     protected override PostgreSqlBuilder CreateBuilder() => new("imresamu/postgis:17-3.5");
 
     protected override void Configure(DbContextOptionsBuilder optionsBuilder, string databaseName)

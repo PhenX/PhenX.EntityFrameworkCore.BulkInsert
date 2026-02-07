@@ -36,7 +36,7 @@ jobs:
       run: dotnet restore
 
     - name: Build
-      run: dotnet build --no-restore --framework ${{ matrix.dotnet.tfm }}
+      run: dotnet build PhenX.EntityFrameworkCore.BulkInsert.Net10.slnx --no-restore --framework ${{ matrix.dotnet.tfm }}
 
     - name: Test
-      run: dotnet test --no-build --verbosity normal --framework ${{ matrix.dotnet.tfm }}
+      run: dotnet test PhenX.EntityFrameworkCore.BulkInsert.Net10.slnx --no-build --verbosity normal --framework ${{ matrix.dotnet.tfm }}

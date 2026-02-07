@@ -88,7 +88,7 @@ public abstract partial class LibComparator
 #if MYSQL_SUPPORTED
         else if (DbContext.Database.ProviderName!.Contains("MySql", StringComparison.InvariantCultureIgnoreCase))
         {
-            // Use MySqlBulkCopy for PostgreSQL
+            // Use MySqlBulkCopy for MySQL
             RawInsertMySql();
         }
 #endif

@@ -1,0 +1,21 @@
+<Solution>
+  <Folder Name="/root/">
+    <File Path=".editorconfig" />
+    <File Path=".gitignore" />
+    <File Path="Directory.Build.props" />
+    <File Path="LICENSE" />
+    <File Path="README.md" />
+  </Folder>
+  <Folder Name="/src/">
+    <File Path="src/Directory.Build.props" />
+    <Project Path="src/PhenX.EntityFrameworkCore.BulkInsert.Oracle/PhenX.EntityFrameworkCore.BulkInsert.Oracle.csproj" />
+    <Project Path="src/PhenX.EntityFrameworkCore.BulkInsert.PostgreSql/PhenX.EntityFrameworkCore.BulkInsert.PostgreSql.csproj" />
+    <Project Path="src/PhenX.EntityFrameworkCore.BulkInsert.Sqlite/PhenX.EntityFrameworkCore.BulkInsert.Sqlite.csproj" />
+    <Project Path="src/PhenX.EntityFrameworkCore.BulkInsert.SqlServer/PhenX.EntityFrameworkCore.BulkInsert.SqlServer.csproj" />
+    <Project Path="src/PhenX.EntityFrameworkCore.BulkInsert/PhenX.EntityFrameworkCore.BulkInsert.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/PhenX.EntityFrameworkCore.BulkInsert.Benchmark/PhenX.EntityFrameworkCore.BulkInsert.Benchmark.csproj" />
+    <Project Path="tests/PhenX.EntityFrameworkCore.BulkInsert.Tests/PhenX.EntityFrameworkCore.BulkInsert.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,12 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
-        <Nullable>enable</Nullable>
-
         <IsPackable>false</IsPackable>
         <IsTestProject>true</IsTestProject>
     </PropertyGroup>
+
+    <ItemGroup Label="Assembly metadata">
+        <AssemblyMetadata Include="TargetFramework" Value="$(TargetFramework)" />
+    </ItemGroup>
 
     <ItemGroup Label="Test infrastructure">
         <PackageReference Include="coverlet.collector" Version="6.0.4">
@@ -25,11 +26,12 @@
     </ItemGroup>
 
     <ItemGroup Label="Test containers">
-        <PackageReference Include="Testcontainers" Version="4.7.0" />
-        <PackageReference Include="Testcontainers.PostgreSql" Version="4.7.0" />
-        <PackageReference Include="Testcontainers.MsSql" Version="4.7.0" />
-        <PackageReference Include="Testcontainers.MySql" Version="4.7.0" />
-        <PackageReference Include="Testcontainers.Oracle" Version="4.7.0" />
+        <PackageReference Include="Testcontainers" Version="4.10.0" />
+        <PackageReference Include="Testcontainers.PostgreSql" Version="4.10.0" />
+        <PackageReference Include="Testcontainers.MsSql" Version="4.10.0" />
+        <PackageReference Include="Testcontainers.MySql" Version="4.10.0" />
+        <PackageReference Include="Testcontainers.Oracle" Version="4.10.0" />
+        <PackageReference Include="Testcontainers.Xunit" Version="4.10.0" />
     </ItemGroup>
 
     <ItemGroup Label="NetTopologySuite net8.0" Condition="'$(TargetFramework)' == 'net8.0'">
@@ -44,12 +46,22 @@
       <PackageReference Include="Pomelo.EntityFrameworkCore.MySql.NetTopologySuite" Version="9.0.0" />
     </ItemGroup>
 
+    <ItemGroup Label="NetTopologySuite net10.0" Condition="'$(TargetFramework)' == 'net10.0'">
+      <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer.NetTopologySuite" Version="10.0.2" />
+      <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL.NetTopologySuite" Version="10.0.0" />
+      <PackageReference Include="Pomelo.EntityFrameworkCore.MySql.NetTopologySuite" Version="10.0.0" Condition="'$(MysqlSupported)' == 'true'" />
+    </ItemGroup>
+
     <ItemGroup Label="Specific dependencies">
       <PackageReference Include="Ardalis.SmartEnum.EFCore" Version="8.2.0" />
     </ItemGroup>
 
+    <ItemGroup Label="Exclude MySql code" Condition="'$(MysqlSupported)' != 'true'">
+      <Compile Remove="**\*MySql*.cs" />
+    </ItemGroup>
+
     <ItemGroup>
-      <ProjectReference Include="..\..\src\PhenX.EntityFrameworkCore.BulkInsert.MySql\PhenX.EntityFrameworkCore.BulkInsert.MySql.csproj" />
+      <ProjectReference Include="..\..\src\PhenX.EntityFrameworkCore.BulkInsert.MySql\PhenX.EntityFrameworkCore.BulkInsert.MySql.csproj" Condition="'$(MysqlSupported)' == 'true'" />
       <ProjectReference Include="..\..\src\PhenX.EntityFrameworkCore.BulkInsert.Oracle\PhenX.EntityFrameworkCore.BulkInsert.Oracle.csproj" />
       <ProjectReference Include="..\..\src\PhenX.EntityFrameworkCore.BulkInsert.PostgreSql\PhenX.EntityFrameworkCore.BulkInsert.PostgreSql.csproj" />
       <ProjectReference Include="..\..\src\PhenX.EntityFrameworkCore.BulkInsert.Sqlite\PhenX.EntityFrameworkCore.BulkInsert.Sqlite.csproj" />

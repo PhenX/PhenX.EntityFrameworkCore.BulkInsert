@@ -25,7 +25,7 @@ public class LibComparatorPostgreSql : LibComparator
 
     protected override IDatabaseContainer? GetDbContainer()
     {
-        return new PostgreSqlBuilder()
+        return new PostgreSqlBuilder("postgres:15.1")
             .WithDatabase("testdb")
             .WithUsername("testuser")
             .WithPassword("testpassword")

@@ -11,7 +11,7 @@ using Xunit;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.Tests.Geo;
 
-public abstract class GeoTestsBase<TDbContext>(TestDbContainer dbContainer) : IAsyncLifetime
+public abstract class GeoTestsBase<TDbContext>(IDbContextFactory dbContextFactory) : IAsyncLifetime
     where TDbContext : TestDbContextGeo, new()
 {
     private readonly Guid _run = Guid.NewGuid();
@@ -19,7 +19,7 @@ public abstract class GeoTestsBase<TDbContext>(TestDbContainer dbContainer) : IA
 
     public async Task InitializeAsync()
     {
-        _context = await dbContainer.CreateContextAsync<TDbContext>("geo");
+        _context = await dbContextFactory.CreateContextAsync<TDbContext>("geo");
     }
 
     public Task DisposeAsync()

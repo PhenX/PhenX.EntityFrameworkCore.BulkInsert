@@ -19,7 +19,9 @@ public class Program
         // Library comparison benchmarks
         var comparators = new[]
         {
+#if MYSQL_SUPPORTED
             typeof(LibComparatorMySql),
+#endif
             typeof(LibComparatorPostgreSql),
             typeof(LibComparatorSqlite),
             typeof(LibComparatorSqlServer),

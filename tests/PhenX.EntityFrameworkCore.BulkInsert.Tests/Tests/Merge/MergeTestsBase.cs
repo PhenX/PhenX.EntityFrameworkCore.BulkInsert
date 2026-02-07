@@ -10,7 +10,7 @@ using Xunit;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.Tests.Merge;
 
-public abstract class MergeTestsBase<TDbContext>(TestDbContainer dbContainer) : IAsyncLifetime
+public abstract class MergeTestsBase<TDbContext>(IDbContextFactory dbContextFactory) : IAsyncLifetime
     where TDbContext : TestDbContext, new()
 {
     private readonly Guid _run = Guid.NewGuid();
@@ -18,7 +18,7 @@ public abstract class MergeTestsBase<TDbContext>(TestDbContainer dbContainer) : 
 
     public async Task InitializeAsync()
     {
-        _context = await dbContainer.CreateContextAsync<TDbContext>("basic");
+        _context = await dbContextFactory.CreateContextAsync<TDbContext>("basic");
     }
 
     public Task DisposeAsync()

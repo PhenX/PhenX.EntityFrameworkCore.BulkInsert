@@ -8,7 +8,7 @@ using Xunit;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.Tests.Graph;
 
-public abstract class GraphTestsBase<TDbContext>(TestDbContainer dbContainer) : IAsyncLifetime
+public abstract class GraphTestsBase<TDbContext>(IDbContextFactory dbContextFactory) : IAsyncLifetime
     where TDbContext : TestDbContext, new()
 {
     private readonly Guid _run = Guid.NewGuid();
@@ -16,7 +16,7 @@ public abstract class GraphTestsBase<TDbContext>(TestDbContainer dbContainer) : 
 
     public async Task InitializeAsync()
     {
-        _context = await dbContainer.CreateContextAsync<TDbContext>("graph");
+        _context = await dbContextFactory.CreateContextAsync<TDbContext>("graph");
     }
 
     public Task DisposeAsync()

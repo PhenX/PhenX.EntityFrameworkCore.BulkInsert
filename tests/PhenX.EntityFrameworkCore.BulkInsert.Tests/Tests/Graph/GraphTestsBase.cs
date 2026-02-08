@@ -588,4 +588,130 @@ public abstract class GraphTestsBase<TDbContext>(IDbContextFactory dbContextFact
         dbPosts.Select(p => p.Id).Should().Contain(post2.Id);
         dbPosts.Select(p => p.Id).Should().Contain(post3.Id);
     }
+
+    [SkippableFact]
+    public async Task InsertGraph_LargeScale()
+    {
+        // Arrange - Create many blogs with many children each (Posts, Tags, BlogSettings)
+        // This tests performance and correctness at scale
+        const int blogCount = 5000;
+        const int postsPerBlog = 100;
+        const int tagsPerPost = 10;
+
+        var blogs = new List<Blog>();
+        var allTags = new List<Tag>();
+
+        // Pre-create a pool of tags that will be shared across posts
+        for (var i = 0; i < 50; i++)
+        {
+            allTags.Add(new Tag
+            {
+                TestRun = _run,
+                Name = $"{_run}_SharedTag_{i}"
+            });
+        }
+
+        for (var blogIndex = 0; blogIndex < blogCount; blogIndex++)
+        {
+            var posts = new List<Post>();
+
+            // Create posts for this blog
+            for (var postIndex = 0; postIndex < postsPerBlog; postIndex++)
+            {
+                var post = new Post
+                {
+                    TestRun = _run,
+                    Title = $"{_run}_Blog{blogIndex}_Post{postIndex}"
+                };
+
+                // Add some tags to this post (from the shared pool)
+                var postTags = new List<Tag>();
+                for (var tagIndex = 0; tagIndex < tagsPerPost; tagIndex++)
+                {
+                    var tagPoolIndex = (blogIndex * postsPerBlog + postIndex + tagIndex) % allTags.Count;
+                    postTags.Add(allTags[tagPoolIndex]);
+                }
+                post.Tags = postTags;
+
+                posts.Add(post);
+            }
+
+            // Create the blog with its children
+            var blog = new Blog
+            {
+                TestRun = _run,
+                Name = $"{_run}_LargeScaleBlog_{blogIndex}",
+                Posts = posts,
+                Settings = new BlogSettings
+                {
+                    TestRun = _run,
+                    EnableComments = blogIndex % 2 == 0
+                }
+            };
+
+            blogs.Add(blog);
+        }
+
+        // Act - Insert all 1000 blogs with their children
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        await _context.ExecuteBulkInsertAsync(blogs, options =>
+        {
+            options.IncludeGraph = true;
+        });
+        stopwatch.Stop();
+
+        // Assert - Verify all entities were inserted correctly
+        var insertedBlogs = _context.Blogs.Where(b => b.TestRun == _run).ToList();
+        insertedBlogs.Should().HaveCount(blogCount, "All blogs should be inserted");
+        insertedBlogs.Should().AllSatisfy(b => b.Id.Should().BeGreaterThan(0), "All blogs should have generated IDs");
+
+        var insertedPosts = _context.Posts.Where(p => p.TestRun == _run).ToList();
+        insertedPosts.Should().HaveCount(blogCount * postsPerBlog, "All posts should be inserted");
+        insertedPosts.Should().AllSatisfy(p =>
+        {
+            p.Id.Should().BeGreaterThan(0, "Post should have generated ID");
+            p.BlogId.Should().BeGreaterThan(0, "Post should have valid BlogId FK");
+        });
+
+        var insertedSettings = _context.BlogSettings.Where(s => s.TestRun == _run).ToList();
+        insertedSettings.Should().HaveCount(blogCount, "All blog settings should be inserted");
+        insertedSettings.Should().AllSatisfy(s =>
+        {
+            s.Id.Should().BeGreaterThan(0, "Settings should have generated ID");
+            s.BlogId.Should().BeGreaterThan(0, "Settings should have valid BlogId FK");
+        });
+
+        var insertedTags = _context.Tags.Where(t => t.TestRun == _run).ToList();
+        insertedTags.Should().HaveCount(allTags.Count, "All unique tags should be inserted");
+        insertedTags.Should().AllSatisfy(t => t.Id.Should().BeGreaterThan(0), "All tags should have generated IDs");
+
+        // Verify original entities have been updated with generated IDs
+        blogs.Should().AllSatisfy(b =>
+        {
+            b.Id.Should().BeGreaterThan(0, "Original blog should have ID populated");
+            b.Posts.Should().AllSatisfy(p =>
+            {
+                p.Id.Should().BeGreaterThan(0, "Original post should have ID populated");
+                p.BlogId.Should().Be(b.Id, "Original post FK should reference its blog");
+            });
+            b.Settings.Should().NotBeNull();
+            b.Settings!.Id.Should().BeGreaterThan(0, "Original settings should have ID populated");
+            b.Settings.BlogId.Should().Be(b.Id, "Original settings FK should reference its blog");
+        });
+
+        allTags.Should().AllSatisfy(t =>
+        {
+            t.Id.Should().BeGreaterThan(0, "Original tag should have ID populated");
+        });
+
+        // Report performance metrics
+        var totalEntities = blogCount + (blogCount * postsPerBlog) + blogCount + allTags.Count;
+        var entitiesPerSecond = totalEntities / stopwatch.Elapsed.TotalSeconds;
+
+        // Note: This is informational, not an assertion
+        // Output is visible in test logs
+        _context.GetType().Name.Should().NotBeNullOrEmpty(
+            $"Inserted {totalEntities:N0} entities in {stopwatch.Elapsed.TotalSeconds:F2}s " +
+            $"({entitiesPerSecond:F0} entities/sec) using {_context.GetType().Name}");
+    }
 }

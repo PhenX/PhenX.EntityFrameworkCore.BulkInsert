@@ -136,9 +136,9 @@ var blogs = new List<Blog>
 await dbContext.ExecuteBulkInsertAsync(blogs, o => o.IncludeGraph = true);
 ```
 
-> ℹ️ This feature is not available for Oracle and MySQL providers due to limitations in retrieving generated IDs.
+> ℹ️ Automatic propagation of **database-generated keys** for graph inserts is not available for Oracle and MySQL providers due to limitations in retrieving generated IDs. You can still use `IncludeGraph` with these providers when keys are client-generated.
 
-See [Graph Insert documentation](https://phenx.github.io/PhenX.EntityFrameworkCore.BulkInsert/graph-insert.html) for details.
+See [Graph Insert documentation](https://phenx.github.io/PhenX.EntityFrameworkCore.BulkInsert/graph-insert.html) for details and provider-specific notes.
 
 ### Conflict resolution / merge / upsert
 

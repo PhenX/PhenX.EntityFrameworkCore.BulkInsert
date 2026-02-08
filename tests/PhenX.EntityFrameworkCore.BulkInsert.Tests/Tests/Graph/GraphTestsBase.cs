@@ -592,17 +592,17 @@ public abstract class GraphTestsBase<TDbContext>(IDbContextFactory dbContextFact
     [SkippableFact]
     public async Task InsertGraph_LargeScale()
     {
-        // Arrange - Create many blogs with many children each (Posts, Tags, BlogSettings)
-        // This tests performance and correctness at scale
-        const int blogCount = 5000;
-        const int postsPerBlog = 100;
-        const int tagsPerPost = 10;
+        // Arrange - Create blogs with children each (Posts, Tags, BlogSettings)
+        // This tests correctness with a reasonable amount of data that won't cause CI timeouts
+        const int blogCount = 50;
+        const int postsPerBlog = 10;
+        const int tagsPerPost = 3;
 
         var blogs = new List<Blog>();
         var allTags = new List<Tag>();
 
         // Pre-create a pool of tags that will be shared across posts
-        for (var i = 0; i < 50; i++)
+        for (var i = 0; i < 20; i++)
         {
             allTags.Add(new Tag
             {

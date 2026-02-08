@@ -177,11 +177,12 @@ internal sealed class GraphBulkInsertOrchestrator
             .GetMethod(nameof(InsertEntitiesGenericAsync), BindingFlags.NonPublic | BindingFlags.Instance)!
             .MakeGenericMethod(entityType);
 
-        var task = (Task)method.Invoke(this, [context, entities, options, provider, graphMetadata, ctk])!;
+        var task = (Task)method.Invoke(this, [sync, context, entities, options, provider, graphMetadata, ctk])!;
         await task;
     }
 
     private async Task InsertEntitiesGenericAsync<TEntity>(
+        bool sync,
         DbContext context,
         List<object> entities,
         BulkInsertOptions options,
@@ -200,7 +201,7 @@ internal sealed class GraphBulkInsertOrchestrator
             // Use BulkInsertReturnEntities to get back the generated IDs
             var insertedEntities = new List<TEntity>();
             await foreach (var inserted in provider.BulkInsertReturnEntities(
-                               false,
+                               sync,
                                context,
                                tableInfo,
                                typedEntities,
@@ -221,7 +222,7 @@ internal sealed class GraphBulkInsertOrchestrator
         else
         {
             // No identity columns, just insert directly
-            await provider.BulkInsert(false, context, tableInfo, typedEntities, options, null, ctk);
+            await provider.BulkInsert(sync, context, tableInfo, typedEntities, options, null, ctk);
         }
     }
 
@@ -380,6 +381,18 @@ internal sealed class GraphBulkInsertOrchestrator
         IBulkInsertProvider provider,
         CancellationToken ctk)
     {
+        // Skip dictionary-based shared-type join entities as they are not supported
+        // by the bulk insert infrastructure (requires typed IEnumerable<T>)
+        if (joinEntityType == typeof(Dictionary<string, object>) ||
+            typeof(IDictionary<string, object>).IsAssignableFrom(joinEntityType))
+        {
+            _logger?.LogWarning(
+                "IncludeGraph: Skipping join table insertion for shared-type entity (Dictionary<string, object>). " +
+                "Many-to-many relationships using implicit join tables are not supported. " +
+                "Consider using an explicit join entity type.");
+            return;
+        }
+
         var efEntityType = context.Model.FindEntityType(joinEntityType);
         if (efEntityType == null)
         {
@@ -389,17 +402,26 @@ internal sealed class GraphBulkInsertOrchestrator
         var sqlDialect = provider.SqlDialect;
         var tableInfo = new TableMetadata(efEntityType, sqlDialect);
 
-        // Use raw SQL insert for join entities since they're often dictionary-based
-        var method = typeof(IBulkInsertProvider)
-            .GetMethod(nameof(IBulkInsertProvider.BulkInsert))!
+        // Use reflection to call the generic BulkInsert method with correctly typed entities
+        var method = typeof(GraphBulkInsertOrchestrator)
+            .GetMethod(nameof(InsertJoinEntitiesGenericAsync), BindingFlags.NonPublic | BindingFlags.Instance)!
             .MakeGenericMethod(joinEntityType);
 
-        var result = method.Invoke(provider, [sync, context, tableInfo, joinEntities, options, null, ctk]);
-        if (result is not Task task)
-        {
-            throw new InvalidOperationException(
-                $"The BulkInsert method for join entity type '{joinEntityType.Name}' did not return a Task as expected.");
-        }
+        var task = (Task)method.Invoke(this, [sync, context, tableInfo, joinEntities, options, provider, ctk])!;
         await task;
+    }
+
+    private async Task InsertJoinEntitiesGenericAsync<TJoin>(
+        bool sync,
+        DbContext context,
+        TableMetadata tableInfo,
+        List<object> joinEntities,
+        BulkInsertOptions options,
+        IBulkInsertProvider provider,
+        CancellationToken ctk) where TJoin : class
+    {
+        // Cast to correctly typed list for the provider
+        var typedEntities = joinEntities.Cast<TJoin>().ToList();
+        await provider.BulkInsert(sync, context, tableInfo, typedEntities, options, null, ctk);
     }
 }

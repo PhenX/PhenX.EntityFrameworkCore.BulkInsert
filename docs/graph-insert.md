@@ -1,6 +1,6 @@
 # Graph Insert (Navigation Properties)
 
-> ℹ️ This feature is not available for Oracle and MySQL providers due to limitations in retrieving generated IDs.
+> ℹ️ Graph inserts that require database-generated key propagation are not supported for Oracle and MySQL providers due to limitations in retrieving generated IDs. Graph inserts using client-generated keys (e.g., GUIDs with `ValueGeneratedNever()`) are supported on all providers.
 
 This library supports bulk inserting entire object graphs, including entities with their related navigation properties.
 
@@ -19,7 +19,7 @@ await dbContext.ExecuteBulkInsertAsync(blogs, options =>
 2. Entities are sorted in topological order (parents before children) to respect foreign key constraints
 3. Each entity type is bulk inserted in dependency order
 4. Generated IDs (identity columns) are propagated to foreign key properties
-5. Many-to-many join tables are populated automatically
+5. Many-to-many join tables with explicit join entity types are populated automatically (see Limitations below)
 
 ## Options
 

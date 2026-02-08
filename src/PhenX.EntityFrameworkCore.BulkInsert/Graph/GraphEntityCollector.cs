@@ -1,6 +1,7 @@
 using System.Collections;
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 using PhenX.EntityFrameworkCore.BulkInsert.Metadata;
 using PhenX.EntityFrameworkCore.BulkInsert.Options;
@@ -149,6 +150,15 @@ internal sealed class GraphEntityCollector
         // (e.g., if Blog.Posts is the navigation, set Post.Blog = blog)
         if (!navigation.HasInverseSetter)
         {
+            return;
+        }
+
+        // Only set inverse navigations that are reference properties (not collections).
+        // If the inverse is a collection, the parent should be added to the collection,
+        // not assigned directly (which would cause an invalid cast).
+        if (navigation.Navigation is INavigation { Inverse.IsCollection: true })
+        {
+            // Skip: inverse is a collection, not a reference property
             return;
         }
 

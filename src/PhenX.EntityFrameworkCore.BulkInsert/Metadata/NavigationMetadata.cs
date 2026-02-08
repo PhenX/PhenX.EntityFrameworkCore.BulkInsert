@@ -1,3 +1,5 @@
+using System.Reflection;
+
 using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Metadata;
@@ -14,6 +16,14 @@ internal sealed class NavigationMetadata
         TargetType = navigation.TargetEntityType.ClrType;
         IsCollection = navigation.IsCollection;
 
+        // Build optimized getter for the navigation property
+        var propertyInfo = navigation.DeclaringEntityType.ClrType.GetProperty(
+            navigation.Name,
+            BindingFlags.Public | BindingFlags.Instance)
+            ?? throw new InvalidOperationException($"Property '{navigation.Name}' not found on type '{navigation.DeclaringEntityType.ClrType.Name}'");
+
+        _getter = PropertyAccessor.CreateGetter(propertyInfo);
+
         if (navigation is ISkipNavigation skipNavigation)
         {
             IsManyToMany = true;
@@ -28,6 +38,8 @@ internal sealed class NavigationMetadata
             IsDependentToPrincipal = regularNavigation.IsOnDependent;
         }
     }
+
+    private readonly Func<object, object?> _getter;
 
     /// <summary>
     /// The underlying EF Core navigation.
@@ -75,30 +87,9 @@ internal sealed class NavigationMetadata
     public bool IsDependentToPrincipal { get; }
 
     /// <summary>
-    /// Gets the FK property names on the source entity (for dependent-to-principal navigations).
+    /// Gets the value of the navigation property from the entity using an optimized getter.
     /// </summary>
-    public IReadOnlyList<string> GetForeignKeyPropertyNames()
-    {
-        if (ForeignKey == null)
-        {
-            return [];
-        }
-
-        return ForeignKey.Properties.Select(p => p.Name).ToList();
-    }
-
-    /// <summary>
-    /// Gets the principal key property names.
-    /// </summary>
-    public IReadOnlyList<string> GetPrincipalKeyPropertyNames()
-    {
-        if (ForeignKey == null)
-        {
-            return [];
-        }
-
-        return ForeignKey.PrincipalKey.Properties.Select(p => p.Name).ToList();
-    }
+    public object? GetValue(object entity) => _getter.Invoke(entity);
 
     public override string ToString()
     {

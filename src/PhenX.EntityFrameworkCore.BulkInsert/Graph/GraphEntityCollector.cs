@@ -94,13 +94,7 @@ internal sealed class GraphEntityCollector
 
         foreach (var navigation in navigations)
         {
-            var propertyInfo = entityType.GetProperty(navigation.PropertyName, BindingFlags.Public | BindingFlags.Instance);
-            if (propertyInfo == null)
-            {
-                continue;
-            }
-
-            var value = propertyInfo.GetValue(entity);
+            var value = navigation.GetValue(entity);
             if (value == null)
             {
                 continue;

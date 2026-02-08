@@ -167,8 +167,9 @@ public static partial class PublicExtensions
                     "Either disable IncludeGraph or remove the onConflict parameter.");
             }
 
-            var orchestrator = new GraphBulkInsertOrchestrator();
-            await orchestrator.InsertGraphAsync(context, entities, options, provider, cancellationToken);
+            var orchestrator = new GraphBulkInsertOrchestrator(context);
+            await orchestrator.InsertGraph(false, entities, options, provider, cancellationToken);
+
             return;
         }
 
@@ -228,9 +229,10 @@ public static partial class PublicExtensions
                     "Either disable IncludeGraph or remove the onConflict parameter.");
             }
 
-            var orchestrator = new GraphBulkInsertOrchestrator();
-            orchestrator.InsertGraphAsync(context, entities, options, provider, CancellationToken.None)
+            var orchestrator = new GraphBulkInsertOrchestrator(context);
+            orchestrator.InsertGraph(true, entities, options, provider, CancellationToken.None)
                 .GetAwaiter().GetResult();
+
             return;
         }
 

@@ -9,38 +9,6 @@ using PhenX.EntityFrameworkCore.BulkInsert.Options;
 namespace PhenX.EntityFrameworkCore.BulkInsert.Graph;
 
 /// <summary>
-/// Result of collecting entities from an object graph.
-/// </summary>
-internal sealed class GraphCollectionResult
-{
-    /// <summary>
-    /// Entities grouped by type.
-    /// </summary>
-    public required Dictionary<Type, List<object>> EntitiesByType { get; init; }
-
-    /// <summary>
-    /// Types in topological insertion order (parents before children).
-    /// </summary>
-    public required IReadOnlyList<Type> InsertionOrder { get; init; }
-
-    /// <summary>
-    /// Many-to-many join records to insert after both sides are inserted.
-    /// </summary>
-    public required List<JoinRecord> JoinRecords { get; init; }
-}
-
-/// <summary>
-/// Represents a join table record for many-to-many relationships.
-/// </summary>
-internal sealed class JoinRecord
-{
-    public required Type JoinEntityType { get; init; }
-    public required object LeftEntity { get; init; }
-    public required object RightEntity { get; init; }
-    public required NavigationMetadata Navigation { get; init; }
-}
-
-/// <summary>
 /// Collects all entities from an object graph for bulk insertion.
 /// </summary>
 internal sealed class GraphEntityCollector
@@ -82,17 +50,24 @@ internal sealed class GraphEntityCollector
         };
     }
 
-    private void CollectEntity(object entity, int depth)
+    private void CollectEntity(object? entity, int depth)
     {
-        if (entity == null || !_visited.Add(entity))
+        if (entity == null)
         {
-            // Already visited or null
+            // Null entity, nothing to collect
             return;
         }
 
-        // Check max depth
+        // Check max depth before marking as visited to avoid permanently
+        // excluding entities that might be reachable at a valid depth later.
         if (_options.MaxGraphDepth > 0 && depth > _options.MaxGraphDepth)
         {
+            return;
+        }
+
+        if (!_visited.Add(entity))
+        {
+            // Already visited
             return;
         }
 
@@ -133,33 +108,37 @@ internal sealed class GraphEntityCollector
 
             if (navigation.IsCollection)
             {
-                if (value is IEnumerable collection)
+                if (value is not IEnumerable collection)
                 {
-                    foreach (var item in collection)
-                    {
-                        if (item != null)
-                        {
-                            if (navigation.IsManyToMany)
-                            {
-                                // Record join table entry
-                                _joinRecords.Add(new JoinRecord
-                                {
-                                    JoinEntityType = navigation.JoinEntityType!.ClrType,
-                                    LeftEntity = entity,
-                                    RightEntity = item,
-                                    Navigation = navigation,
-                                });
-                            }
-                            else
-                            {
-                                // For one-to-many, set the inverse navigation property
-                                // so that FK propagation can find the parent
-                                SetInverseNavigation(entity, item, navigation);
-                            }
+                    continue;
+                }
 
-                            CollectEntity(item, depth + 1);
-                        }
+                foreach (var item in collection)
+                {
+                    if (item == null)
+                    {
+                        continue;
                     }
+
+                    if (navigation.IsManyToMany)
+                    {
+                        // Record join table entry
+                        _joinRecords.Add(new JoinRecord
+                        {
+                            JoinEntityType = navigation.JoinEntityType!.ClrType,
+                            LeftEntity = entity,
+                            RightEntity = item,
+                            Navigation = navigation,
+                        });
+                    }
+                    else
+                    {
+                        // For one-to-many, set the inverse navigation property
+                        // so that FK propagation can find the parent
+                        SetInverseNavigation(entity, item, navigation);
+                    }
+
+                    CollectEntity(item, depth + 1);
                 }
             }
             else

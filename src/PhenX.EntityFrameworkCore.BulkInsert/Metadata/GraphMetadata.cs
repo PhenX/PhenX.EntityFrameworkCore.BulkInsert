@@ -46,7 +46,7 @@ internal sealed class GraphMetadata
     /// </summary>
     public IEntityType? GetEntityType(Type clrType)
     {
-        return _entityTypes.TryGetValue(clrType, out var entityType) ? entityType : null;
+        return _entityTypes.GetValueOrDefault(clrType);
     }
 
     /// <summary>
@@ -90,13 +90,11 @@ internal sealed class GraphMetadata
             return;
         }
 
-        if (visiting.Contains(type))
+        if (!visiting.Add(type))
         {
             // Cycle detected - this is handled gracefully, just skip
             return;
         }
-
-        visiting.Add(type);
 
         // Get dependencies (types that this type references via FKs)
         var navigations = GetNavigations(type);

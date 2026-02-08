@@ -4,30 +4,13 @@ using System.Reflection;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.Extensions.Logging;
 
 using PhenX.EntityFrameworkCore.BulkInsert.Abstractions;
 using PhenX.EntityFrameworkCore.BulkInsert.Metadata;
 using PhenX.EntityFrameworkCore.BulkInsert.Options;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Graph;
-
-/// <summary>
-/// Result of a graph insert operation.
-/// </summary>
-/// <typeparam name="T">The root entity type.</typeparam>
-internal sealed class GraphInsertResult<T> where T : class
-{
-    /// <summary>
-    /// The root entities that were inserted.
-    /// </summary>
-    public required IReadOnlyList<T> RootEntities { get; init; }
-
-    /// <summary>
-    /// Total count of all entities inserted across all types.
-    /// </summary>
-    public required int TotalInsertedCount { get; init; }
-}
 
 /// <summary>
 /// Orchestrates bulk insertion of entity graphs with FK propagation.
@@ -37,25 +20,35 @@ internal sealed class GraphBulkInsertOrchestrator
     private static readonly ConcurrentDictionary<(Type, string), Action<object, object?>> PropertySetters = new();
     private static readonly ConcurrentDictionary<(Type, string), Func<object, object?>> PropertyGetters = new();
 
+    private readonly DbContext _context;
     private readonly MetadataProvider _metadataProvider;
+    private readonly ILogger<GraphBulkInsertOrchestrator>? _logger;
 
-    public GraphBulkInsertOrchestrator()
+    public GraphBulkInsertOrchestrator(DbContext context)
     {
-        _metadataProvider = new MetadataProvider();
+        _context = context;
+        _metadataProvider = context.GetService<MetadataProvider>();
+        _logger = context.GetService<ILogger<GraphBulkInsertOrchestrator>>();
     }
 
     /// <summary>
     /// Orchestrates the bulk insert of an entity graph.
     /// </summary>
-    public async Task<GraphInsertResult<T>> InsertGraphAsync<T>(
-        DbContext context,
+    public async Task<GraphInsertResult<T>> InsertGraph<T>(
+        bool sync,
         IEnumerable<T> entities,
         BulkInsertOptions options,
         IBulkInsertProvider provider,
         CancellationToken ctk) where T : class
     {
+        if (!provider.SupportsOutputInsertedIds)
+        {
+            throw new NotSupportedException(
+                $"The bulk insert provider '{provider.GetType().Name}' does not support returning generated IDs, which is required for IncludeGraph operations.");
+        }
+
         // 1. Collect and sort entities
-        var collector = new GraphEntityCollector(context, options);
+        var collector = new GraphEntityCollector(_context, options);
         var collectionResult = collector.Collect(entities);
 
         if (collectionResult.EntitiesByType.Count == 0)
@@ -68,7 +61,7 @@ internal sealed class GraphBulkInsertOrchestrator
         }
 
         var totalInserted = 0;
-        var graphMetadata = new GraphMetadata(context, options);
+        var graphMetadata = new GraphMetadata(_context, options);
 
         // 2. Insert in dependency order (parents first)
         foreach (var entityType in collectionResult.InsertionOrder)
@@ -80,10 +73,10 @@ internal sealed class GraphBulkInsertOrchestrator
             }
 
             // Propagate FK values from already-inserted parents
-            PropagateParentForeignKeys(entitiesToInsert, entityType, graphMetadata, context);
+            PropagateParentForeignKeys(entitiesToInsert, entityType, graphMetadata);
 
             // Insert entities of this type
-            await InsertEntitiesOfTypeAsync(context, entityType, entitiesToInsert, options, provider, ctk);
+            await InsertEntitiesOfType(sync, _context, entityType, entitiesToInsert, options, provider, ctk);
 
             totalInserted += entitiesToInsert.Count;
         }
@@ -91,7 +84,7 @@ internal sealed class GraphBulkInsertOrchestrator
         // 3. Insert join table records for many-to-many relationships
         if (collectionResult.JoinRecords.Count > 0)
         {
-            await InsertJoinRecordsAsync(context, collectionResult.JoinRecords, options, provider, ctk);
+            await InsertJoinRecords(sync, _context, collectionResult.JoinRecords, options, provider, ctk);
         }
 
         // Return root entities
@@ -109,8 +102,7 @@ internal sealed class GraphBulkInsertOrchestrator
     private static void PropagateParentForeignKeys(
         List<object> entities,
         Type entityType,
-        GraphMetadata graphMetadata,
-        DbContext context)
+        GraphMetadata graphMetadata)
     {
         var efEntityType = graphMetadata.GetEntityType(entityType);
         if (efEntityType == null)
@@ -162,7 +154,8 @@ internal sealed class GraphBulkInsertOrchestrator
         }
     }
 
-    private async Task InsertEntitiesOfTypeAsync(
+    private async Task InsertEntitiesOfType(
+        bool sync,
         DbContext context,
         Type entityType,
         List<object> entities,
@@ -218,7 +211,7 @@ internal sealed class GraphBulkInsertOrchestrator
         }
     }
 
-    private static void CopyGeneratedIds<TEntity>(
+    private void CopyGeneratedIds<TEntity>(
         List<TEntity> originalEntities,
         List<TEntity> insertedEntities,
         TableMetadata tableInfo) where TEntity : class
@@ -228,10 +221,10 @@ internal sealed class GraphBulkInsertOrchestrator
             // Count mismatch - this can happen if the bulk insert operation
             // doesn't preserve order. Log a warning for debugging purposes.
             // The graph insert will continue but FK propagation may be incomplete.
-            System.Diagnostics.Debug.WriteLine(
-                $"Warning: IncludeGraph ID propagation failed for {typeof(TEntity).Name}. " +
-                $"Original count: {originalEntities.Count}, Inserted count: {insertedEntities.Count}. " +
-                "Foreign key values may not be correctly propagated to dependent entities.");
+            _logger?.LogWarning(
+                "IncludeGraph ID propagation failed for {EntityType}. Original count: {OriginalCount}, Inserted count: {InsertedCount}. Foreign key values may not be correctly propagated to dependent entities.",
+                typeof(TEntity).Name, originalEntities.Count, insertedEntities.Count);
+
             return;
         }
 
@@ -254,7 +247,8 @@ internal sealed class GraphBulkInsertOrchestrator
         }
     }
 
-    private async Task InsertJoinRecordsAsync(
+    private async Task InsertJoinRecords(
+        bool sync,
         DbContext context,
         List<JoinRecord> joinRecords,
         BulkInsertOptions options,
@@ -293,9 +287,11 @@ internal sealed class GraphBulkInsertOrchestrator
                 var joinEntry = Activator.CreateInstance(joinEntityType);
                 if (joinEntry == null)
                 {
-                    System.Diagnostics.Debug.WriteLine(
-                        $"Warning: IncludeGraph failed to create join entry for {joinEntityType.Name}. " +
-                        "Many-to-many relationship may be incomplete.");
+                    _logger?.LogWarning(
+                        "IncludeGraph failed to create join entry for {EntityType}. Many-to-many relationship may be incomplete.",
+                        joinEntityType.Name
+                    );
+
                     continue;
                 }
 
@@ -342,12 +338,13 @@ internal sealed class GraphBulkInsertOrchestrator
             if (joinEntities.Count > 0)
             {
                 // Insert join entities
-                await InsertJoinEntitiesAsync(context, joinEntityType, joinEntities, options, provider, ctk);
+                await InsertJoinEntities(sync, context, joinEntityType, joinEntities, options, provider, ctk);
             }
         }
     }
 
-    private async Task InsertJoinEntitiesAsync(
+    private async Task InsertJoinEntities(
+        bool sync,
         DbContext context,
         Type joinEntityType,
         List<object> joinEntities,
@@ -369,7 +366,7 @@ internal sealed class GraphBulkInsertOrchestrator
             .GetMethod(nameof(IBulkInsertProvider.BulkInsert))!
             .MakeGenericMethod(joinEntityType);
 
-        var result = method.Invoke(provider, [false, context, tableInfo, joinEntities, options, null, ctk]);
+        var result = method.Invoke(provider, [sync, context, tableInfo, joinEntities, options, null, ctk]);
         if (result is not Task task)
         {
             throw new InvalidOperationException(

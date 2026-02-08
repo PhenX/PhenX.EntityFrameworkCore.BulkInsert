@@ -24,7 +24,7 @@ public abstract partial class LibComparator
     /// When true, each entity will have 2 child entities for graph insertion benchmarking.
     /// Default is false, which runs the benchmark exactly as before (flat entities only).
     /// </summary>
-    public bool UseIncludeGraph { get; set; } = false;
+    private const bool UseIncludeGraph = false;
 
     private IList<TestEntity> data = [];
     protected TestDbContext DbContext { get; set; } = null!;

@@ -592,7 +592,7 @@ public abstract class GraphTestsBase<TDbContext>(IDbContextFactory dbContextFact
     [SkippableFact]
     public async Task InsertGraph_LargeScale()
     {
-        // Arrange - Create blogs with children each (Posts, Tags, BlogSettings)
+        // Arrange - Create blogs, each with their children (Posts, Tags, BlogSettings)
         // This tests correctness with a reasonable amount of data that won't cause CI timeouts
         const int blogCount = 50;
         const int postsPerBlog = 10;

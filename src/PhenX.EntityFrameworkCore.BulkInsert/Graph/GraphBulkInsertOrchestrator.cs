@@ -383,8 +383,7 @@ internal sealed class GraphBulkInsertOrchestrator
     {
         // Skip dictionary-based shared-type join entities as they are not supported
         // by the bulk insert infrastructure (requires typed IEnumerable<T>)
-        if (joinEntityType == typeof(Dictionary<string, object>) ||
-            typeof(IDictionary<string, object>).IsAssignableFrom(joinEntityType))
+        if (typeof(IDictionary<string, object>).IsAssignableFrom(joinEntityType))
         {
             _logger?.LogWarning(
                 "IncludeGraph: Skipping join table insertion for shared-type entity (Dictionary<string, object>). " +

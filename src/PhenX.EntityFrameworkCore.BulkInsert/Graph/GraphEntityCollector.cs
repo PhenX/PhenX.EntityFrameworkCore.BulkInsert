@@ -156,7 +156,7 @@ internal sealed class GraphEntityCollector
         // Only set inverse navigations that are reference properties (not collections).
         // If the inverse is a collection, the parent should be added to the collection,
         // not assigned directly (which would cause an invalid cast).
-        if (navigation.Navigation is INavigation { Inverse.IsCollection: true })
+        if (navigation.Navigation is INavigation nav && nav.Inverse?.IsCollection == true)
         {
             // Skip: inverse is a collection, not a reference property
             return;

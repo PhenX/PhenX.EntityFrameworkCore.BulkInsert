@@ -12,6 +12,7 @@ internal sealed class GraphMetadata
 {
     private readonly Dictionary<Type, IEntityType> _entityTypes;
     private readonly Dictionary<Type, List<NavigationMetadata>> _navigationsByType;
+    private readonly Dictionary<Type, EntityMetadata> _entityMetadataByType = [];
     private readonly BulkInsertOptions _options;
 
     public GraphMetadata(DbContext context, BulkInsertOptions options)
@@ -57,6 +58,27 @@ internal sealed class GraphMetadata
         return _navigationsByType.TryGetValue(clrType, out var navigations)
             ? navigations
             : [];
+    }
+
+    /// <summary>
+    /// Gets or creates the entity metadata with optimized property accessors for a CLR type.
+    /// </summary>
+    public EntityMetadata? GetEntityMetadata(Type clrType)
+    {
+        if (_entityMetadataByType.TryGetValue(clrType, out var metadata))
+        {
+            return metadata;
+        }
+
+        var entityType = GetEntityType(clrType);
+        if (entityType == null)
+        {
+            return null;
+        }
+
+        metadata = new EntityMetadata(entityType);
+        _entityMetadataByType[clrType] = metadata;
+        return metadata;
     }
 
     /// <summary>

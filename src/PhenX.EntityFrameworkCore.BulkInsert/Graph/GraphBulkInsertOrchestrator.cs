@@ -1,5 +1,3 @@
-using System.Collections.Concurrent;
-using System.Linq.Expressions;
 using System.Reflection;
 
 using Microsoft.EntityFrameworkCore;
@@ -17,8 +15,6 @@ namespace PhenX.EntityFrameworkCore.BulkInsert.Graph;
 /// </summary>
 internal sealed class GraphBulkInsertOrchestrator
 {
-    private static readonly ConcurrentDictionary<(Type, string), Action<object, object?>> PropertySetters = new();
-    private static readonly ConcurrentDictionary<(Type, string), Func<object, object?>> PropertyGetters = new();
 
     private readonly DbContext _context;
     private readonly MetadataProvider _metadataProvider;
@@ -76,7 +72,7 @@ internal sealed class GraphBulkInsertOrchestrator
             PropagateParentForeignKeys(entitiesToInsert, entityType, graphMetadata);
 
             // Insert entities of this type
-            await InsertEntitiesOfType(sync, _context, entityType, entitiesToInsert, options, provider, ctk);
+            await InsertEntitiesOfType(sync, _context, entityType, entitiesToInsert, options, provider, graphMetadata, ctk);
 
             totalInserted += entitiesToInsert.Count;
         }
@@ -84,7 +80,7 @@ internal sealed class GraphBulkInsertOrchestrator
         // 3. Insert join table records for many-to-many relationships
         if (collectionResult.JoinRecords.Count > 0)
         {
-            await InsertJoinRecords(sync, _context, collectionResult.JoinRecords, options, provider, ctk);
+            await InsertJoinRecords(sync, _context, collectionResult.JoinRecords, options, provider, graphMetadata, ctk);
         }
 
         // Return root entities
@@ -110,6 +106,12 @@ internal sealed class GraphBulkInsertOrchestrator
             return;
         }
 
+        var entityMetadata = graphMetadata.GetEntityMetadata(entityType);
+        if (entityMetadata == null)
+        {
+            return;
+        }
+
         // For each FK relationship, propagate PK values from parent entities
         foreach (var fk in efEntityType.GetForeignKeys())
         {
@@ -125,8 +127,14 @@ internal sealed class GraphBulkInsertOrchestrator
             foreach (var entity in entities)
             {
                 // Get the parent entity via navigation property
-                var parentEntity = GetPropertyValue(entity, navigationPropertyName);
+                var parentEntity = entityMetadata.GetPropertyValue(entity, navigationPropertyName);
                 if (parentEntity == null)
+                {
+                    continue;
+                }
+
+                var parentMetadata = graphMetadata.GetEntityMetadata(parentEntity.GetType());
+                if (parentMetadata == null)
                 {
                     continue;
                 }
@@ -147,8 +155,8 @@ internal sealed class GraphBulkInsertOrchestrator
                         continue;
                     }
 
-                    var pkValue = GetPropertyValue(parentEntity, pkProp.Name);
-                    SetPropertyValue(entity, fkProp.Name, pkValue);
+                    var pkValue = parentMetadata.GetPropertyValue(parentEntity, pkProp.Name);
+                    entityMetadata.SetPropertyValue(entity, fkProp.Name, pkValue);
                 }
             }
         }
@@ -161,6 +169,7 @@ internal sealed class GraphBulkInsertOrchestrator
         List<object> entities,
         BulkInsertOptions options,
         IBulkInsertProvider provider,
+        GraphMetadata graphMetadata,
         CancellationToken ctk)
     {
         // Use reflection to call the generic BulkInsert method
@@ -168,7 +177,7 @@ internal sealed class GraphBulkInsertOrchestrator
             .GetMethod(nameof(InsertEntitiesGenericAsync), BindingFlags.NonPublic | BindingFlags.Instance)!
             .MakeGenericMethod(entityType);
 
-        var task = (Task)method.Invoke(this, [context, entities, options, provider, ctk])!;
+        var task = (Task)method.Invoke(this, [context, entities, options, provider, graphMetadata, ctk])!;
         await task;
     }
 
@@ -177,6 +186,7 @@ internal sealed class GraphBulkInsertOrchestrator
         List<object> entities,
         BulkInsertOptions options,
         IBulkInsertProvider provider,
+        GraphMetadata graphMetadata,
         CancellationToken ctk) where TEntity : class
     {
         var typedEntities = entities.Cast<TEntity>().ToList();
@@ -202,7 +212,11 @@ internal sealed class GraphBulkInsertOrchestrator
             }
 
             // Copy generated IDs back to original entities
-            CopyGeneratedIds(typedEntities, insertedEntities, tableInfo);
+            var entityMetadata = graphMetadata.GetEntityMetadata(typeof(TEntity));
+            if (entityMetadata != null)
+            {
+                CopyGeneratedIds(typedEntities, insertedEntities, tableInfo, entityMetadata);
+            }
         }
         else
         {
@@ -214,7 +228,8 @@ internal sealed class GraphBulkInsertOrchestrator
     private void CopyGeneratedIds<TEntity>(
         List<TEntity> originalEntities,
         List<TEntity> insertedEntities,
-        TableMetadata tableInfo) where TEntity : class
+        TableMetadata tableInfo,
+        EntityMetadata entityMetadata) where TEntity : class
     {
         if (originalEntities.Count != insertedEntities.Count)
         {
@@ -241,8 +256,8 @@ internal sealed class GraphBulkInsertOrchestrator
 
             foreach (var pkProp in pkProps)
             {
-                var value = GetPropertyValue(inserted, pkProp.PropertyName);
-                SetPropertyValue(original, pkProp.PropertyName, value);
+                var value = entityMetadata.GetPropertyValue(inserted, pkProp.PropertyName);
+                entityMetadata.SetPropertyValue(original, pkProp.PropertyName, value);
             }
         }
     }
@@ -253,6 +268,7 @@ internal sealed class GraphBulkInsertOrchestrator
         List<JoinRecord> joinRecords,
         BulkInsertOptions options,
         IBulkInsertProvider provider,
+        GraphMetadata graphMetadata,
         CancellationToken ctk)
     {
         // Group join records by join entity type
@@ -278,11 +294,23 @@ internal sealed class GraphBulkInsertOrchestrator
                 continue;
             }
 
+            // Get entity metadata for join type
+            var joinEntityMetadata = graphMetadata.GetEntityMetadata(joinEntityType);
+
             // Create join table entries
             var joinEntities = new List<object>();
 
             foreach (var record in records)
             {
+                // Get metadata for left and right entities
+                var leftMetadata = graphMetadata.GetEntityMetadata(record.LeftEntity.GetType());
+                var rightMetadata = graphMetadata.GetEntityMetadata(record.RightEntity.GetType());
+
+                if (leftMetadata == null || rightMetadata == null)
+                {
+                    continue;
+                }
+
                 // Create a dictionary-based join entity
                 var joinEntry = Activator.CreateInstance(joinEntityType);
                 if (joinEntry == null)
@@ -304,14 +332,14 @@ internal sealed class GraphBulkInsertOrchestrator
                     var fkProp = fk.Properties[i];
                     var pkProp = fk.PrincipalKey.Properties[i];
 
-                    var pkValue = GetPropertyValue(record.LeftEntity, pkProp.Name);
+                    var pkValue = leftMetadata.GetPropertyValue(record.LeftEntity, pkProp.Name);
                     if (dictEntry != null)
                     {
                         dictEntry[fkProp.Name] = pkValue!;
                     }
-                    else
+                    else if (joinEntityMetadata != null)
                     {
-                        SetPropertyValue(joinEntry, fkProp.Name, pkValue);
+                        joinEntityMetadata.SetPropertyValue(joinEntry, fkProp.Name, pkValue);
                     }
                 }
 
@@ -321,14 +349,14 @@ internal sealed class GraphBulkInsertOrchestrator
                     var fkProp = inverseFk.Properties[i];
                     var pkProp = inverseFk.PrincipalKey.Properties[i];
 
-                    var pkValue = GetPropertyValue(record.RightEntity, pkProp.Name);
+                    var pkValue = rightMetadata.GetPropertyValue(record.RightEntity, pkProp.Name);
                     if (dictEntry != null)
                     {
                         dictEntry[fkProp.Name] = pkValue!;
                     }
-                    else
+                    else if (joinEntityMetadata != null)
                     {
-                        SetPropertyValue(joinEntry, fkProp.Name, pkValue);
+                        joinEntityMetadata.SetPropertyValue(joinEntry, fkProp.Name, pkValue);
                     }
                 }
 
@@ -373,51 +401,5 @@ internal sealed class GraphBulkInsertOrchestrator
                 $"The BulkInsert method for join entity type '{joinEntityType.Name}' did not return a Task as expected.");
         }
         await task;
-    }
-
-    private static object? GetPropertyValue(object entity, string propertyName)
-    {
-        var key = (entity.GetType(), propertyName);
-        var getter = PropertyGetters.GetOrAdd(key, k =>
-        {
-            var property = k.Item1.GetProperty(k.Item2, BindingFlags.Public | BindingFlags.Instance);
-            if (property == null)
-            {
-                return _ => null;
-            }
-
-            var param = Expression.Parameter(typeof(object), "obj");
-            var cast = Expression.Convert(param, k.Item1);
-            var access = Expression.Property(cast, property);
-            var convertResult = Expression.Convert(access, typeof(object));
-
-            return Expression.Lambda<Func<object, object?>>(convertResult, param).Compile();
-        });
-
-        return getter(entity);
-    }
-
-    private static void SetPropertyValue(object entity, string propertyName, object? value)
-    {
-        var key = (entity.GetType(), propertyName);
-        var setter = PropertySetters.GetOrAdd(key, k =>
-        {
-            var property = k.Item1.GetProperty(k.Item2, BindingFlags.Public | BindingFlags.Instance);
-            if (property == null || !property.CanWrite)
-            {
-                return (_, _) => { };
-            }
-
-            var param = Expression.Parameter(typeof(object), "obj");
-            var valueParam = Expression.Parameter(typeof(object), "value");
-            var cast = Expression.Convert(param, k.Item1);
-            var access = Expression.Property(cast, property);
-            var convertValue = Expression.Convert(valueParam, property.PropertyType);
-            var assign = Expression.Assign(access, convertValue);
-
-            return Expression.Lambda<Action<object, object?>>(assign, param, valueParam).Compile();
-        });
-
-        setter(entity, value);
     }
 }

@@ -24,7 +24,10 @@ internal sealed class GraphMetadata
         _entityTypes = [];
         foreach (var entityType in context.Model.GetEntityTypes())
         {
-            if (entityType.IsOwned() || entityType.ClrType == null || entityType.GetTableName() == null)
+            if (entityType.IsOwned() || 
+                entityType.ClrType == null || 
+                entityType.GetTableName() == null ||
+                entityType.FindPrimaryKey() == null) // Keyless entities have no primary key
             {
                 continue;
             }

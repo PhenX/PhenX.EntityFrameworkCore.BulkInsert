@@ -37,12 +37,6 @@ internal sealed class GraphBulkInsertOrchestrator
         IBulkInsertProvider provider,
         CancellationToken ctk) where T : class
     {
-        if (!provider.SupportsOutputInsertedIds)
-        {
-            throw new NotSupportedException(
-                $"The bulk insert provider '{provider.GetType().Name}' does not support returning generated IDs, which is required for IncludeGraph operations.");
-        }
-
         // 1. Collect and sort entities
         var collector = new GraphEntityCollector(_context, options);
         var collectionResult = collector.Collect(entities);
@@ -58,6 +52,21 @@ internal sealed class GraphBulkInsertOrchestrator
 
         var totalInserted = 0;
         var graphMetadata = new GraphMetadata(_context, options);
+
+        // Check if any entity types have generated keys - if so, provider must support returning IDs
+        var hasAnyGeneratedKeys = collectionResult.InsertionOrder.Any(entityType =>
+        {
+            var efEntityType = graphMetadata.GetEntityType(entityType);
+            return efEntityType?.FindPrimaryKey()?.Properties.Any(p => p.ValueGenerated != Microsoft.EntityFrameworkCore.Metadata.ValueGenerated.Never) == true;
+        });
+
+        if (hasAnyGeneratedKeys && !provider.SupportsOutputInsertedIds)
+        {
+            throw new NotSupportedException(
+                $"The bulk insert provider '{provider.GetType().Name}' does not support returning generated IDs, " +
+                $"which is required for IncludeGraph operations when entities have database-generated keys. " +
+                $"Consider using client-generated keys (e.g., GUIDs with ValueGeneratedNever()).");
+        }
 
         // 2. Insert in dependency order (parents first)
         foreach (var entityType in collectionResult.InsertionOrder)
@@ -78,9 +87,11 @@ internal sealed class GraphBulkInsertOrchestrator
         }
 
         // 3. Insert join table records for many-to-many relationships
+        var joinRecordsInserted = 0;
         if (collectionResult.JoinRecords.Count > 0)
         {
-            await InsertJoinRecords(sync, _context, collectionResult.JoinRecords, options, provider, graphMetadata, ctk);
+            joinRecordsInserted = await InsertJoinRecords(sync, _context, collectionResult.JoinRecords, options, provider, graphMetadata, ctk);
+            totalInserted += joinRecordsInserted;
         }
 
         // Return root entities
@@ -263,7 +274,7 @@ internal sealed class GraphBulkInsertOrchestrator
         }
     }
 
-    private async Task InsertJoinRecords(
+    private async Task<int> InsertJoinRecords(
         bool sync,
         DbContext context,
         List<JoinRecord> joinRecords,
@@ -272,6 +283,8 @@ internal sealed class GraphBulkInsertOrchestrator
         GraphMetadata graphMetadata,
         CancellationToken ctk)
     {
+        var totalJoinRecordsInserted = 0;
+
         // Group join records by join entity type
         var groupedRecords = joinRecords.GroupBy(jr => jr.JoinEntityType);
 
@@ -368,8 +381,11 @@ internal sealed class GraphBulkInsertOrchestrator
             {
                 // Insert join entities
                 await InsertJoinEntities(sync, context, joinEntityType, joinEntities, options, provider, ctk);
+                totalJoinRecordsInserted += joinEntities.Count;
             }
         }
+
+        return totalJoinRecordsInserted;
     }
 
     private async Task InsertJoinEntities(

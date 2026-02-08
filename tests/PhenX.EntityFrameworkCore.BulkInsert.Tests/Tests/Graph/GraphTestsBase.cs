@@ -652,7 +652,7 @@ public abstract class GraphTestsBase<TDbContext>(IDbContextFactory dbContextFact
             blogs.Add(blog);
         }
 
-        // Act - Insert all 1000 blogs with their children
+        // Act - Insert all 50 blogs with their children
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         await _context.ExecuteBulkInsertAsync(blogs, options =>
         {

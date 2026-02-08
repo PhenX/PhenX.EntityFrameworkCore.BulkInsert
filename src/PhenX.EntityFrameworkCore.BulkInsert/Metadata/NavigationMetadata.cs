@@ -24,6 +24,21 @@ internal sealed class NavigationMetadata
 
         _getter = PropertyAccessor.CreateGetter(propertyInfo);
 
+        // Build inverse navigation metadata if available
+        if (navigation is INavigation { Inverse: not null } regularNav)
+        {
+            var inverse = regularNav.Inverse;
+            var inversePropertyInfo = inverse.DeclaringEntityType.ClrType.GetProperty(
+                inverse.Name,
+                BindingFlags.Public | BindingFlags.Instance);
+
+            if (inversePropertyInfo != null && inversePropertyInfo.CanWrite)
+            {
+                _inverseGetter = PropertyAccessor.CreateGetter(inversePropertyInfo);
+                _inverseSetter = PropertyAccessor.CreateSetter(inversePropertyInfo);
+            }
+        }
+
         if (navigation is ISkipNavigation skipNavigation)
         {
             IsManyToMany = true;
@@ -40,6 +55,8 @@ internal sealed class NavigationMetadata
     }
 
     private readonly Func<object, object?> _getter;
+    private readonly Func<object, object?>? _inverseGetter;
+    private readonly Action<object, object?>? _inverseSetter;
 
     /// <summary>
     /// The underlying EF Core navigation.
@@ -90,6 +107,23 @@ internal sealed class NavigationMetadata
     /// Gets the value of the navigation property from the entity using an optimized getter.
     /// </summary>
     public object? GetValue(object entity) => _getter.Invoke(entity);
+
+    /// <summary>
+    /// Gets the value of the inverse navigation property from the entity using an optimized getter.
+    /// Returns null if there is no inverse navigation.
+    /// </summary>
+    public object? GetInverseValue(object entity) => _inverseGetter?.Invoke(entity);
+
+    /// <summary>
+    /// Sets the value of the inverse navigation property on the entity using an optimized setter.
+    /// Does nothing if there is no inverse navigation.
+    /// </summary>
+    public void SetInverseValue(object entity, object? value) => _inverseSetter?.Invoke(entity, value);
+
+    /// <summary>
+    /// Returns true if this navigation has an inverse navigation with a setter.
+    /// </summary>
+    public bool HasInverseSetter => _inverseSetter != null;
 
     public override string ToString()
     {

@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Reflection;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -146,29 +145,18 @@ internal sealed class GraphEntityCollector
 
     private static void SetInverseNavigation(object parentEntity, object childEntity, NavigationMetadata navigation)
     {
-        // For one-to-many navigations, find and set the inverse navigation property
+        // For one-to-many navigations, set the inverse navigation property
         // (e.g., if Blog.Posts is the navigation, set Post.Blog = blog)
-        var nav = navigation.Navigation;
-        if (nav is not Microsoft.EntityFrameworkCore.Metadata.INavigation regularNav)
+        if (!navigation.HasInverseSetter)
         {
             return;
         }
 
-        var inverse = regularNav.Inverse;
-        if (inverse == null)
+        // Check if the inverse navigation is already set
+        var currentValue = navigation.GetInverseValue(childEntity);
+        if (currentValue == null)
         {
-            return;
-        }
-
-        // Set the inverse navigation property on the child
-        var inversePropertyInfo = childEntity.GetType().GetProperty(inverse.Name, BindingFlags.Public | BindingFlags.Instance);
-        if (inversePropertyInfo != null && inversePropertyInfo.CanWrite)
-        {
-            var currentValue = inversePropertyInfo.GetValue(childEntity);
-            if (currentValue == null)
-            {
-                inversePropertyInfo.SetValue(childEntity, parentEntity);
-            }
+            navigation.SetInverseValue(childEntity, parentEntity);
         }
     }
 }

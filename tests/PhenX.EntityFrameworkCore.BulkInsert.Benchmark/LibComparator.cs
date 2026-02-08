@@ -150,7 +150,7 @@ public abstract partial class LibComparator
     [Benchmark]
     public async Task EFCore_BulkExtensions()
     {
-        await DbContext.BulkInsertAsync(data, options =>
+        await DbContextBulkExtensions.BulkInsertAsync(DbContext, data, options =>
         {
 #if BENCHMARK_INCLUDE_GRAPH
             options.IncludeGraph = true;

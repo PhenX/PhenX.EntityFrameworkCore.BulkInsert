@@ -53,14 +53,14 @@ internal sealed class GraphBulkInsertOrchestrator
         var totalInserted = 0;
         var graphMetadata = new GraphMetadata(_context, options);
 
-        // Check if any entity types have generated keys - if so, provider must support returning IDs
-        var hasAnyGeneratedKeys = collectionResult.InsertionOrder.Any(entityType =>
+        // Check if any entity types have database-generated keys - if so, provider must support returning IDs
+        var hasAnyDatabaseGeneratedKeys = collectionResult.InsertionOrder.Any(entityType =>
         {
             var efEntityType = graphMetadata.GetEntityType(entityType);
             return efEntityType?.FindPrimaryKey()?.Properties.Any(p => p.ValueGenerated != Microsoft.EntityFrameworkCore.Metadata.ValueGenerated.Never) == true;
         });
 
-        if (hasAnyGeneratedKeys && !provider.SupportsOutputInsertedIds)
+        if (hasAnyDatabaseGeneratedKeys && !provider.SupportsOutputInsertedIds)
         {
             throw new NotSupportedException(
                 $"The bulk insert provider '{provider.GetType().Name}' does not support returning generated IDs, " +

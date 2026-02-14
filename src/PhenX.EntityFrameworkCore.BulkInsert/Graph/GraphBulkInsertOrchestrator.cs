@@ -347,11 +347,19 @@ internal sealed class GraphBulkInsertOrchestrator
             // Get entity metadata for join type
             var joinEntityMetadata = graphMetadata.GetEntityMetadata(joinEntityType);
 
-            // Create join table entries
+            // Deduplicate join records by entity reference pairs
+            // Use a HashSet to track which (LeftEntity, RightEntity) pairs have been processed
+            var seenPairs = new HashSet<(object Left, object Right)>(EntityPairEqualityComparer.Instance);
             var joinEntities = new List<object>();
 
             foreach (var record in records)
             {
+                // Skip if this exact pair of entity instances has already been processed
+                if (!seenPairs.Add((record.LeftEntity, record.RightEntity)))
+                {
+                    continue;
+                }
+
                 // Get metadata for left and right entities
                 var leftMetadata = graphMetadata.GetEntityMetadata(record.LeftEntity.GetType());
                 var rightMetadata = graphMetadata.GetEntityMetadata(record.RightEntity.GetType());
@@ -415,7 +423,7 @@ internal sealed class GraphBulkInsertOrchestrator
 
             if (joinEntities.Count > 0)
             {
-                // Insert join entities
+                // Insert join entities (only unique ones)
                 await InsertJoinEntities(sync, context, joinEntityType, joinEntities, options, provider, ctk);
                 totalJoinRecordsInserted += joinEntities.Count;
             }

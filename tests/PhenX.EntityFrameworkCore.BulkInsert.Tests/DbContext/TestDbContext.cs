@@ -18,6 +18,13 @@ public class TestDbContext : TestDbContextBase
     public DbSet<Student> Students { get; set; } = null!;
     public DbSet<Course> Courses { get; set; } = null!;
 
+    // Graph insert test entities
+    public DbSet<Blog> Blogs { get; set; } = null!;
+    public DbSet<Post> Posts { get; set; } = null!;
+    public DbSet<Tag> Tags { get; set; } = null!;
+    public DbSet<BlogSettings> BlogSettings { get; set; } = null!;
+    public DbSet<Category> Categories { get; set; } = null!;
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -65,6 +72,40 @@ public class TestDbContext : TestDbContextBase
             // ToView will use the given table name read-only, it doesn't have to actually be a database view.
             // We just reuse the table for the standard TestEntity.
             builder.ToView("test_entity");
+        });
+
+        // Configure Blog relationships
+        modelBuilder.Entity<Blog>(builder =>
+        {
+            builder.HasMany(b => b.Posts)
+                .WithOne(p => p.Blog)
+                .HasForeignKey(p => p.BlogId);
+
+            builder.HasOne(b => b.Settings)
+                .WithOne(s => s.Blog)
+                .HasForeignKey<BlogSettings>(s => s.BlogId);
+        });
+
+        // Configure Post-Tag many-to-many
+        modelBuilder.Entity<Post>()
+            .HasMany(p => p.Tags)
+            .WithMany(t => t.Posts)
+            .UsingEntity<Dictionary<string, object>>(
+                "PostTag",
+                j => j.HasOne<Tag>().WithMany().HasForeignKey("TagId"),
+                j => j.HasOne<Post>().WithMany().HasForeignKey("PostId"),
+                j =>
+                {
+                    j.HasKey("PostId", "TagId");
+                }
+            );
+
+        // Configure Category self-referencing
+        modelBuilder.Entity<Category>(builder =>
+        {
+            builder.HasOne(c => c.Parent)
+                .WithMany(c => c.Children)
+                .HasForeignKey(c => c.ParentId);
         });
     }
 }

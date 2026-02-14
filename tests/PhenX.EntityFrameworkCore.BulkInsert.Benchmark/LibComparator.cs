@@ -19,18 +19,33 @@ public abstract partial class LibComparator
     [Params(500_000/*, 1_000_000/*, 10_000_000*/)]
     public int N;
 
+
     private IList<TestEntity> data = [];
     protected TestDbContext DbContext { get; set; } = null!;
 
     [IterationSetup]
     public void IterationSetup()
     {
-        data = Enumerable.Range(1, N).Select(i => new TestEntity
+        data = Enumerable.Range(1, N).Select(i =>
         {
-            Name = $"Entity{i}",
-            Price = (decimal)(i * 0.1),
-            Identifier = Guid.NewGuid(),
-            NumericEnumValue = (NumericEnum)(i % 2),
+            var entity = new TestEntity
+            {
+                Name = $"Entity{i}",
+                Price = (decimal)(i * 0.1),
+                Identifier = Guid.NewGuid(),
+                NumericEnumValue = (NumericEnum)(i % 2),
+            };
+
+            // When BENCHMARK_INCLUDE_GRAPH is set, add child entities for graph insertion benchmarking
+#if BENCHMARK_INCLUDE_GRAPH
+                entity.Children = new List<TestEntityChild>
+                {
+                    new TestEntityChild { Description = $"Child1 of Entity{i}", Quantity = i },
+                    new TestEntityChild { Description = $"Child2 of Entity{i}", Quantity = i * 2 },
+                };
+#endif
+
+            return entity;
         }).ToList();
 
         ConfigureDbContext();
@@ -58,7 +73,12 @@ public abstract partial class LibComparator
     [Benchmark(Baseline = true)]
     public async Task PhenX_EntityFrameworkCore_BulkInsert()
     {
-        await DbContext.ExecuteBulkInsertAsync(data);
+        await DbContext.ExecuteBulkInsertAsync(data, options =>
+        {
+#if BENCHMARK_INCLUDE_GRAPH
+            options.IncludeGraph = true;
+#endif
+        });
     }
     //
     // [Benchmark]
@@ -67,6 +87,7 @@ public abstract partial class LibComparator
     //     DbContext.ExecuteBulkInsert(data);
     // }
 
+#if !BENCHMARK_INCLUDE_GRAPH
     [Benchmark]
     public void RawInsert()
     {
@@ -107,11 +128,17 @@ public abstract partial class LibComparator
             BulkCopyType = BulkCopyType.ProviderSpecific,
         }, data);
     }
+#endif
 
     [Benchmark]
     public async Task Z_EntityFramework_Extensions_EFCore()
     {
-        await DbContext.BulkInsertOptimizedAsync(data, options => options.IncludeGraph = false);
+        await DbContext.BulkInsertOptimizedAsync(data, options =>
+        {
+#if BENCHMARK_INCLUDE_GRAPH
+            options.IncludeGraph = true;
+#endif
+        });
     }
 
     // [Benchmark]
@@ -123,10 +150,12 @@ public abstract partial class LibComparator
     [Benchmark]
     public async Task EFCore_BulkExtensions()
     {
-        await DbContext.BulkInsertAsync(data, options =>
+        await DbContextBulkExtensions.BulkInsertAsync(DbContext, data, options =>
         {
-            options.IncludeGraph = false;
-            options.PreserveInsertOrder = false;
+#if BENCHMARK_INCLUDE_GRAPH
+            options.IncludeGraph = true;
+            options.PreserveInsertOrder = true; // Required for graph insertion
+#endif
         });
     }
 
@@ -140,10 +169,12 @@ public abstract partial class LibComparator
     //     });
     // }
 
+#if !BENCHMARK_INCLUDE_GRAPH
     [Benchmark]
     public async Task EFCore_SaveChanges()
     {
         DbContext.AddRange(data);
         await DbContext.SaveChangesAsync();
     }
+#endif
 }

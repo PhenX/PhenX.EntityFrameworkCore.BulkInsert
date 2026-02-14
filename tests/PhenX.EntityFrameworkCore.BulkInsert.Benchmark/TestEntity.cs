@@ -17,6 +17,26 @@ public class TestEntity
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 
     public NumericEnum NumericEnumValue { get; set; }
+
+    /// <summary>
+    /// Child entities for IncludeGraph benchmarking.
+    /// </summary>
+    public ICollection<TestEntityChild> Children { get; set; } = new List<TestEntityChild>();
+}
+
+/// <summary>
+/// Child entity for benchmarking IncludeGraph with navigation properties.
+/// </summary>
+[PrimaryKey(nameof(Id))]
+[Table(nameof(TestEntityChild))]
+public class TestEntityChild
+{
+    public int Id { get; set; }
+    public string Description { get; set; } = string.Empty;
+    public int Quantity { get; set; }
+
+    public int TestEntityId { get; set; }
+    public TestEntity TestEntity { get; set; } = null!;
 }
 
 public enum NumericEnum

@@ -15,6 +15,12 @@ internal abstract class BulkInsertProviderUntyped<TDialect, TOptions> : IBulkIns
 
     SqlDialectBuilder IBulkInsertProvider.SqlDialect => SqlDialect;
 
+    /// <summary>
+    /// Returns whether this provider supports returning generated IDs efficiently.
+    /// Default implementation returns true for all providers.
+    /// </summary>
+    public virtual bool SupportsOutputInsertedIds => true;
+
     BulkInsertOptions IBulkInsertProvider.CreateDefaultOptions() => CreateDefaultOptions();
 
     /// <summary>

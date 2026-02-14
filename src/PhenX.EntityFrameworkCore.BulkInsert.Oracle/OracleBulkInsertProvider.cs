@@ -20,6 +20,9 @@ internal class OracleBulkInsertProvider(ILogger<OracleBulkInsertProvider>? logge
     protected override string AddTableCopyBulkInsertId => ""; // No need to add an ID column in Oracle
 
     /// <inheritdoc />
+    public override bool SupportsOutputInsertedIds => false;
+
+    /// <inheritdoc />
     /// <summary>
     /// The temporary table name is generated with a random 8-character suffix to ensure uniqueness, and is limited to less than 30 characters,
     /// because Oracle prior to 12.2 has a limit of 30 characters for identifiers.

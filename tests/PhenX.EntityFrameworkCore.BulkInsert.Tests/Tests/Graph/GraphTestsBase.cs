@@ -751,6 +751,7 @@ public abstract class GraphTestsBase<TDbContext>(IDbContextFactory dbContextFact
         var act = async () => await _context.ExecuteBulkInsertAsync(blogs, options =>
         {
             options.IncludeGraph = true;
+            options.RestoreOriginalPrimaryKeysOnGraphInsertFailure = true; // Ensure original entities are restored on failure
         });
 
         await act.Should().ThrowAsync<Exception>("Insert should fail due to NULL constraint violation");
@@ -768,5 +769,42 @@ public abstract class GraphTestsBase<TDbContext>(IDbContextFactory dbContextFact
         // Verify original entities do NOT have IDs populated (rollback means no database-generated values)
         validBlog.Id.Should().Be(0, "Valid blog should not have ID after rollback");
         invalidBlog.Id.Should().Be(0, "Invalid blog should not have ID after rollback");
+
+        // Act 2 - Fix the invalid data and retry insertion with the same entities
+        // This verifies that entities are properly restored and can be reused after rollback
+        invalidBlog.Posts.First().Title = $"{_run}_FixedPost";
+
+        // Should succeed this time
+        await _context.ExecuteBulkInsertAsync(blogs, options =>
+        {
+            options.IncludeGraph = true;
+        });
+
+        // Assert 2 - Verify that ALL entities are now inserted successfully
+        var insertedBlogsAfterFix = _context.Blogs.Where(b => b.TestRun == _run).ToList();
+        insertedBlogsAfterFix.Should().HaveCount(2, "Both blogs should be inserted after fixing the data");
+
+        var insertedPostsAfterFix = _context.Posts.Where(p => p.TestRun == _run).ToList();
+        insertedPostsAfterFix.Should().HaveCount(2, "Both posts should be inserted after fixing the data");
+
+        var insertedSettingsAfterFix = _context.BlogSettings.Where(s => s.TestRun == _run).ToList();
+        insertedSettingsAfterFix.Should().HaveCount(1, "Blog settings should be inserted after fixing the data");
+
+        // Verify that the original entity references now have IDs populated
+        validBlog.Id.Should().BeGreaterThan(0, "Valid blog should have ID after successful insert");
+        invalidBlog.Id.Should().BeGreaterThan(0, "Fixed blog should have ID after successful insert");
+        validBlog.Posts.First().Id.Should().BeGreaterThan(0, "Valid post should have ID after successful insert");
+        invalidBlog.Posts.First().Id.Should().BeGreaterThan(0, "Fixed post should have ID after successful insert");
+        validBlog.Settings!.Id.Should().BeGreaterThan(0, "Settings should have ID after successful insert");
+
+        // Verify FK relationships are correct
+        validBlog.Posts.First().BlogId.Should().Be(validBlog.Id, "Valid post FK should reference its blog");
+        invalidBlog.Posts.First().BlogId.Should().Be(invalidBlog.Id, "Fixed post FK should reference its blog");
+        validBlog.Settings.BlogId.Should().Be(validBlog.Id, "Settings FK should reference its blog");
+
+        // Verify the corrected title is in the database
+        var fixedPostInDb = _context.Posts.FirstOrDefault(p => p.Id == invalidBlog.Posts.First().Id);
+        fixedPostInDb.Should().NotBeNull();
+        fixedPostInDb!.Title.Should().Be($"{_run}_FixedPost", "Fixed post should have the corrected title");
     }
 }

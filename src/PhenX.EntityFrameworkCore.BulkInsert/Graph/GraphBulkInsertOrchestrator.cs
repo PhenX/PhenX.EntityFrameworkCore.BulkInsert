@@ -75,6 +75,9 @@ internal sealed class GraphBulkInsertOrchestrator
 
         var connection = await _context.GetConnection(sync, ctk);
 
+        // Track original primary key values for rollback
+        var originalPkValues = new Dictionary<object, Dictionary<string, object?>>();
+
         try
         {
             // 2. Insert in dependency order (parents first)
@@ -84,6 +87,12 @@ internal sealed class GraphBulkInsertOrchestrator
                     entitiesToInsert.Count == 0)
                 {
                     continue;
+                }
+
+                // Save original PK values before any modifications
+                if (options.RestoreOriginalPrimaryKeysOnGraphInsertFailure)
+                {
+                    SaveOriginalPrimaryKeyValues(entitiesToInsert, entityType, graphMetadata, originalPkValues);
                 }
 
                 // Propagate FK values from already-inserted parents
@@ -116,6 +125,16 @@ internal sealed class GraphBulkInsertOrchestrator
                 RootEntities = rootEntities,
                 TotalInsertedCount = totalInserted,
             };
+        }
+        catch
+        {
+            // Restore original PK values on rollback
+            if (options.RestoreOriginalPrimaryKeysOnGraphInsertFailure)
+            {
+                RestoreOriginalPrimaryKeyValues(originalPkValues, graphMetadata);
+            }
+
+            throw;
         }
         finally
         {
@@ -436,14 +455,14 @@ internal sealed class GraphBulkInsertOrchestrator
 
         // Use reflection to call the generic BulkInsert method with correctly typed entities
         var method = typeof(GraphBulkInsertOrchestrator)
-            .GetMethod(nameof(InsertJoinEntitiesGenericAsync), BindingFlags.NonPublic | BindingFlags.Instance)!
+            .GetMethod(nameof(InsertJoinEntitiesGeneric), BindingFlags.NonPublic | BindingFlags.Instance)!
             .MakeGenericMethod(joinEntityType);
 
         var task = (Task)method.Invoke(this, [sync, context, tableInfo, joinEntities, options, provider, ctk])!;
         await task;
     }
 
-    private async Task InsertJoinEntitiesGenericAsync<TJoin>(
+    private static async Task InsertJoinEntitiesGeneric<TJoin>(
         bool sync,
         DbContext context,
         TableMetadata tableInfo,
@@ -455,5 +474,67 @@ internal sealed class GraphBulkInsertOrchestrator
         // Cast to correctly typed list for the provider
         var typedEntities = joinEntities.Cast<TJoin>().ToList();
         await provider.BulkInsert(sync, context, tableInfo, typedEntities, options, null, ctk);
+    }
+
+    private static void SaveOriginalPrimaryKeyValues(
+        List<object> entities,
+        Type entityType,
+        GraphMetadata graphMetadata,
+        Dictionary<object, Dictionary<string, object?>> originalPkValues)
+    {
+        var entityMetadata = graphMetadata.GetEntityMetadata(entityType);
+        if (entityMetadata == null)
+        {
+            return;
+        }
+
+        var efEntityType = graphMetadata.GetEntityType(entityType);
+
+        var pkProperties = efEntityType?.FindPrimaryKey()?.Properties;
+        if (pkProperties == null || !pkProperties.Any())
+        {
+            return;
+        }
+
+        // Only save values for database-generated keys
+        var generatedPkProps = pkProperties
+            .Where(p => p.ValueGenerated != Microsoft.EntityFrameworkCore.Metadata.ValueGenerated.Never)
+            .ToList();
+
+        if (generatedPkProps.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var entity in entities)
+        {
+            var pkValues = new Dictionary<string, object?>();
+            foreach (var pkProp in generatedPkProps)
+            {
+                var value = entityMetadata.GetPropertyValue(entity, pkProp.Name);
+                pkValues[pkProp.Name] = value;
+            }
+            originalPkValues[entity] = pkValues;
+        }
+    }
+
+    private static void RestoreOriginalPrimaryKeyValues(
+        Dictionary<object, Dictionary<string, object?>> originalPkValues,
+        GraphMetadata graphMetadata)
+    {
+        foreach (var (entity, pkValues) in originalPkValues)
+        {
+            var entityType = entity.GetType();
+            var entityMetadata = graphMetadata.GetEntityMetadata(entityType);
+            if (entityMetadata == null)
+            {
+                continue;
+            }
+
+            foreach (var (propertyName, originalValue) in pkValues)
+            {
+                entityMetadata.SetPropertyValue(entity, propertyName, originalValue);
+            }
+        }
     }
 }

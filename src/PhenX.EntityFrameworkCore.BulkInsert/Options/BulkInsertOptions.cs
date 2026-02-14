@@ -98,6 +98,14 @@ public class BulkInsertOptions
     /// </summary>
     public HashSet<string>? ExcludeNavigations { get; set; }
 
+    /// <summary>
+    /// When enabled, if a graph insert operation fails, the original primary key values of the entities will be restored.
+    /// This ensures that entities in memory remain consistent with the database state after a transaction rollback.
+    /// Can add a little overhead, so it is disabled by default. Enable this option if you need to access the primary
+    /// key values of entities after a failed graph insert operation.
+    /// </summary>
+    public bool RestoreOriginalPrimaryKeysOnGraphInsertFailure { get; set; }
+
     internal int GetCopyTimeoutInSeconds()
     {
         return Math.Max(0, (int)CopyTimeout.TotalSeconds);

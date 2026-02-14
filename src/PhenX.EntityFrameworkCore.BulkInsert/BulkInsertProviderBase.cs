@@ -144,7 +144,7 @@ internal abstract class BulkInsertProviderBase<TDialect, TOptions>(ILogger? logg
         activity?.AddTag("tempTable", tempTableRequired);
         activity?.AddTag("synchronous", sync);
 
-        await BulkInsert(false, context, tableInfo, entities, tableName, columns, options, ctk);
+        await BulkInsert(sync, context, tableInfo, entities, tableName, columns, options, ctk);
         return tableName;
     }
 

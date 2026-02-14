@@ -714,4 +714,59 @@ public abstract class GraphTestsBase<TDbContext>(IDbContextFactory dbContextFact
             $"Inserted {totalEntities:N0} entities in {stopwatch.Elapsed.TotalSeconds:F2}s " +
             $"({entitiesPerSecond:F0} entities/sec) using {_context.GetType().Name}");
     }
+
+    [SkippableFact]
+    public async Task InsertGraph_FailureMidRun_TransactionRolledBack()
+    {
+        // Arrange - Create a graph where the second blog has an invalid post (null Title)
+        // This should cause the entire transaction to be rolled back
+        var validBlog = new Blog
+        {
+            TestRun = _run,
+            Name = $"{_run}_ValidBlog",
+            Posts = new List<Post>
+            {
+                new Post { TestRun = _run, Title = $"{_run}_ValidPost" }
+            },
+            Settings = new BlogSettings
+            {
+                TestRun = _run,
+                EnableComments = true
+            }
+        };
+
+        var invalidBlog = new Blog
+        {
+            TestRun = _run,
+            Name = $"{_run}_InvalidBlog",
+            Posts = new List<Post>
+            {
+                new Post { TestRun = _run, Title = null! } // This should violate NOT NULL constraint
+            }
+        };
+
+        var blogs = new[] { validBlog, invalidBlog };
+
+        // Act & Assert - Expect an exception during insert
+        var act = async () => await _context.ExecuteBulkInsertAsync(blogs, options =>
+        {
+            options.IncludeGraph = true;
+        });
+
+        await act.Should().ThrowAsync<Exception>("Insert should fail due to NULL constraint violation");
+
+        // Assert - Verify that NOTHING was inserted due to transaction rollback
+        var insertedBlogs = _context.Blogs.Where(b => b.TestRun == _run).ToList();
+        insertedBlogs.Should().BeEmpty("Transaction should be rolled back - no blogs inserted");
+
+        var insertedPosts = _context.Posts.Where(p => p.TestRun == _run).ToList();
+        insertedPosts.Should().BeEmpty("Transaction should be rolled back - no posts inserted");
+
+        var insertedSettings = _context.BlogSettings.Where(s => s.TestRun == _run).ToList();
+        insertedSettings.Should().BeEmpty("Transaction should be rolled back - no settings inserted");
+
+        // Verify original entities do NOT have IDs populated (rollback means no database-generated values)
+        validBlog.Id.Should().Be(0, "Valid blog should not have ID after rollback");
+        invalidBlog.Id.Should().Be(0, "Invalid blog should not have ID after rollback");
+    }
 }

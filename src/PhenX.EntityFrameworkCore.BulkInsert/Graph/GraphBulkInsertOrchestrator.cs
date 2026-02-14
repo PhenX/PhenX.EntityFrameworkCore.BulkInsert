@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Logging;
 
 using PhenX.EntityFrameworkCore.BulkInsert.Abstractions;
+using PhenX.EntityFrameworkCore.BulkInsert.Extensions;
 using PhenX.EntityFrameworkCore.BulkInsert.Metadata;
 using PhenX.EntityFrameworkCore.BulkInsert.Options;
 
@@ -37,6 +38,10 @@ internal sealed class GraphBulkInsertOrchestrator
         IBulkInsertProvider provider,
         CancellationToken ctk) where T : class
     {
+
+        using var activity = Telemetry.ActivitySource.StartActivity("InsertGraph");
+        activity?.AddTag("synchronous", sync);
+
         // 1. Collect and sort entities
         var collector = new GraphEntityCollector(_context, options);
         var collectionResult = collector.Collect(entities);
@@ -68,42 +73,54 @@ internal sealed class GraphBulkInsertOrchestrator
                 $"Consider using client-generated keys (e.g., GUIDs with ValueGeneratedNever()).");
         }
 
-        // 2. Insert in dependency order (parents first)
-        foreach (var entityType in collectionResult.InsertionOrder)
+        var connection = await _context.GetConnection(sync, ctk);
+
+        try
         {
-            if (!collectionResult.EntitiesByType.TryGetValue(entityType, out var entitiesToInsert) ||
-                entitiesToInsert.Count == 0)
+            // 2. Insert in dependency order (parents first)
+            foreach (var entityType in collectionResult.InsertionOrder)
             {
-                continue;
+                if (!collectionResult.EntitiesByType.TryGetValue(entityType, out var entitiesToInsert) ||
+                    entitiesToInsert.Count == 0)
+                {
+                    continue;
+                }
+
+                // Propagate FK values from already-inserted parents
+                PropagateParentForeignKeys(entitiesToInsert, entityType, graphMetadata);
+
+                // Insert entities of this type
+                await InsertEntitiesOfType(sync, _context, entityType, entitiesToInsert, options, provider,
+                    graphMetadata, ctk);
+
+                totalInserted += entitiesToInsert.Count;
             }
 
-            // Propagate FK values from already-inserted parents
-            PropagateParentForeignKeys(entitiesToInsert, entityType, graphMetadata);
+            // 3. Insert join table records for many-to-many relationships
+            if (collectionResult.JoinRecords.Count > 0)
+            {
+                totalInserted += await InsertJoinRecords(sync, _context, collectionResult.JoinRecords, options,
+                    provider, graphMetadata, ctk);
+            }
 
-            // Insert entities of this type
-            await InsertEntitiesOfType(sync, _context, entityType, entitiesToInsert, options, provider, graphMetadata, ctk);
+            // Return root entities
+            var rootEntities = collectionResult.EntitiesByType.TryGetValue(typeof(T), out var roots)
+                ? roots.Cast<T>().ToList()
+                : [];
 
-            totalInserted += entitiesToInsert.Count;
+            // Commit the transaction if we own them.
+            await connection.Commit(sync, ctk);
+
+            return new GraphInsertResult<T>
+            {
+                RootEntities = rootEntities,
+                TotalInsertedCount = totalInserted,
+            };
         }
-
-        // 3. Insert join table records for many-to-many relationships
-        var joinRecordsInserted = 0;
-        if (collectionResult.JoinRecords.Count > 0)
+        finally
         {
-            joinRecordsInserted = await InsertJoinRecords(sync, _context, collectionResult.JoinRecords, options, provider, graphMetadata, ctk);
-            totalInserted += joinRecordsInserted;
+            await connection.Close(sync, ctk);
         }
-
-        // Return root entities
-        var rootEntities = collectionResult.EntitiesByType.TryGetValue(typeof(T), out var roots)
-            ? roots.Cast<T>().ToList()
-            : [];
-
-        return new GraphInsertResult<T>
-        {
-            RootEntities = rootEntities,
-            TotalInsertedCount = totalInserted,
-        };
     }
 
     private static void PropagateParentForeignKeys(

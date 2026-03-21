@@ -33,7 +33,7 @@ jobs:
       run: dotnet --version
 
     - name: Build
-      run: dotnet build PhenX.EntityFrameworkCore.BulkInsert.Net10.slnx --framework ${{ matrix.dotnet.tfm }}
+      run: dotnet build PhenX.EntityFrameworkCore.BulkInsert.slnx --framework ${{ matrix.dotnet.tfm }}
 
     - name: Test
-      run: dotnet test PhenX.EntityFrameworkCore.BulkInsert.Net10.slnx --no-build --verbosity normal --framework ${{ matrix.dotnet.tfm }}
+      run: dotnet test PhenX.EntityFrameworkCore.BulkInsert.slnx --no-build --verbosity normal --framework ${{ matrix.dotnet.tfm }}

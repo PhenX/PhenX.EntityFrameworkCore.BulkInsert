@@ -24,6 +24,14 @@ but they are in [the roadmap](#roadmap).
 | `PhenX.EntityFrameworkCore.BulkInsert.Oracle`     | For Oracle      | [![NuGet](https://img.shields.io/nuget/v/PhenX.EntityFrameworkCore.BulkInsert.Oracle.svg)](https://www.nuget.org/packages/PhenX.EntityFrameworkCore.BulkInsert.Oracle)         |
 | `PhenX.EntityFrameworkCore.BulkInsert`            | Common library | [![NuGet](https://img.shields.io/nuget/v/PhenX.EntityFrameworkCore.BulkInsert.svg)](https://www.nuget.org/packages/PhenX.EntityFrameworkCore.BulkInsert)                       |
 
+### Dependencies
+
+This library depends on the official Entity Framework Core packages provided by each database vendor.
+
+MySQL is a special case: the [Pomelo MySQL](https://github.com/PomeloFoundation/Pomelo.EntityFrameworkCore.MySql) package is widely preferred for its superior MySQL feature support. However, the package relies heavily on a single maintainer and does not yet support .NET 10. See the relevant [issue](https://github.com/PomeloFoundation/Pomelo.EntityFrameworkCore.MySql).
+
+A community fork is available at https://github.com/microting/Pomelo.EntityFrameworkCore.MySql that addresses this gap. **For .NET 10 only**, this library takes a dependency on that fork.
+
 ## Installation
 
 Install the NuGet package for your database provider:

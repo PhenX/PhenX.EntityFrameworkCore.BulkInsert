@@ -466,7 +466,12 @@ internal sealed class GraphBulkInsertOrchestrator
             .GetMethod(nameof(InsertJoinEntitiesGeneric), BindingFlags.NonPublic | BindingFlags.Instance)!
             .MakeGenericMethod(joinEntityType);
 
-        var task = (Task)method.Invoke(this, [sync, context, tableInfo, joinEntities, options, provider, ctk])!;
+        var invocationResult = method.Invoke(this, [sync, context, tableInfo, joinEntities, options, provider, ctk]);
+        if (invocationResult is not Task task)
+        {
+            throw new InvalidOperationException(
+                $"Reflected call to '{nameof(InsertJoinEntitiesGeneric)}' for join entity type '{joinEntityType}' did not return a Task as expected.");
+        }
         await task;
     }
 

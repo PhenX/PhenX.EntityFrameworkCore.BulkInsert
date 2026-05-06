@@ -59,7 +59,14 @@ internal class OracleBulkInsertProvider(ILogger<OracleBulkInsertProvider>? logge
 
         using var bulkCopy = new OracleBulkCopy(connection, options.CopyOptions);
 
-        bulkCopy.DestinationTableName = tableName;
+        // When tableName is the SQL-quoted fully qualified name (direct insert path), use the
+        // unquoted plain table name so ODP.NET does not apply double schema qualification
+        // (e.g. SchemaX.SchemaX.TABLE_NAME) when a default schema is configured via HasDefaultSchema.
+        var destinationTableName = tableName == tableInfo.QuotedTableName
+            ? tableInfo.TableName
+            : tableName;
+
+        bulkCopy.DestinationTableName = destinationTableName;
         bulkCopy.BatchSize = options.BatchSize;
         bulkCopy.BulkCopyTimeout = options.GetCopyTimeoutInSeconds();
 

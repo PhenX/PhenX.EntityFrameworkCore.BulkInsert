@@ -23,6 +23,7 @@ but they are in [the roadmap](#roadmap).
 | `PhenX.EntityFrameworkCore.BulkInsert.MySql`      | For MySql      | [![NuGet](https://img.shields.io/nuget/v/PhenX.EntityFrameworkCore.BulkInsert.Sqlite.svg)](https://www.nuget.org/packages/PhenX.EntityFrameworkCore.BulkInsert.MySql)          |
 | `PhenX.EntityFrameworkCore.BulkInsert.Oracle`     | For Oracle      | [![NuGet](https://img.shields.io/nuget/v/PhenX.EntityFrameworkCore.BulkInsert.Oracle.svg)](https://www.nuget.org/packages/PhenX.EntityFrameworkCore.BulkInsert.Oracle)         |
 | `PhenX.EntityFrameworkCore.BulkInsert`            | Common library | [![NuGet](https://img.shields.io/nuget/v/PhenX.EntityFrameworkCore.BulkInsert.svg)](https://www.nuget.org/packages/PhenX.EntityFrameworkCore.BulkInsert)                       |
+| `OpenTelemetry.Instrumentation.PhenX.EntityFrameworkCore.BulkInsert` | OpenTelemetry instrumentation | [![NuGet](https://img.shields.io/nuget/v/OpenTelemetry.Instrumentation.PhenX.EntityFrameworkCore.BulkInsert.svg)](https://www.nuget.org/packages/OpenTelemetry.Instrumentation.PhenX.EntityFrameworkCore.BulkInsert) |
 
 ### Dependencies
 
@@ -51,6 +52,9 @@ Install-Package PhenX.EntityFrameworkCore.BulkInsert.MySql
 
 # For Oracle
 Install-Package PhenX.EntityFrameworkCore.BulkInsert.Oracle
+
+# For OpenTelemetry instrumentation
+Install-Package OpenTelemetry.Instrumentation.PhenX.EntityFrameworkCore.BulkInsert
 ```
 
 ## Usage

@@ -14,6 +14,7 @@
     <Project Path="src/PhenX.EntityFrameworkCore.BulkInsert.Sqlite/PhenX.EntityFrameworkCore.BulkInsert.Sqlite.csproj" />
     <Project Path="src/PhenX.EntityFrameworkCore.BulkInsert.SqlServer/PhenX.EntityFrameworkCore.BulkInsert.SqlServer.csproj" />
     <Project Path="src/PhenX.EntityFrameworkCore.BulkInsert/PhenX.EntityFrameworkCore.BulkInsert.csproj" />
+    <Project Path="src/OpenTelemetry.Instrumentation.PhenX.EntityFrameworkCore.BulkInsert/OpenTelemetry.Instrumentation.PhenX.EntityFrameworkCore.BulkInsert.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/PhenX.EntityFrameworkCore.BulkInsert.Benchmark/PhenX.EntityFrameworkCore.BulkInsert.Benchmark.csproj" />

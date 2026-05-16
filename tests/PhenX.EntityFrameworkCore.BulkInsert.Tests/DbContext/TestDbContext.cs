@@ -71,6 +71,8 @@ public class TestDbContext : TestDbContextBase
 
 public class TestDbContextPostgreSql : TestDbContext
 {
+    public DbSet<TestEntityWithArrays> TestEntitiesWithArrays { get; set; } = null!;
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

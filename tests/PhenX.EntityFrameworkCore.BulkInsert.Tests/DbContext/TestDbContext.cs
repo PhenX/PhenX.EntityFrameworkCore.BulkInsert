@@ -72,6 +72,9 @@ public class TestDbContext : TestDbContextBase
 public class TestDbContextPostgreSql : TestDbContext
 {
     public DbSet<TestEntityWithArrays> TestEntitiesWithArrays { get; set; } = null!;
+    public DbSet<TestEntityWithEnumList> TestEntitiesWithEnumList { get; set; } = null!;
+    public DbSet<TestEntityWithEnumArray> TestEntitiesWithEnumArray { get; set; } = null!;
+    public DbSet<TestEntityWithIntList> TestEntitiesWithIntList { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

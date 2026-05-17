@@ -75,6 +75,7 @@ public class TestDbContextPostgreSql : TestDbContext
     public DbSet<TestEntityWithEnumList> TestEntitiesWithEnumList { get; set; } = null!;
     public DbSet<TestEntityWithEnumArray> TestEntitiesWithEnumArray { get; set; } = null!;
     public DbSet<TestEntityWithIntList> TestEntitiesWithIntList { get; set; } = null!;
+    public DbSet<TestEntityWithEnumListExplicitType> TestEntitiesWithEnumListExplicitType { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -89,6 +90,11 @@ public class TestDbContextPostgreSql : TestDbContext
         modelBuilder.Entity<TestEntity>(b =>
         {
             b.Property(x => x.StringEnumValue).HasColumnType("text");
+        });
+
+        modelBuilder.Entity<TestEntityWithEnumListExplicitType>(b =>
+        {
+            b.Property(x => x.EnumList).HasColumnType("integer[]");
         });
     }
 }

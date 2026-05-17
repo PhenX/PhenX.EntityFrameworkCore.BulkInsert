@@ -15,9 +15,6 @@ namespace PhenX.EntityFrameworkCore.BulkInsert.Tests.Tests.Arrays;
 /// Tests for bulk-inserting entities that contain PostgreSQL array-typed properties,
 /// including <c>List&lt;T&gt;</c> and <c>T[]</c> where <c>T</c> is mapped to a
 /// PostgreSQL array column (e.g. <c>integer[]</c>, <c>text[]</c>).
-/// Also contains targeted regression tests for GitHub issue #98 which reported that
-/// <c>List&lt;E&gt;</c> properties (where <c>E</c> is a .NET enum) are silently
-/// inserted as empty arrays.
 /// </summary>
 public abstract class ArrayTestsBase<TDbContext>(IDbContextFactory dbContextFactory) : IAsyncLifetime
     where TDbContext : TestDbContextPostgreSql, new()
@@ -36,11 +33,6 @@ public abstract class ArrayTestsBase<TDbContext>(IDbContextFactory dbContextFact
         return Task.CompletedTask;
     }
 
-    /// <summary>
-    /// Verifies that a <c>List&lt;NumericEnum&gt;</c> property (which maps to an
-    /// <c>integer[]</c> column in PostgreSQL via Npgsql's array converter) is
-    /// inserted with its full contents and not silently written as an empty array.
-    /// </summary>
     [SkippableFact]
     public async Task InsertEntities_WithEnumList_StoresCorrectValues()
     {
@@ -84,9 +76,6 @@ public abstract class ArrayTestsBase<TDbContext>(IDbContextFactory dbContextFact
         inserted[1].StringArray.Should().BeEquivalentTo(entities[1].StringArray, o => o.WithStrictOrdering());
     }
 
-    /// <summary>
-    /// Verifies that empty and null array-typed properties are handled correctly.
-    /// </summary>
     [SkippableFact]
     public async Task InsertEntities_WithNullAndEmptyArrays_StoresCorrectValues()
     {
@@ -130,9 +119,6 @@ public abstract class ArrayTestsBase<TDbContext>(IDbContextFactory dbContextFact
         inserted[1].StringArray.Should().BeEmpty();
     }
 
-    /// <summary>
-    /// Verifies that a single-element <c>List&lt;NumericEnum&gt;</c> is inserted correctly.
-    /// </summary>
     [SkippableFact]
     public async Task InsertEntities_WithSingleElementEnumList_StoresCorrectValue()
     {
@@ -161,26 +147,12 @@ public abstract class ArrayTestsBase<TDbContext>(IDbContextFactory dbContextFact
         inserted[0].EnumList.Should().BeEquivalentTo(entities[0].EnumList, o => o.WithStrictOrdering());
     }
 
-    // --- Regression tests for GitHub issue #98 ---
-    // Issue: List<E> (where E is a .NET enum) was silently inserted as an empty
-    // array.  The three tests below triangulate the root cause:
-    //   1. Minimal entity with non-nullable List<NumericEnum>  (exact issue shape)
-    //   2. Same values stored as NumericEnum[]                 (array vs list)
-    //   3. Same values stored as List<int>                     (enum vs plain int)
-    // If (1) fails while (2) or (3) passes, the bug is specific to List<Enum>.
-
-    /// <summary>
-    /// Reproduces the exact shape reported in GitHub issue #98:
-    /// a minimal entity whose only payload is a non-nullable
-    /// <c>List&lt;NumericEnum&gt;</c> property mapped to a PostgreSQL
-    /// <c>integer[]</c> column.
-    /// </summary>
     [SkippableFact]
-    public async Task Issue98_InsertEntity_WithNonNullableEnumList_StoresCorrectValues()
+    public async Task InsertEntities_WithNonNullableEnumList_StoresCorrectValues()
     {
         Skip.If(!_context.IsProvider(ProviderType.PostgreSql));
 
-        // Arrange – mirrors "record Item(List<E> Values)" from the issue
+        // Arrange
         var entities = new List<TestEntityWithEnumList>
         {
             new() { TestRun = _run, EnumList = [NumericEnum.First, NumericEnum.Second] },
@@ -198,19 +170,12 @@ public abstract class ArrayTestsBase<TDbContext>(IDbContextFactory dbContextFact
             .ToListAsync();
 
         inserted.Should().HaveCount(2);
-        inserted[0].EnumList.Should().BeEquivalentTo(entities[0].EnumList, o => o.WithStrictOrdering(),
-            "the list must not be silently replaced by an empty array (issue #98)");
-        inserted[1].EnumList.Should().BeEquivalentTo(entities[1].EnumList, o => o.WithStrictOrdering(),
-            "the list must not be silently replaced by an empty array (issue #98)");
+        inserted[0].EnumList.Should().BeEquivalentTo(entities[0].EnumList, o => o.WithStrictOrdering());
+        inserted[1].EnumList.Should().BeEquivalentTo(entities[1].EnumList, o => o.WithStrictOrdering());
     }
 
-    /// <summary>
-    /// Inserts a <c>NumericEnum[]</c> (native .NET array rather than
-    /// <c>List&lt;NumericEnum&gt;</c>) to verify whether the issue is specific to
-    /// the <c>List&lt;T&gt;</c> collection type.
-    /// </summary>
     [SkippableFact]
-    public async Task Issue98_InsertEntity_WithEnumArray_StoresCorrectValues()
+    public async Task InsertEntities_WithEnumArray_StoresCorrectValues()
     {
         Skip.If(!_context.IsProvider(ProviderType.PostgreSql));
 
@@ -236,13 +201,8 @@ public abstract class ArrayTestsBase<TDbContext>(IDbContextFactory dbContextFact
         inserted[1].EnumArray.Should().BeEquivalentTo(entities[1].EnumArray, o => o.WithStrictOrdering());
     }
 
-    /// <summary>
-    /// Inserts a <c>List&lt;int&gt;</c> (same collection type as the failing case
-    /// but with a plain integer element type) to determine whether the issue is
-    /// enum-specific or affects <c>List&lt;T&gt;</c> in general.
-    /// </summary>
     [SkippableFact]
-    public async Task Issue98_InsertEntity_WithIntList_StoresCorrectValues()
+    public async Task InsertEntities_WithIntList_StoresCorrectValues()
     {
         Skip.If(!_context.IsProvider(ProviderType.PostgreSql));
 
@@ -267,4 +227,36 @@ public abstract class ArrayTestsBase<TDbContext>(IDbContextFactory dbContextFact
         inserted[0].IntList.Should().BeEquivalentTo(entities[0].IntList, o => o.WithStrictOrdering());
         inserted[1].IntList.Should().BeEquivalentTo(entities[1].IntList, o => o.WithStrictOrdering());
     }
+
+    /// <summary>
+    /// Verifies that a <c>List&lt;NumericEnum&gt;</c> property configured with an
+    /// explicit <c>HasColumnType("integer[]")</c> in Fluent API is inserted correctly.
+    /// </summary>
+    [SkippableFact]
+    public async Task InsertEntities_WithEnumListAndExplicitColumnType_StoresCorrectValues()
+    {
+        Skip.If(!_context.IsProvider(ProviderType.PostgreSql));
+
+        // Arrange
+        var entities = new List<TestEntityWithEnumListExplicitType>
+        {
+            new() { TestRun = _run, EnumList = [NumericEnum.First, NumericEnum.Second] },
+            new() { TestRun = _run, EnumList = [NumericEnum.Second, NumericEnum.First] },
+        };
+
+        // Act
+        await _context.ExecuteBulkInsertAsync(entities);
+
+        // Assert
+        _context.ChangeTracker.Clear();
+        var inserted = await _context.TestEntitiesWithEnumListExplicitType
+            .Where(e => e.TestRun == _run)
+            .OrderBy(e => e.Id)
+            .ToListAsync();
+
+        inserted.Should().HaveCount(2);
+        inserted[0].EnumList.Should().BeEquivalentTo(entities[0].EnumList, o => o.WithStrictOrdering());
+        inserted[1].EnumList.Should().BeEquivalentTo(entities[1].EnumList, o => o.WithStrictOrdering());
+    }
 }
+

@@ -258,5 +258,37 @@ public abstract class ArrayTestsBase<TDbContext>(IDbContextFactory dbContextFact
         inserted[0].EnumList.Should().BeEquivalentTo(entities[0].EnumList, o => o.WithStrictOrdering());
         inserted[1].EnumList.Should().BeEquivalentTo(entities[1].EnumList, o => o.WithStrictOrdering());
     }
+
+    /// <summary>
+    /// Verifies that a positional record whose only payload is a <c>List&lt;NumericEnum&gt;</c>
+    /// constructor parameter is inserted correctly. This mirrors the reporter's exact shape:
+    /// <c>record Item(List&lt;E&gt; Values)</c>.
+    /// </summary>
+    [SkippableFact]
+    public async Task InsertEntities_WithRecordEnumList_StoresCorrectValues()
+    {
+        Skip.If(!_context.IsProvider(ProviderType.PostgreSql));
+
+        // Arrange
+        var entities = new List<TestRecordWithEnumList>
+        {
+            new(0, _run, [NumericEnum.First, NumericEnum.Second]),
+            new(0, _run, [NumericEnum.Second, NumericEnum.First]),
+        };
+
+        // Act
+        await _context.ExecuteBulkInsertAsync(entities);
+
+        // Assert
+        _context.ChangeTracker.Clear();
+        var inserted = await _context.TestRecordsWithEnumList
+            .Where(e => e.TestRun == _run)
+            .OrderBy(e => e.Id)
+            .ToListAsync();
+
+        inserted.Should().HaveCount(2);
+        inserted[0].Values.Should().BeEquivalentTo(entities[0].Values, o => o.WithStrictOrdering());
+        inserted[1].Values.Should().BeEquivalentTo(entities[1].Values, o => o.WithStrictOrdering());
+    }
 }
 

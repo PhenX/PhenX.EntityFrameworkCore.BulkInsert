@@ -48,3 +48,12 @@ public class TestEntityWithEnumListExplicitType : TestEntityBase
     [Column("enum_list")]
     public List<NumericEnum> EnumList { get; set; } = [];
 }
+
+/// <summary>
+/// Positional record that mirrors the reporter's shape:
+/// <c>record Item(List&lt;E&gt; Values)</c>.
+/// Properties are <c>init</c>-only, populated via the primary constructor.
+/// </summary>
+[PrimaryKey(nameof(Id))]
+[Table("test_record_with_enum_list")]
+public record TestRecordWithEnumList(int Id, Guid TestRun, List<NumericEnum> Values);

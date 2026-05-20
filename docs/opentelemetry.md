@@ -45,8 +45,8 @@ Adds the `PhenX.EntityFrameworkCore.BulkInsert` activity source to the given `Tr
 
 **Parameters**
 
-| Parameter | Type                   | Description                                               |
-|-----------|------------------------|-----------------------------------------------------------|
+| Parameter | Type                    | Description                                                |
+|-----------|-------------------------|------------------------------------------------------------|
 | `builder` | `TracerProviderBuilder` | The `TracerProviderBuilder` to add the instrumentation to. |
 
 **Returns**
@@ -57,12 +57,12 @@ The `TracerProviderBuilder` with the `PhenX.EntityFrameworkCore.BulkInsert` inst
 
 The following bulk insert operations produce OpenTelemetry traces:
 
-| Operation                            | Description                                              |
-|--------------------------------------|----------------------------------------------------------|
-| `ExecuteBulkInsert`                  | Synchronous bulk insert without entity return            |
-| `ExecuteBulkInsertAsync`             | Asynchronous bulk insert without entity return           |
-| `ExecuteBulkInsertReturnEntities`    | Synchronous bulk insert with entity return               |
-| `ExecuteBulkInsertReturnEntitiesAsync` | Asynchronous bulk insert with entity return            |
+| Operation                              | Description                                    |
+|----------------------------------------|------------------------------------------------|
+| `ExecuteBulkInsert`                    | Synchronous bulk insert without entity return  |
+| `ExecuteBulkInsertAsync`               | Asynchronous bulk insert without entity return |
+| `ExecuteBulkInsertReturnEntities`      | Synchronous bulk insert with entity return     |
+| `ExecuteBulkInsertReturnEntitiesAsync` | Asynchronous bulk insert with entity return    |
 
 ## Activity Source
 

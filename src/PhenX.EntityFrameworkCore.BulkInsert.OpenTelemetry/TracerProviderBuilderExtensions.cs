@@ -1,5 +1,5 @@
 ﻿using OpenTelemetry.Trace;
-namespace OpenTelemetry.Instrumentation.PhenX.EntityFrameworkCore.BulkInsert;
+namespace PhenX.EntityFrameworkCore.BulkInsert.OpenTelemetry;
 
 /// <summary>
 /// Extension methods for <see cref="TracerProviderBuilder"/> to add instrumentation for PhenX.EntityFrameworkCore.BulkInsert.

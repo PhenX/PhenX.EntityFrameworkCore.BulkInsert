@@ -5,7 +5,7 @@ lang: en-US
 
 # OpenTelemetry Instrumentation
 
-PhenX.EntityFrameworkCore.BulkInsert has built-in support for [OpenTelemetry](https://opentelemetry.io/) tracing via the `OpenTelemetry.Instrumentation.PhenX.EntityFrameworkCore.BulkInsert` package.
+PhenX.EntityFrameworkCore.BulkInsert has built-in support for [OpenTelemetry](https://opentelemetry.io/) tracing via the `PhenX.EntityFrameworkCore.BulkInsert.OpenTelemetry` package.
 
 Each bulk insert operation is automatically tracked as an [Activity](https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.activity) using the `PhenX.EntityFrameworkCore.BulkInsert` activity source, enabling distributed tracing and performance monitoring in your application.
 
@@ -14,7 +14,7 @@ Each bulk insert operation is automatically tracked as an [Activity](https://lea
 Install the instrumentation NuGet package:
 
 ```shell
-Install-Package OpenTelemetry.Instrumentation.PhenX.EntityFrameworkCore.BulkInsert
+Install-Package PhenX.EntityFrameworkCore.BulkInsert.OpenTelemetry
 ```
 
 ## Configuration

@@ -153,7 +153,7 @@ internal abstract class BulkInsertProviderBase<TDialect, TOptions>(ILoggerFactor
 
         if (logger != null)
         {
-            Log.BulkInsertExecuted(logger, sw.ElapsedMilliseconds, tableInfo.QuotedTableName);
+            Log.BulkInsertExecuted(logger, sw.ElapsedMilliseconds, tableName);
         }
 
         return tableName;
@@ -271,7 +271,7 @@ internal abstract class BulkInsertProviderBase<TDialect, TOptions>(ILoggerFactor
         string query,
         CancellationToken ctk)
     {
-        var command = context.Database.GetDbConnection().CreateCommand();
+        using var command = context.Database.GetDbConnection().CreateCommand();
         command.Transaction = context.Database.CurrentTransaction!.GetDbTransaction();
         command.CommandText = query;
 

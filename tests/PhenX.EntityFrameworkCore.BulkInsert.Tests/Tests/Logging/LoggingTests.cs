@@ -28,7 +28,7 @@ public class LoggingTests
         await using var connection = new SqliteConnection("DataSource=:memory:");
         await connection.OpenAsync();
 
-        var context = new TestDbContextSqlite
+        await using var context = new TestDbContextSqlite
         {
             ConfigureOptions = builder => builder
                 .UseSqlite(connection)
@@ -67,7 +67,7 @@ public class LoggingTests
         await using var connection = new SqliteConnection("DataSource=:memory:");
         await connection.OpenAsync();
 
-        var context = new TestDbContextSqlite
+        await using var context = new TestDbContextSqlite
         {
             ConfigureOptions = builder => builder
                 .UseSqlite(connection)
@@ -105,7 +105,7 @@ public class LoggingTests
         await using var connection = new SqliteConnection("DataSource=:memory:");
         await connection.OpenAsync();
 
-        var context = new TestDbContextSqlite
+        await using var context = new TestDbContextSqlite
         {
             ConfigureOptions = builder => builder
                 .UseSqlite(connection)

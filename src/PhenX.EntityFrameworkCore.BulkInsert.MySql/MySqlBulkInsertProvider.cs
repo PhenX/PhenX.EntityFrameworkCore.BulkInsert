@@ -12,7 +12,7 @@ using PhenX.EntityFrameworkCore.BulkInsert.Options;
 namespace PhenX.EntityFrameworkCore.BulkInsert.MySql;
 
 [UsedImplicitly]
-internal class MySqlBulkInsertProvider(ILogger<MySqlBulkInsertProvider> logger) : BulkInsertProviderBase<MySqlServerDialectBuilder, MySqlBulkInsertOptions>(logger)
+internal class MySqlBulkInsertProvider(ILoggerFactory? loggerFactory) : BulkInsertProviderBase<MySqlServerDialectBuilder, MySqlBulkInsertOptions>(loggerFactory)
 {
     //language=sql
     /// <inheritdoc />

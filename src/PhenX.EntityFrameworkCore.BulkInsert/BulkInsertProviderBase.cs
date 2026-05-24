@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 using Microsoft.EntityFrameworkCore;
@@ -11,10 +12,12 @@ using PhenX.EntityFrameworkCore.BulkInsert.Options;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert;
 
-internal abstract class BulkInsertProviderBase<TDialect, TOptions>(ILogger? logger) : BulkInsertProviderUntyped<TDialect, TOptions>
+internal abstract class BulkInsertProviderBase<TDialect, TOptions>(ILoggerFactory? loggerFactory) : BulkInsertProviderUntyped<TDialect, TOptions>
     where TDialect : SqlDialectBuilder, new()
     where TOptions : BulkInsertOptions, new()
 {
+    private ILogger? _logger;
+    private ILogger? logger => _logger ??= loggerFactory?.CreateLogger(GetType());
     protected virtual string BulkInsertId => "_bulk_insert_id";
 
     protected abstract string AddTableCopyBulkInsertId { get; }
@@ -144,7 +147,15 @@ internal abstract class BulkInsertProviderBase<TDialect, TOptions>(ILogger? logg
         activity?.AddTag("tempTable", tempTableRequired);
         activity?.AddTag("synchronous", sync);
 
+        var sw = Stopwatch.StartNew();
         await BulkInsert(sync, context, tableInfo, entities, tableName, columns, options, ctk);
+        sw.Stop();
+
+        if (logger != null)
+        {
+            Log.BulkInsertExecuted(logger, sw.ElapsedMilliseconds, tableName);
+        }
+
         return tableName;
     }
 
@@ -254,16 +265,17 @@ internal abstract class BulkInsertProviderBase<TDialect, TOptions>(ILogger? logg
         return Task.CompletedTask;
     }
 
-    protected static async Task ExecuteAsync(
+    protected async Task ExecuteAsync(
         bool sync,
         DbContext context,
         string query,
         CancellationToken ctk)
     {
-        var command = context.Database.GetDbConnection().CreateCommand();
+        using var command = context.Database.GetDbConnection().CreateCommand();
         command.Transaction = context.Database.CurrentTransaction!.GetDbTransaction();
         command.CommandText = query;
 
+        var sw = Stopwatch.StartNew();
         if (sync)
         {
             // ReSharper disable once MethodHasAsyncOverloadWithCancellation
@@ -272,6 +284,12 @@ internal abstract class BulkInsertProviderBase<TDialect, TOptions>(ILogger? logg
         else
         {
             await command.ExecuteNonQueryAsync(ctk);
+        }
+        sw.Stop();
+
+        if (logger != null)
+        {
+            Log.ExecutedDbCommand(logger, sw.ElapsedMilliseconds, query);
         }
     }
 }

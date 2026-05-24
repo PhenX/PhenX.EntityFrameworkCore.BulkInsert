@@ -13,7 +13,7 @@ using PhenX.EntityFrameworkCore.BulkInsert.Options;
 namespace PhenX.EntityFrameworkCore.BulkInsert.Sqlite;
 
 [UsedImplicitly]
-internal class SqliteBulkInsertProvider(ILogger<SqliteBulkInsertProvider>? logger) : BulkInsertProviderBase<SqliteDialectBuilder, BulkInsertOptions>(logger)
+internal class SqliteBulkInsertProvider(ILoggerFactory? loggerFactory) : BulkInsertProviderBase<SqliteDialectBuilder, BulkInsertOptions>(loggerFactory)
 {
     private const int MaxParams = 1000;
 

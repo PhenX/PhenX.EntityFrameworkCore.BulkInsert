@@ -30,12 +30,6 @@ public class TestDbContext : TestDbContextBase
                 .HasConversion(new DateTimeToBinaryConverter());
         });
 
-        modelBuilder.Entity<TestEntityWithGuidId>(builder =>
-        {
-            builder.Property(e => e.Id)
-                .ValueGeneratedNever();
-        });
-
         modelBuilder.Entity<TestEntityWithComplexType>(builder =>
         {
             builder

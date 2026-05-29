@@ -24,6 +24,7 @@ internal sealed class ColumnMetadata
         IsGenerated = property.ValueGenerated != ValueGenerated.Never
                       && (property.GetDefaultValueSql() != null
                           || property.GetComputedColumnSql() != null
+                          || property.GetDefaultValue() != null
                           || (property.ClrType != typeof(Guid) && property.ClrType != typeof(Guid?)));
     }
 

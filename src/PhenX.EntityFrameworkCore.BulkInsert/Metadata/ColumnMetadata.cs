@@ -21,7 +21,11 @@ internal sealed class ColumnMetadata
         QuotedColumName = dialect.Quote(ColumnName);
         StoreDefinition = GetStoreDefinition(property);
         ClrType = property.ClrType;
-        IsGenerated = property.ValueGenerated != ValueGenerated.Never;
+        IsGenerated = property.ValueGenerated != ValueGenerated.Never
+                      && (property.GetDefaultValueSql() != null
+                          || property.GetComputedColumnSql() != null
+                          || property.FindAnnotation(RelationalAnnotationNames.DefaultValue) != null
+                          || (property.ClrType != typeof(Guid) && property.ClrType != typeof(Guid?)));
     }
 
     private readonly Func<object, object?> _getter;

@@ -87,9 +87,9 @@ public abstract class MergeTestsBase<TDbContext>(IDbContextFactory dbContextFact
                 Update = (inserted, excluded) => inserted,
             });
 
-        // Assert
+        // Assert - all fields including the application-assigned Guid Id should be preserved
         insertedEntities.Should().BeEquivalentTo(entities,
-            o => o.RespectingRuntimeTypes().Excluding(e => e.Id));
+            o => o.RespectingRuntimeTypes());
     }
 
     [SkippableTheory]

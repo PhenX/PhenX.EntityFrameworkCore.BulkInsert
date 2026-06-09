@@ -12,6 +12,8 @@ internal sealed class TableMetadata
 
     private readonly IEntityType _entityType;
 
+    public string? Schema { get; }
+
     public string QuotedTableName { get; }
 
     public string TableName { get; }
@@ -21,8 +23,9 @@ internal sealed class TableMetadata
     public TableMetadata(IEntityType entityType, SqlDialectBuilder dialect)
     {
         _entityType = entityType;
+        Schema = entityType.GetSchema();
         TableName = entityType.GetTableName() ?? throw new InvalidOperationException("Cannot determine table name.");
-        QuotedTableName = dialect.QuoteTableName(entityType.GetSchema(), TableName);
+        QuotedTableName = dialect.QuoteTableName(Schema, TableName);
         Columns = GetColumns(entityType, dialect);
     }
 

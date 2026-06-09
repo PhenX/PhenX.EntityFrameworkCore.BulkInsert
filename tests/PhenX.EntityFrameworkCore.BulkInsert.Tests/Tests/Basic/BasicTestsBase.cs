@@ -507,6 +507,7 @@ public abstract class BasicTestsBase<TDbContext>(IDbContextFactory dbContextFact
             o => o.RespectingRuntimeTypes().Excluding(e => e.Id));
     }
 
+#if NET10_0
     [SkippableTheory]
     [CombinatorialData]
     public async Task InsertsEntities_WithJsonComplexCollection(InsertStrategy strategy)
@@ -545,4 +546,5 @@ public abstract class BasicTestsBase<TDbContext>(IDbContextFactory dbContextFact
         insertedEntities.Should().BeEquivalentTo(entities,
             o => o.RespectingRuntimeTypes().Excluding(e => e.Id));
     }
+#endif
 }

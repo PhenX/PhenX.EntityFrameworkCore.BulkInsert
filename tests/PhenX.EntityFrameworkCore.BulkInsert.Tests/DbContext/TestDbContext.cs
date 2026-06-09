@@ -17,7 +17,9 @@ public class TestDbContext : TestDbContextBase
     public DbSet<TestEntityWithSpecialColumnNames> TestEntitiesWithSpecialColumnNames { get; set; } = null!;
     public DbSet<Student> Students { get; set; } = null!;
     public DbSet<Course> Courses { get; set; } = null!;
+#if NET10_0
     public DbSet<TestEntityWithJsonComplexCollection> TestEntitiesWithJsonComplexCollection { get; set; } = null!;
+#endif
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -38,10 +40,12 @@ public class TestDbContext : TestDbContextBase
                 .IsRequired();
         });
 
+#if NET10_0
         modelBuilder.Entity<TestEntityWithJsonComplexCollection>(builder =>
         {
             builder.ComplexCollection(e => e.Items!, x => x.ToJson());
         });
+#endif
 
         // Many-to-many with shadow property
         modelBuilder.Entity<Student>()

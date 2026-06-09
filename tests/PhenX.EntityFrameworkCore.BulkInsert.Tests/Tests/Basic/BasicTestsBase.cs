@@ -506,4 +506,43 @@ public abstract class BasicTestsBase<TDbContext>(IDbContextFactory dbContextFact
         insertedEntities.Should().BeEquivalentTo(entities,
             o => o.RespectingRuntimeTypes().Excluding(e => e.Id));
     }
+
+    [SkippableTheory]
+    [CombinatorialData]
+    public async Task InsertsEntities_WithJsonComplexCollection(InsertStrategy strategy)
+    {
+        // Skip InsertReturn strategies for SQLite: EF Core requires JSON path expressions when
+        // materializing entities with JSON complex collections, which cannot be composed over a
+        // raw INSERT...RETURNING statement.
+        Skip.If(strategy is InsertStrategy.InsertReturn or InsertStrategy.InsertReturnAsync
+            && _context.IsProvider(ProviderType.Sqlite));
+
+        // Arrange
+        var entities = new List<TestEntityWithJsonComplexCollection>
+        {
+            new TestEntityWithJsonComplexCollection
+            {
+                TestRun = _run,
+                Id = 1,
+                Items =
+                [
+                    new JsonComplexItem { Name = "Item1", Value = 10 },
+                    new JsonComplexItem { Name = "Item2", Value = 20 },
+                ]
+            },
+            new TestEntityWithJsonComplexCollection
+            {
+                TestRun = _run,
+                Id = 2,
+                Items = null,
+            },
+        };
+
+        // Act
+        var insertedEntities = await _context.InsertWithStrategyAsync(strategy, entities);
+
+        // Assert
+        insertedEntities.Should().BeEquivalentTo(entities,
+            o => o.RespectingRuntimeTypes().Excluding(e => e.Id));
+    }
 }

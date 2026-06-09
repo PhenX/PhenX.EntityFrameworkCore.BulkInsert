@@ -1,4 +1,7 @@
+using System.Text.Json;
+
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 
 using PhenX.EntityFrameworkCore.BulkInsert.Dialect;
@@ -28,9 +31,40 @@ internal sealed class ColumnMetadata
                           || (property.ClrType != typeof(Guid) && property.ClrType != typeof(Guid?)));
     }
 
+    public ColumnMetadata(IComplexProperty jsonComplexProperty, IColumn? column, SqlDialectBuilder dialect)
+    {
+        var containerColumnName = (string)jsonComplexProperty.ComplexType
+            .FindAnnotation(RelationalAnnotationNames.ContainerColumnName)!.Value!;
+
+        _getter = BuildJsonComplexGetter(jsonComplexProperty);
+        Property = null;
+        PropertyName = jsonComplexProperty.Name;
+        ColumnName = containerColumnName;
+        QuotedColumName = dialect.Quote(ColumnName);
+        StoreDefinition = column != null
+            ? $"{column.StoreType} {(column.IsNullable ? "NULL" : "NOT NULL")}"
+            : $"nvarchar(max) {(jsonComplexProperty.IsNullable ? "NULL" : "NOT NULL")}";
+        ClrType = jsonComplexProperty.ClrType;
+        IsGenerated = false;
+    }
+
+    private static readonly JsonSerializerOptions _jsonSerializerOptions = new();
+
+    private static Func<object, object?> BuildJsonComplexGetter(IComplexProperty complexProperty)
+    {
+        var getter = PropertyAccessor.CreateGetter(complexProperty.PropertyInfo!);
+
+        return entity =>
+        {
+            var value = getter(entity);
+            if (value == null) return null;
+            return JsonSerializer.Serialize(value, _jsonSerializerOptions);
+        };
+    }
+
     private readonly Func<object, object?> _getter;
 
-    public IProperty Property { get; }
+    public IProperty? Property { get; }
 
     public string PropertyName { get; }
 

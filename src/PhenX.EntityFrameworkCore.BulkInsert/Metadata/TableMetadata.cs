@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 
 using PhenX.EntityFrameworkCore.BulkInsert.Dialect;
@@ -48,13 +49,33 @@ internal sealed class TableMetadata
             .Where(CanHandleProperty)
             .Select(x => new ColumnMetadata(x, dialect));
 
-        var complexProperties = entityType.GetComplexProperties()
+        var table = entityType.GetTableMappings().FirstOrDefault()?.Table;
+
+        var regularComplexProperties = entityType.GetComplexProperties()
+            .Where(cp => !IsJsonMappedComplexProperty(cp))
             .SelectMany(cp => cp.ComplexType
                 .GetProperties()
                 .Where(CanHandleProperty)
                 .Select(x => new ColumnMetadata(x, dialect, cp)));
 
-        return properties.Concat(complexProperties).ToArray();
+        var jsonComplexProperties = entityType.GetComplexProperties()
+            .Where(IsJsonMappedComplexProperty)
+            .Select(cp =>
+            {
+                var containerColumnName = (string)cp.ComplexType
+                    .FindAnnotation(RelationalAnnotationNames.ContainerColumnName)!.Value!;
+                var column = table?.FindColumn(containerColumnName);
+                return new ColumnMetadata(cp, column, dialect);
+            });
+
+        return properties.Concat(regularComplexProperties).Concat(jsonComplexProperties).ToArray();
+    }
+
+    private static bool IsJsonMappedComplexProperty(IComplexProperty complexProperty)
+    {
+        var annotation = complexProperty.ComplexType
+            .FindAnnotation(RelationalAnnotationNames.ContainerColumnName)?.Value as string;
+        return !string.IsNullOrEmpty(annotation);
     }
 
     public ColumnMetadata[] PrimaryKey => _primaryKeys ??= GetPrimaryKey();

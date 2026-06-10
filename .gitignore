@@ -95,3 +95,8 @@ fabric.properties
 # Vitepress
 docs/.vitepress/dist
 docs/.vitepress/cache
+
+.direnv
+.envrc
+.launch
+PhenX.EntityFrameworkCore.BulkInsert.sln.DotSettings.user

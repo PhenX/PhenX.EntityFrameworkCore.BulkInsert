@@ -24,7 +24,7 @@ public abstract class TestDbContainer<TBuilderEntity, TContainerEntity>(IMessage
 
     protected abstract TBuilderEntity CreateBuilder();
 
-    protected virtual string DbmsName => typeof(TContainerEntity).Name.Replace("Container", "");
+    protected virtual string DbmsName => GetType().Name.Replace("TestDbContainer", "");
 
     protected override TBuilderEntity Configure()
     {

@@ -30,7 +30,7 @@ public abstract class TestDbContainer<TBuilderEntity, TContainerEntity>(IMessage
     {
         var targetFramework = GetType().Assembly.GetCustomAttributes<AssemblyMetadataAttribute>().FirstOrDefault(e => e.Key == "TargetFramework")?.Value ?? "NA";
         return CreateBuilder()
-            .WithReuse(true)
+            .WithReuse(false)
             .WithName($"PhenX.EntityFrameworkCore.BulkInsert.Tests.{DbmsName}-{targetFramework}")
             .WithWaitStrategy(Wait.ForUnixContainer().UntilDatabaseIsAvailable(DbProviderFactory));
     }

@@ -69,10 +69,15 @@ internal class SqlServerDialectBuilder : SqlDialectBuilder
             q.AppendJoin(" AND ", matchColumns, (b, col) => b.Append($"{PseudoTableInserted}.{col} = {PseudoTableExcluded}.{col}"));
             q.AppendLine();
 
-            if (onConflictTyped.Update != null)
-            {
-                var columns = target.GetColumns(false);
+            // The Update expression can resolve to zero columns (an entity that is nothing but its primary
+            // key). A MERGE with "WHEN MATCHED THEN UPDATE SET" and an empty assignment list is invalid;
+            // with nothing to update, emit an insert-only MERGE (omit the WHEN MATCHED clause entirely).
+            var updates = onConflictTyped.Update != null
+                ? GetUpdates(context, target, target.GetColumns(false), onConflictTyped.Update).ToList()
+                : new List<string>();
 
+            if (updates.Count > 0)
+            {
                 q.AppendLine("WHEN MATCHED ");
 
                 if (onConflictTyped.RawWhere != null || onConflictTyped.Where != null)
@@ -87,7 +92,7 @@ internal class SqlServerDialectBuilder : SqlDialectBuilder
                 }
 
                 q.AppendLine("THEN UPDATE SET ");
-                q.AppendJoin(", ", GetUpdates(context, target, columns, onConflictTyped.Update));
+                q.AppendJoin(", ", updates);
                 q.AppendLine();
             }
 

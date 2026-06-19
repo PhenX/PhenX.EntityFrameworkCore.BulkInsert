@@ -1,5 +1,7 @@
 using FluentAssertions;
 
+using Microsoft.EntityFrameworkCore;
+
 using PhenX.EntityFrameworkCore.BulkInsert.Enums;
 using PhenX.EntityFrameworkCore.BulkInsert.Extensions;
 using PhenX.EntityFrameworkCore.BulkInsert.Options;
@@ -90,6 +92,44 @@ public abstract class MergeTestsBase<TDbContext>(IDbContextFactory dbContextFact
         // Assert - all fields including the application-assigned Guid Id should be preserved
         insertedEntities.Should().BeEquivalentTo(entities,
             o => o.RespectingRuntimeTypes());
+    }
+
+    [SkippableTheory]
+    [CombinatorialData]
+    public async Task InsertEntities_WithEmptyUpdate_DoesNothingOnConflict(InsertStrategy strategy)
+    {
+        // Arrange: application-assigned keys so the conflict match column is present in the source on
+        // every provider (Postgres/SQLite ON CONFLICT and SQL Server/Oracle MERGE alike).
+        var entities = new List<TestEntityWithGuidId>
+        {
+            new() { TestRun = _run, Id = Guid.NewGuid(), Name = $"{_run}_Original1" },
+            new() { TestRun = _run, Id = Guid.NewGuid(), Name = $"{_run}_Original2" }
+        };
+
+        await _context.ExecuteBulkInsertAsync(entities);
+
+        // Mutate locally, then re-insert with an Update expression that resolves to NO columns
+        // (an empty object initializer => a MemberInit with zero bindings), the shape an all-key entity
+        // produces. Before the fix this emitted an empty "DO UPDATE SET" / "WHEN MATCHED ... UPDATE SET"
+        // and failed with a syntax error; it must now degrade to insert-only / DO NOTHING.
+        foreach (var entity in entities)
+        {
+            entity.Name = $"Changed_{entity.Name}";
+        }
+
+        await _context.InsertWithStrategyAsync(strategy, entities,
+            onConflict: new OnConflictOptions<TestEntityWithGuidId>
+            {
+                Update = (inserted, excluded) => new TestEntityWithGuidId { },
+            });
+
+        // Assert: no duplicate rows, and the stored rows keep their ORIGINAL names (nothing was updated).
+        var stored = await _context.Set<TestEntityWithGuidId>()
+            .Where(x => x.TestRun == _run)
+            .AsNoTracking()
+            .ToListAsync();
+        stored.Should().HaveCount(2);
+        stored.Select(x => x.Name).Should().BeEquivalentTo($"{_run}_Original1", $"{_run}_Original2");
     }
 
     [SkippableTheory]

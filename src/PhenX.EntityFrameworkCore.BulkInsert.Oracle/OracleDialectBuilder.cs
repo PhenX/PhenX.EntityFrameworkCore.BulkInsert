@@ -91,7 +91,17 @@ internal class OracleDialectBuilder : SqlDialectBuilder
             q.AppendJoin(", ", insertedColumns, (b, col) => b.Append($"{PseudoTableExcluded}.{col.QuotedColumName}"));
             q.AppendLine(")");
 
-            if (onConflictTyped.Update != null)
+            // Oracle MERGE: columns in the ON clause cannot be updated, so exclude match columns. Use
+            // insertedColumns because the USING subquery only contains those. When nothing is left to
+            // update — an entity that is nothing but its primary key, or whose Update expression resolves
+            // to no columns — emit an insert-only MERGE (omit the WHEN MATCHED clause) rather than an empty
+            // (illegal) WHEN MATCHED ... UPDATE SET.
+            var matchColumnSet = matchColumns.ToHashSet();
+            var updateableColumns = onConflictTyped.Update != null
+                ? insertedColumns.Where(c => !matchColumnSet.Contains(c.QuotedColumName)).ToList()
+                : new List<ColumnMetadata>();
+
+            if (updateableColumns.Count > 0)
             {
                 q.Append("WHEN MATCHED ");
 
@@ -107,16 +117,6 @@ internal class OracleDialectBuilder : SqlDialectBuilder
                 }
 
                 q.AppendLine("THEN UPDATE SET ");
-                // Oracle MERGE: columns in ON clause cannot be updated, so exclude match columns
-                // Use insertedColumns instead of all columns because the USING subquery only contains insertedColumns
-                var matchColumnSet = matchColumns.ToHashSet();
-                var updateableColumns = insertedColumns.Where(c => !matchColumnSet.Contains(c.QuotedColumName)).ToList();
-                if (updateableColumns.Count == 0)
-                {
-                    throw new InvalidOperationException(
-                        "Oracle MERGE cannot update any columns because all available columns are used in the ON clause for conflict detection. " +
-                        "Specify different columns in the 'Match' option or use specific columns in the 'Update' expression.");
-                }
                 q.AppendJoin(", ", GetUpdates(context, target, updateableColumns, onConflictTyped.Update));
                 q.AppendLine();
             }

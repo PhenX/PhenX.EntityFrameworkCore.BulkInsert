@@ -101,7 +101,11 @@ internal class OracleDialectBuilder : SqlDialectBuilder
                 ? insertedColumns.Where(c => !matchColumnSet.Contains(c.QuotedColumName)).ToList()
                 : new List<ColumnMetadata>();
 
-            if (updateableColumns.Count > 0)
+            var updates = updateableColumns.Count > 0
+                ? GetUpdates(context, target, updateableColumns, onConflictTyped.Update!).ToList()
+                : [];
+
+            if (updates.Count > 0)
             {
                 q.Append("WHEN MATCHED ");
 
@@ -117,7 +121,7 @@ internal class OracleDialectBuilder : SqlDialectBuilder
                 }
 
                 q.AppendLine("THEN UPDATE SET ");
-                q.AppendJoin(", ", GetUpdates(context, target, updateableColumns, onConflictTyped.Update));
+                q.AppendJoin(", ", updates);
                 q.AppendLine();
             }
         }

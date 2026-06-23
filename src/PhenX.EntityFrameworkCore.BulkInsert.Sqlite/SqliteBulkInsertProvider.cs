@@ -42,7 +42,8 @@ internal class SqliteBulkInsertProvider(ILoggerFactory? loggerFactory) : BulkIns
 
     private static SqliteType GetSqliteType(ColumnMetadata column)
     {
-        var storeType = column.Property.GetRelationalTypeMapping().StoreType;
+        var storeType = column.Property?.GetRelationalTypeMapping().StoreType
+            ?? column.StoreDefinition.Split(' ')[0];
 
         if (string.Equals(storeType, "INTEGER", StringComparison.OrdinalIgnoreCase))
         {

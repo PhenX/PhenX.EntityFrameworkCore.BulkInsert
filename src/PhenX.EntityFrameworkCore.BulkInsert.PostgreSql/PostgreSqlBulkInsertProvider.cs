@@ -124,7 +124,7 @@ internal class PostgreSqlBulkInsertProvider(ILoggerFactory? loggerFactory) : Bul
     private static NpgsqlDbType? GetPostgreSqlType(ColumnMetadata column, PostgreSqlBulkInsertOptions options)
     {
         var typeProviders = options.TypeProviders;
-        if (typeProviders is { Count: > 0 })
+        if (typeProviders is { Count: > 0 } && column.Property != null)
         {
             foreach (var typeProvider in typeProviders)
             {
@@ -133,6 +133,19 @@ internal class PostgreSqlBulkInsertProvider(ILoggerFactory? loggerFactory) : Bul
                     return type;
                 }
             }
+        }
+
+        if (column.Property == null)
+        {
+            // For JSON-mapped complex properties, Property is null; infer NpgsqlDbType from the
+            // store type recorded in StoreDefinition (e.g., "jsonb NULL" → NpgsqlDbType.Jsonb).
+            var storeType = column.StoreDefinition.Split(' ')[0];
+            return storeType switch
+            {
+                "jsonb" => NpgsqlDbType.Jsonb,
+                "json" => NpgsqlDbType.Json,
+                _ => null
+            };
         }
 
         var mapping = column.Property.GetRelationalTypeMapping() as NpgsqlTypeMapping;

@@ -38,18 +38,21 @@
       <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer.NetTopologySuite" Version="8.0.20" />
       <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL.NetTopologySuite" Version="8.0.11" />
       <PackageReference Include="Pomelo.EntityFrameworkCore.MySql.NetTopologySuite" Version="8.0.3" />
+      <PackageReference Include="EFCore.NamingConventions" Version="9.0.0" />
     </ItemGroup>
 
     <ItemGroup Label="NetTopologySuite net9.0" Condition="'$(TargetFramework)' == 'net9.0'">
       <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer.NetTopologySuite" Version="9.0.9" />
       <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL.NetTopologySuite" Version="9.0.4" />
       <PackageReference Include="Microting.EntityFrameworkCore.MySql.NetTopologySuite" Version="9.0.8" />
+      <PackageReference Include="EFCore.NamingConventions" Version="9.0.0" />
     </ItemGroup>
 
     <ItemGroup Label="NetTopologySuite net10.0" Condition="'$(TargetFramework)' == 'net10.0'">
       <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer.NetTopologySuite" Version="10.0.2" />
       <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL.NetTopologySuite" Version="10.0.0" />
       <PackageReference Include="Microting.EntityFrameworkCore.MySql.NetTopologySuite" Version="10.0.7" />
+      <PackageReference Include="EFCore.NamingConventions" Version="10.0.1" />
     </ItemGroup>
 
     <ItemGroup Label="Specific dependencies">

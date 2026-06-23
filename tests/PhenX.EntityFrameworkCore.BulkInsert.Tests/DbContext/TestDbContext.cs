@@ -76,6 +76,8 @@ public class TestDbContextPostgreSql : TestDbContext
     {
         base.OnModelCreating(modelBuilder);
 
+        modelBuilder.Entity<TestEntityWithArrays>().Property(e => e.IntArray).HasDefaultValueSql("'{}'");
+
         modelBuilder.Entity<TestEntityWithJson>(b =>
         {
             b.Property(x => x.JsonArray).AsJsonString("jsonb");

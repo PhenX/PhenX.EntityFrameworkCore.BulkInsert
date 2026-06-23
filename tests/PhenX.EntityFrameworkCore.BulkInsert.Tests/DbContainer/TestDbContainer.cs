@@ -24,13 +24,13 @@ public abstract class TestDbContainer<TBuilderEntity, TContainerEntity>(IMessage
 
     protected abstract TBuilderEntity CreateBuilder();
 
-    protected virtual string DbmsName => typeof(TContainerEntity).Name.Replace("Container", "");
+    protected virtual string DbmsName => GetType().Name.Replace("TestDbContainer", "");
 
     protected override TBuilderEntity Configure()
     {
         var targetFramework = GetType().Assembly.GetCustomAttributes<AssemblyMetadataAttribute>().FirstOrDefault(e => e.Key == "TargetFramework")?.Value ?? "NA";
         return CreateBuilder()
-            .WithReuse(true)
+            .WithReuse(false)
             .WithName($"PhenX.EntityFrameworkCore.BulkInsert.Tests.{DbmsName}-{targetFramework}")
             .WithWaitStrategy(Wait.ForUnixContainer().UntilDatabaseIsAvailable(DbProviderFactory));
     }

@@ -76,6 +76,35 @@ public abstract class BasicTestsBase<TDbContext>(IDbContextFactory dbContextFact
             o => o.RespectingRuntimeTypes().Excluding(e => e.Id));
     }
 
+    [SkippableTheory]
+    [CombinatorialData]
+    public async Task InsertEntities_WithNullableEnums(InsertStrategy strategy)
+    {
+        // Arrange
+        var entities = new List<TestEntityWithNullableEnums>
+        {
+            new()
+            {
+                TestRun = _run,
+                StringEnumValue = null,
+                NumericEnumValue = null,
+            },
+            new()
+            {
+                TestRun = _run,
+                StringEnumValue = StringEnum.First,
+                NumericEnumValue = NumericEnum.Second,
+            },
+        };
+
+        // Act
+        var insertedEntities = await _context.InsertWithStrategyAsync(strategy, entities);
+
+        // Assert
+        insertedEntities.Should().BeEquivalentTo(entities,
+            o => o.RespectingRuntimeTypes().Excluding(e => e.Id));
+    }
+
     [SkippableFact]
     public async Task InsertEntities_AndReturn_AsyncEnumerable()
     {

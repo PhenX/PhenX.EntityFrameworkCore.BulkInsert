@@ -64,8 +64,22 @@ internal static class PropertyAccessor
             // instance => converter(body)
             var invokeConverter = Expression.Invoke(converter, converterInput);
 
-            // If the property is a reference type, we need to check for null before calling the converter
-            if (body.Type.IsClass && !invokeConverter.Type.IsValueType)
+            // For nullable types, only call the converter if the value is not null
+            if (Nullable.GetUnderlyingType(body.Type) != null)
+            {
+                // Nullable<> as common result type for the converter and constant 'null'
+                var resultType = typeof(Nullable<>).MakeGenericType(invokeConverter.Type);
+
+                // instance => body == null ? null : (Nullable<T>)converter(body)
+                var nullCondition = Expression.Equal(body, Expression.Constant(null, body.Type));
+                var nullResult = Expression.Constant(null, resultType);
+                var nonNullResult = Expression.Convert(invokeConverter, resultType);
+
+                body = Expression.Condition(nullCondition, nullResult, nonNullResult);
+            }
+            // If the property is a reference type, we need to check for null before calling the converter. even if the
+            // property is not nullable
+            else if (body.Type.IsClass && !invokeConverter.Type.IsValueType)
             {
                 // instance => body == null ? null : converter(body)
                 var nullCondition = Expression.Equal(body, Expression.Constant(null, body.Type));

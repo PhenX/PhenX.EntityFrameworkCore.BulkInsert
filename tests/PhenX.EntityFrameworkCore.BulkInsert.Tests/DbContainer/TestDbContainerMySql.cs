@@ -6,7 +6,11 @@ using MySqlConnector;
 
 using PhenX.EntityFrameworkCore.BulkInsert.MySql;
 
+#if !NET10_0_OR_GREATER
 using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
+#else
+using Microting.EntityFrameworkCore.MySql.Infrastructure;
+#endif
 
 using Testcontainers.MySql;
 

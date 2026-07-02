@@ -16,8 +16,8 @@ internal class BulkInsertOptionsExtension<TProvider> : IDbContextOptionsExtensio
 
     public void ApplyServices(IServiceCollection services)
     {
-        services.TryAddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
-        services.AddSingleton<IBulkInsertProvider, TProvider>();
+        services.TryAddSingleton<ILoggerFactory, NullLoggerFactory>();
+        services.AddScoped<IBulkInsertProvider, TProvider>();
     }
 
     public void Validate(IDbContextOptions options)

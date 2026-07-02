@@ -99,6 +99,19 @@ public class BulkInsertOptions
     public HashSet<string>? ExcludeNavigations { get; set; }
 
     /// <summary>
+    /// Optional predicate used when <see cref="IncludeGraph"/> is enabled to decide whether an entity
+    /// reachable in the graph should be inserted. Return <c>false</c> to treat the entity as already
+    /// persisted: it will be skipped (not inserted) and its navigations will not be traversed, but its
+    /// primary key values are still used to propagate foreign keys to dependent entities.
+    /// <para>
+    /// This is the opt-in way to avoid re-inserting entities that already exist in the database
+    /// (which would cause a primary-key violation with client keys, or a silent duplicate row with
+    /// database-generated keys). Default: <c>null</c> (every reachable entity is inserted).
+    /// </para>
+    /// </summary>
+    public Func<object, bool>? GraphEntityFilter { get; set; }
+
+    /// <summary>
     /// When enabled, if a graph insert operation fails, the original primary key values of the entities will be restored.
     /// This ensures that entities in memory remain consistent with the database state after a transaction rollback.
     /// Can add a little overhead, so it is disabled by default. Enable this option if you need to access the primary

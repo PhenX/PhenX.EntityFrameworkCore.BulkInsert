@@ -1,0 +1,5 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="OpenTelemetry.Api" Version="1.*" />
+  </ItemGroup>
+</Project>

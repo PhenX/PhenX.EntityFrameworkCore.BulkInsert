@@ -15,14 +15,23 @@ but they are in [the roadmap](#roadmap).
 
 ## Packages
 
-| Package Name                                      | Description    | NuGet Link                                                                                                                                                                     |
-|---------------------------------------------------|----------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `PhenX.EntityFrameworkCore.BulkInsert.SqlServer`  | For SQL Server | [![NuGet](https://img.shields.io/nuget/v/PhenX.EntityFrameworkCore.BulkInsert.SqlServer.svg)](https://www.nuget.org/packages/PhenX.EntityFrameworkCore.BulkInsert.SqlServer)   |
-| `PhenX.EntityFrameworkCore.BulkInsert.PostgreSql` | For PostgreSQL | [![NuGet](https://img.shields.io/nuget/v/PhenX.EntityFrameworkCore.BulkInsert.PostgreSql.svg)](https://www.nuget.org/packages/PhenX.EntityFrameworkCore.BulkInsert.PostgreSql) |
-| `PhenX.EntityFrameworkCore.BulkInsert.Sqlite`     | For SQLite     | [![NuGet](https://img.shields.io/nuget/v/PhenX.EntityFrameworkCore.BulkInsert.Sqlite.svg)](https://www.nuget.org/packages/PhenX.EntityFrameworkCore.BulkInsert.Sqlite)         |
-| `PhenX.EntityFrameworkCore.BulkInsert.MySql`      | For MySql      | [![NuGet](https://img.shields.io/nuget/v/PhenX.EntityFrameworkCore.BulkInsert.Sqlite.svg)](https://www.nuget.org/packages/PhenX.EntityFrameworkCore.BulkInsert.MySql)          |
-| `PhenX.EntityFrameworkCore.BulkInsert.Oracle`     | For Oracle      | [![NuGet](https://img.shields.io/nuget/v/PhenX.EntityFrameworkCore.BulkInsert.Oracle.svg)](https://www.nuget.org/packages/PhenX.EntityFrameworkCore.BulkInsert.Oracle)         |
-| `PhenX.EntityFrameworkCore.BulkInsert`            | Common library | [![NuGet](https://img.shields.io/nuget/v/PhenX.EntityFrameworkCore.BulkInsert.svg)](https://www.nuget.org/packages/PhenX.EntityFrameworkCore.BulkInsert)                       |
+| Package Name                                         | Description                   | NuGet Link                                                                                                                                                                     |
+|------------------------------------------------------|-------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `PhenX.EntityFrameworkCore.BulkInsert.SqlServer`     | For SQL Server                | [![NuGet](https://img.shields.io/nuget/v/PhenX.EntityFrameworkCore.BulkInsert.SqlServer.svg)](https://www.nuget.org/packages/PhenX.EntityFrameworkCore.BulkInsert.SqlServer)   |
+| `PhenX.EntityFrameworkCore.BulkInsert.PostgreSql`    | For PostgreSQL                | [![NuGet](https://img.shields.io/nuget/v/PhenX.EntityFrameworkCore.BulkInsert.PostgreSql.svg)](https://www.nuget.org/packages/PhenX.EntityFrameworkCore.BulkInsert.PostgreSql) |
+| `PhenX.EntityFrameworkCore.BulkInsert.Sqlite`        | For SQLite                    | [![NuGet](https://img.shields.io/nuget/v/PhenX.EntityFrameworkCore.BulkInsert.Sqlite.svg)](https://www.nuget.org/packages/PhenX.EntityFrameworkCore.BulkInsert.Sqlite)         |
+| `PhenX.EntityFrameworkCore.BulkInsert.MySql`         | For MySql                     | [![NuGet](https://img.shields.io/nuget/v/PhenX.EntityFrameworkCore.BulkInsert.Sqlite.svg)](https://www.nuget.org/packages/PhenX.EntityFrameworkCore.BulkInsert.MySql)          |
+| `PhenX.EntityFrameworkCore.BulkInsert.Oracle`        | For Oracle                    | [![NuGet](https://img.shields.io/nuget/v/PhenX.EntityFrameworkCore.BulkInsert.Oracle.svg)](https://www.nuget.org/packages/PhenX.EntityFrameworkCore.BulkInsert.Oracle)         |
+| `PhenX.EntityFrameworkCore.BulkInsert`               | Common library                | [![NuGet](https://img.shields.io/nuget/v/PhenX.EntityFrameworkCore.BulkInsert.svg)](https://www.nuget.org/packages/PhenX.EntityFrameworkCore.BulkInsert)                       |
+| `PhenX.EntityFrameworkCore.BulkInsert.OpenTelemetry` | OpenTelemetry instrumentation | [![NuGet](https://img.shields.io/nuget/v/PhenX.EntityFrameworkCore.BulkInsert.svg)](https://www.nuget.org/packages/PhenX.EntityFrameworkCore.BulkInsert.OpenTelemetry)         |
+
+### Dependencies
+
+This library depends on the official Entity Framework Core packages provided by each database vendor.
+
+MySQL is a special case: the [Pomelo MySQL](https://github.com/PomeloFoundation/Pomelo.EntityFrameworkCore.MySql) package is widely preferred for its superior MySQL feature support. However, the package relies heavily on a single maintainer and does not yet support .NET 10. See the relevant [issue](https://github.com/PomeloFoundation/Pomelo.EntityFrameworkCore.MySql).
+
+A community fork is available at https://github.com/microting/Pomelo.EntityFrameworkCore.MySql that addresses this gap. **For .NET 10 only**, this library takes a dependency on that fork.
 
 ## Installation
 
@@ -43,6 +52,9 @@ Install-Package PhenX.EntityFrameworkCore.BulkInsert.MySql
 
 # For Oracle
 Install-Package PhenX.EntityFrameworkCore.BulkInsert.Oracle
+
+# For OpenTelemetry instrumentation
+Install-Package PhenX.EntityFrameworkCore.BulkInsert.OpenTelemetry
 ```
 
 ## Usage
@@ -139,6 +151,25 @@ await dbContext.ExecuteBulkInsertAsync(blogs, o => o.IncludeGraph = true);
 > ℹ️ Automatic propagation of **database-generated keys** for graph inserts is not available for Oracle and MySQL providers due to limitations in retrieving generated IDs. You can still use `IncludeGraph` with these providers when keys are client-generated.
 
 See [Graph Insert documentation](https://phenx.github.io/PhenX.EntityFrameworkCore.BulkInsert/graph-insert.html) for details and provider-specific notes.
+
+### Logging
+
+Bulk insert operations emit EF Core-style logs when a logger factory is configured on the `DbContext` options:
+
+```csharp
+services.AddDbContext<MyDbContext>(options =>
+{
+    options
+        .UseSqlite(connectionString)
+        .UseLoggerFactory(loggerFactory)
+        .UseBulkInsertSqlite();
+});
+```
+
+Log events:
+
+* `1004` (`Information`): bulk insert completion with elapsed time and destination table.
+* `1005` (`Debug`): auxiliary SQL commands executed by the library (such as temp-table DDL).
 
 ### Conflict resolution / merge / upsert
 

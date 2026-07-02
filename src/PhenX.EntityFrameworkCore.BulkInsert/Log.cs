@@ -27,4 +27,16 @@ internal static partial class Log
         Level = LogLevel.Error,
         Message = "Failed to drop temporary table.")]
     public static partial void DropTemporaryTableFailed(ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        EventId = 1004,
+        Level = LogLevel.Information,
+        Message = "Executed BulkInsert ({ElapsedMs}ms) [DestinationTable='{DestinationTable}']")]
+    public static partial void BulkInsertExecuted(ILogger logger, long elapsedMs, string destinationTable);
+
+    [LoggerMessage(
+        EventId = 1005,
+        Level = LogLevel.Debug,
+        Message = "Executed DbCommand ({ElapsedMs}ms)\n{CommandText}")]
+    public static partial void ExecutedDbCommand(ILogger logger, long elapsedMs, string commandText);
 }

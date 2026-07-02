@@ -84,6 +84,25 @@ await dbContext.ExecuteBulkInsertAsync(entities, o =>
 await dbContext.ExecuteBulkInsertReturnEntitiesAsync(entities);
 ```
 
+## Logging
+
+Bulk insert operations emit EF Core-style logs when a logger factory is configured:
+
+```csharp
+services.AddDbContext<MyDbContext>(options =>
+{
+    options
+        .UseSqlite(connectionString)
+        .UseLoggerFactory(loggerFactory)
+        .UseBulkInsertSqlite();
+});
+```
+
+Log events:
+
+* `1004` (`Information`): bulk insert completion with elapsed time and destination table.
+* `1005` (`Debug`): auxiliary SQL commands executed by the library (for example temp-table SQL).
+
 ### Conflict resolution / merge / upsert
 
 Conflict resolution works by specifying columns that should be used to detect conflicts and the action to take when

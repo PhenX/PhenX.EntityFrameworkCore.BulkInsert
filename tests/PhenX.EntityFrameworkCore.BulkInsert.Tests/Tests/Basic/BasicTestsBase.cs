@@ -314,15 +314,12 @@ public abstract class BasicTestsBase<TDbContext>(IDbContextFactory dbContextFact
             new TestEntityWithGuidId { TestRun = _run, Id = Guid.NewGuid(), Name = $"{_run}_Entity2" }
         };
 
-        // Act
-        var insertedEntities = await _context.InsertWithStrategyAsync(strategy, entities, configure => configure.CopyGeneratedColumns = true);
+        // Act - Guid PKs should be included in INSERT without requiring CopyGeneratedColumns = true
+        var insertedEntities = await _context.InsertWithStrategyAsync(strategy, entities);
 
-        // Assert
+        // Assert - all fields including the application-assigned Guid Id should be preserved
         insertedEntities.Should().BeEquivalentTo(entities,
-            o=> o
-                .RespectingRuntimeTypes()
-                .Excluding(e => e.Id)
-            );
+            o => o.RespectingRuntimeTypes());
     }
 
     [SkippableTheory]

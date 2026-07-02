@@ -94,15 +94,20 @@ internal abstract class SqlDialectBuilder
         {
             AppendOnConflictStatement(q);
 
-            if (onConflictTyped.Update != null)
+            // An Update expression can resolve to zero columns (e.g. an entity that is nothing but its
+            // primary key, so there is no non-key column to overwrite). Emitting "DO UPDATE SET" with an
+            // empty assignment list is invalid SQL on every provider (PostgreSQL 42601, SQLite "near ;"),
+            // and there is nothing to update on a match anyway, so fall back to DO NOTHING.
+            var updates = onConflictTyped.Update != null
+                ? GetUpdates(context, target, insertedColumns, onConflictTyped.Update).ToList()
+                : new List<string>();
+
+            if (updates.Count > 0)
             {
                 AppendConflictMatch(q, target, onConflictTyped);
 
-                if (onConflictTyped.Update != null)
-                {
-                    q.Append(' ');
-                    AppendOnConflictUpdate(q, GetUpdates(context, target, insertedColumns, onConflictTyped.Update));
-                }
+                q.Append(' ');
+                AppendOnConflictUpdate(q, updates);
 
                 if (onConflictTyped.RawWhere != null || onConflictTyped.Where != null)
                 {

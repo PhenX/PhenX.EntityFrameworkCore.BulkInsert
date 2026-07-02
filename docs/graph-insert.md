@@ -29,6 +29,12 @@ await dbContext.ExecuteBulkInsertAsync(blogs, options =>
 | `MaxGraphDepth` | `0` (unlimited) | Maximum depth to traverse. Use 0 for unlimited. |
 | `IncludeNavigations` | `null` (all) | Specific navigation property names to include |
 | `ExcludeNavigations` | `null` (none) | Navigation property names to exclude |
+| `GraphEntityFilter` | `null` | Predicate to skip entities that already exist (see [Skipping already-persisted entities](#skipping-already-persisted-entities)) |
+| `RestoreOriginalPrimaryKeysOnGraphInsertFailure` | `false` | Restore original PK values on the in-memory entities if the insert fails and rolls back |
+
+> ℹ️ Graph insert **mutates the entities you pass in**: foreign-key properties are set from their parents' keys,
+> inverse navigation properties are populated so the parent can be found, and database-generated primary keys are
+> written back onto the original objects after insertion.
 
 ## Supported Relationship Types
 
@@ -127,11 +133,36 @@ await dbContext.ExecuteBulkInsertAsync(new[] { blog }, o =>
 });
 ```
 
+### Skipping already-persisted entities
+
+By default every entity reachable through the graph is inserted, so a child that references an
+already-persisted parent would re-insert that parent (a primary-key violation with client keys, or a
+silent duplicate row with database-generated keys). Use `GraphEntityFilter` to mark such entities as
+existing — they are not inserted and their navigations are not traversed, but their primary key values
+are still used to propagate foreign keys to their dependents:
+
+```csharp
+await dbContext.ExecuteBulkInsertAsync(new[] { blog }, o =>
+{
+    o.IncludeGraph = true;
+    // Treat entities that already have a key as existing (return false => skip insert).
+    o.GraphEntityFilter = entity => entity is not Blog b || b.Id == 0;
+});
+```
+
 ## Limitations
 
-- **Shadow foreign keys**: Currently not supported. Add a CLR property for foreign keys.
-- **Circular references**: Handled gracefully by tracking visited entities, but may result in incomplete graphs.
+- **Shadow foreign keys**: Not supported. If a traversed relationship needs a shadow foreign key
+  written, a `NotSupportedException` is thrown — add a CLR foreign-key property or exclude the navigation.
+- **Required foreign-key cycles**: If two entity types reference each other with required foreign keys,
+  there is no valid insertion order and a `NotSupportedException` is thrown. Make one side optional or
+  exclude a navigation to break the cycle. Optional-FK cycles are allowed.
 - **Owned entities**: Owned entity types are not included in graph traversal and are not inserted when using `IncludeGraph = true`.
-- **Self-referencing hierarchies**: Multi-level self-referencing hierarchies (e.g., Category → Children) require multiple insert operations. Root entities can be inserted, but nested children with FK references to other entities of the same type within the same batch are not supported.
-- **Many-to-many join tables**: Entities on both sides of many-to-many relationships are traversed and inserted. However, automatic join table population only works with explicit join entity types (not `Dictionary<string, object>` shared-type entities).
+- **Self-referencing hierarchies**: Multi-level self-referencing hierarchies (e.g., Category → Children)
+  with database-generated keys are not supported and now throw a `NotSupportedException` instead of
+  producing incorrect foreign keys. Root entities (or client-generated keys) work.
+- **Many-to-many join tables**: Entities on both sides of many-to-many relationships are traversed and inserted. However, automatic join table population only works with explicit join entity types (not `Dictionary<string, object>` shared-type entities); implicit shared-type join tables are skipped with a warning.
+- **`ReturnEntities` / `ReturnEnumerable` APIs**: `IncludeGraph` is not supported on
+  `ExecuteBulkInsertReturnEntities(Async)` / `ExecuteBulkInsertReturnEnumerableAsync` and throws a
+  `NotSupportedException`. Use `ExecuteBulkInsert(Async)`.
 - **OnConflict/Upsert**: Not currently supported with `IncludeGraph = true`.

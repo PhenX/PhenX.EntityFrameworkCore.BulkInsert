@@ -48,6 +48,12 @@ export default defineConfig({
             {
                 text: 'Documentation',
                 link: '/documentation',
+                items: [
+                    {
+                        text: 'OpenTelemetry',
+                        link: '/opentelemetry',
+                    },
+                ],
             },
             {
                 text: 'Limitations',

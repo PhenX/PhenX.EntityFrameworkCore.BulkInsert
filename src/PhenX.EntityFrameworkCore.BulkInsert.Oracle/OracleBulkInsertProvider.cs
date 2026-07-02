@@ -11,7 +11,7 @@ using PhenX.EntityFrameworkCore.BulkInsert.Options;
 namespace PhenX.EntityFrameworkCore.BulkInsert.Oracle;
 
 [UsedImplicitly]
-internal class OracleBulkInsertProvider(ILogger<OracleBulkInsertProvider>? logger) : BulkInsertProviderBase<OracleDialectBuilder, OracleBulkInsertOptions>(logger)
+internal class OracleBulkInsertProvider(ILoggerFactory? loggerFactory) : BulkInsertProviderBase<OracleDialectBuilder, OracleBulkInsertOptions>(loggerFactory)
 {
     /// <inheritdoc />
     protected override string BulkInsertId => "ROWID";
@@ -62,7 +62,20 @@ internal class OracleBulkInsertProvider(ILogger<OracleBulkInsertProvider>? logge
 
         using var bulkCopy = new OracleBulkCopy(connection, options.CopyOptions);
 
-        bulkCopy.DestinationTableName = tableName;
+        // OracleBulkCopy's direct-path load cannot handle schema-qualified table names.
+        // When a schema is configured (e.g. via HasDefaultSchema()), the QuotedTableName
+        // includes a schema prefix (e.g. "SchemaX"."TableA"), which ODP.NET double-applies,
+        // producing SchemaX.SchemaX.TableA (ORA-39831). Use DestinationSchemaName explicitly.
+        if (tableName == tableInfo.QuotedTableName && tableInfo.Schema != null)
+        {
+            bulkCopy.DestinationTableName = SqlDialect.Quote(tableInfo.TableName);
+            bulkCopy.DestinationSchemaName = tableInfo.Schema;
+        }
+        else
+        {
+            bulkCopy.DestinationTableName = tableName;
+        }
+
         bulkCopy.BatchSize = options.BatchSize;
         bulkCopy.BulkCopyTimeout = options.GetCopyTimeoutInSeconds();
 

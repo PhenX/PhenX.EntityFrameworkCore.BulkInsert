@@ -15,7 +15,7 @@ using PhenX.EntityFrameworkCore.BulkInsert.Metadata;
 namespace PhenX.EntityFrameworkCore.BulkInsert.PostgreSql;
 
 [UsedImplicitly]
-internal class PostgreSqlBulkInsertProvider(ILogger<PostgreSqlBulkInsertProvider>? logger) : BulkInsertProviderBase<PostgreSqlDialectBuilder, PostgreSqlBulkInsertOptions>(logger)
+internal class PostgreSqlBulkInsertProvider(ILoggerFactory? loggerFactory) : BulkInsertProviderBase<PostgreSqlDialectBuilder, PostgreSqlBulkInsertOptions>(loggerFactory)
 {
     //language=sql
     /// <inheritdoc />

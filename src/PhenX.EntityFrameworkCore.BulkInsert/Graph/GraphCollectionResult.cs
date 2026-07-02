@@ -19,4 +19,10 @@ internal sealed class GraphCollectionResult
     /// Many-to-many join records to insert after both sides are inserted.
     /// </summary>
     public required List<JoinRecord> JoinRecords { get; init; }
+
+    /// <summary>
+    /// The actual root entity instances passed to the collector, in input order. Captured directly so
+    /// callers can return them without a type-keyed lookup (which misses TPH-derived and proxy roots).
+    /// </summary>
+    public required List<object> RootEntities { get; init; }
 }

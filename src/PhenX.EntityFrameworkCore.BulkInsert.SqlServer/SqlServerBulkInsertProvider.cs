@@ -10,7 +10,7 @@ using PhenX.EntityFrameworkCore.BulkInsert.Metadata;
 namespace PhenX.EntityFrameworkCore.BulkInsert.SqlServer;
 
 [UsedImplicitly]
-internal class SqlServerBulkInsertProvider(ILogger<SqlServerBulkInsertProvider>? logger) : BulkInsertProviderBase<SqlServerDialectBuilder, SqlServerBulkInsertOptions>(logger)
+internal class SqlServerBulkInsertProvider(ILoggerFactory? loggerFactory) : BulkInsertProviderBase<SqlServerDialectBuilder, SqlServerBulkInsertOptions>(loggerFactory)
 {
     //language=sql
     /// <inheritdoc />

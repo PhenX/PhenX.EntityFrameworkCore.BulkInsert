@@ -24,6 +24,13 @@ public static partial class PublicExtensions
     {
         var (provider, context, options) = InitProvider(dbSet, configure);
 
+        if (options.IncludeGraph)
+        {
+            throw new NotSupportedException(
+                "IncludeGraph is not supported with the ReturnEntities/ReturnEnumerable APIs; " +
+                "use ExecuteBulkInsert(Async).");
+        }
+
         var enumerable = provider.BulkInsertReturnEntities(sync, context, dbSet.GetDbContext().GetTableInfo<TEntity>(), entities, options, onConflict, ctk);
 
         var result = new List<TEntity>();

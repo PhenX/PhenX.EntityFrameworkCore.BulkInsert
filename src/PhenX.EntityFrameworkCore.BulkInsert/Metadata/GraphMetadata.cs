@@ -46,11 +46,31 @@ internal sealed class GraphMetadata
     }
 
     /// <summary>
-    /// Gets the entity type for a CLR type.
+    /// Gets the entity type for a CLR type. Lazy-loading proxies (e.g. Castle) subclass the mapped
+    /// entity, so when the direct lookup misses we walk up the base types to resolve the model type,
+    /// caching the result for subsequent lookups.
     /// </summary>
     public IEntityType? GetEntityType(Type clrType)
     {
-        return _entityTypes.GetValueOrDefault(clrType);
+        if (_entityTypes.TryGetValue(clrType, out var entityType))
+        {
+            return entityType;
+        }
+
+        var baseType = clrType.BaseType;
+        while (baseType != null && baseType != typeof(object))
+        {
+            if (_entityTypes.TryGetValue(baseType, out entityType))
+            {
+                // Map the proxy/derived CLR type to the resolved model type for fast future lookups.
+                _entityTypes[clrType] = entityType;
+                return entityType;
+            }
+
+            baseType = baseType.BaseType;
+        }
+
+        return null;
     }
 
     /// <summary>
@@ -117,7 +137,7 @@ internal sealed class GraphMetadata
 
         if (!visiting.Add(type))
         {
-            // Cycle detected - this is handled gracefully, just skip
+            // Reached via a back edge from a caller that already checked the FK requiredness below.
             return;
         }
 
@@ -125,6 +145,22 @@ internal sealed class GraphMetadata
         var navigations = GetNavigations(type);
         foreach (var nav in navigations.Where(n => n.IsDependentToPrincipal && validTypes.Contains(n.TargetType) && n.TargetType != type))
         {
+            if (visiting.Contains(nav.TargetType))
+            {
+                // Back edge => dependency cycle between entity types. If the foreign key is required,
+                // there is no valid insertion order (each side needs the other inserted first), so fail
+                // loudly. Optional-FK cycles can proceed (the FK is simply left NULL for now).
+                if (nav.ForeignKey?.IsRequired == true)
+                {
+                    throw new NotSupportedException(
+                        $"IncludeGraph detected a required foreign-key dependency cycle between entity types " +
+                        $"'{type.Name}' and '{nav.TargetType.Name}'. There is no valid insertion order; break the " +
+                        $"cycle by making one of the foreign keys optional or by excluding a navigation.");
+                }
+
+                continue;
+            }
+
             TopologicalSort(nav.TargetType, validTypes, visited, visiting, result);
         }
 

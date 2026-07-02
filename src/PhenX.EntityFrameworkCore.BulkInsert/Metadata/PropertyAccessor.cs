@@ -86,6 +86,34 @@ internal static class PropertyAccessor
         return Expression.Lambda<Func<object, object?>>(finalExpression, instanceParam).Compile();
     }
 
+    public static Action<object, object?> CreateSetter(PropertyInfo propertyInfo)
+    {
+        ArgumentNullException.ThrowIfNull(propertyInfo);
+
+        if (!propertyInfo.CanWrite)
+        {
+            throw new ArgumentException($"Property '{propertyInfo.Name}' is not writable", nameof(propertyInfo));
+        }
+
+        // (instance, value) => { }
+        var instanceParam = Expression.Parameter(typeof(object), "instance");
+        var valueParam = Expression.Parameter(typeof(object), "value");
+
+        var propDeclaringType = propertyInfo.DeclaringType!;
+
+        // Convert object to the declaring type
+        var typedInstance = GetTypedInstance(propDeclaringType, instanceParam);
+
+        // Convert value to property type (both value types and reference types need conversion from object)
+        var typedValue = Expression.Convert(valueParam, propertyInfo.PropertyType);
+
+        // ((TEntity)instance).Property = (TProperty)value
+        var propertyAccess = Expression.Property(typedInstance, propertyInfo);
+        var assignment = Expression.Assign(propertyAccess, typedValue);
+
+        return Expression.Lambda<Action<object, object?>>(assignment, instanceParam, valueParam).Compile();
+    }
+
     private static UnaryExpression GetTypedInstance(Type propDeclaringType, ParameterExpression instanceParam)
     {
         return propDeclaringType.IsValueType

@@ -2,7 +2,6 @@
 
 For now this library does not support the following features:
 
-* **Navigation properties**: The library does not support inserting entities with navigation properties. You can only insert simple entities without any relationships.
 * **Change tracking**: The library does not track changes to the entities being inserted. This means that you cannot use the `DbContext.ChangeTracker` to track changes to the entities after they have been inserted.
 * **Inheritance**: The library does not support inserting entities with inheritance (TPT, TPH, TPC). You can only insert entities of a single type.
 

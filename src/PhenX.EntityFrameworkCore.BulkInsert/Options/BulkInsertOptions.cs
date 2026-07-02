@@ -74,6 +74,38 @@ public class BulkInsertOptions
     /// </summary>
     public ProgressCallback? OnProgress { get; set; }
 
+    /// <summary>
+    /// When enabled, recursively inserts all reachable entities via navigation properties.
+    /// This includes one-to-one, one-to-many, many-to-one, and many-to-many relationships.
+    /// Default: false (only the root entities are inserted).
+    /// </summary>
+    public bool IncludeGraph { get; set; }
+
+    /// <summary>
+    /// Maximum depth for graph traversal when IncludeGraph is enabled.
+    /// Use 0 for unlimited depth. Default: 0.
+    /// </summary>
+    public int MaxGraphDepth { get; set; }
+
+    /// <summary>
+    /// Navigation properties to explicitly include when IncludeGraph is enabled.
+    /// If empty and IncludeGraph is true, all navigation properties are included.
+    /// </summary>
+    public HashSet<string>? IncludeNavigations { get; set; }
+
+    /// <summary>
+    /// Navigation properties to explicitly exclude when IncludeGraph is enabled.
+    /// </summary>
+    public HashSet<string>? ExcludeNavigations { get; set; }
+
+    /// <summary>
+    /// When enabled, if a graph insert operation fails, the original primary key values of the entities will be restored.
+    /// This ensures that entities in memory remain consistent with the database state after a transaction rollback.
+    /// Can add a little overhead, so it is disabled by default. Enable this option if you need to access the primary
+    /// key values of entities after a failed graph insert operation.
+    /// </summary>
+    public bool RestoreOriginalPrimaryKeysOnGraphInsertFailure { get; set; }
+
     internal int GetCopyTimeoutInSeconds()
     {
         return Math.Max(0, (int)CopyTimeout.TotalSeconds);

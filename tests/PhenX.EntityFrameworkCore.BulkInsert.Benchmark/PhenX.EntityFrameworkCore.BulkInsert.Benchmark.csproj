@@ -4,6 +4,8 @@
     <OutputType>Exe</OutputType>
     <IsPackable>false</IsPackable>
     <IsTestProject>false</IsTestProject>
+    <!-- Uncomment the line below to enable IncludeGraph in the benchmark. -->
+<!--    <DefineConstants>$(DefineConstants);BENCHMARK_INCLUDE_GRAPH</DefineConstants>-->
   </PropertyGroup>
 
   <ItemGroup>

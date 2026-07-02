@@ -127,6 +127,31 @@ await dbContext.ExecuteBulkInsertAsync(entities, o =>
 await dbContext.ExecuteBulkInsertReturnEntitiesAsync(entities);
 ```
 
+### Insert with navigation properties (Graph Insert)
+
+Insert entities with their related navigation properties:
+
+```csharp
+var blogs = new List<Blog>
+{
+    new Blog
+    {
+        Name = "Blog 1",
+        Posts = new List<Post>
+        {
+            new Post { Title = "Post 1" },
+            new Post { Title = "Post 2" }
+        }
+    }
+};
+
+await dbContext.ExecuteBulkInsertAsync(blogs, o => o.IncludeGraph = true);
+```
+
+> ℹ️ Automatic propagation of **database-generated keys** for graph inserts is not available for Oracle and MySQL providers due to limitations in retrieving generated IDs. You can still use `IncludeGraph` with these providers when keys are client-generated.
+
+See [Graph Insert documentation](https://phenx.github.io/PhenX.EntityFrameworkCore.BulkInsert/graph-insert.html) for details and provider-specific notes.
+
 ### Logging
 
 Bulk insert operations emit EF Core-style logs when a logger factory is configured on the `DbContext` options:
@@ -183,7 +208,7 @@ await dbContext.ExecuteBulkInsertAsync(entities, onConflict: new OnConflictOptio
 
 ## Roadmap
 
-- [ ] [Add support for navigation properties](https://github.com/PhenX/PhenX.EntityFrameworkCore.BulkInsert/issues/2)
+- [x] [Add support for navigation properties](https://github.com/PhenX/PhenX.EntityFrameworkCore.BulkInsert/issues/2)
 - [x] [Add support for complex types](https://github.com/PhenX/PhenX.EntityFrameworkCore.BulkInsert/issues/3)
 - [x] Add support for owned types
 - [ ] Add support for shadow properties

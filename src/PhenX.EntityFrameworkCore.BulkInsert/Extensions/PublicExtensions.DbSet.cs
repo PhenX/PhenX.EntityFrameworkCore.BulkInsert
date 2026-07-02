@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
+using PhenX.EntityFrameworkCore.BulkInsert.Graph;
 using PhenX.EntityFrameworkCore.BulkInsert.Options;
 
 namespace PhenX.EntityFrameworkCore.BulkInsert.Extensions;
@@ -157,6 +158,21 @@ public static partial class PublicExtensions
     {
         var (provider, context, options) = InitProvider(dbSet, configure);
 
+        if (options.IncludeGraph)
+        {
+            if (onConflict != null)
+            {
+                throw new InvalidOperationException(
+                    "OnConflict options cannot be used together with IncludeGraph. " +
+                    "Either disable IncludeGraph or remove the onConflict parameter.");
+            }
+
+            var orchestrator = new GraphBulkInsertOrchestrator(context);
+            await orchestrator.InsertGraph(false, entities, options, provider, cancellationToken);
+
+            return;
+        }
+
         await provider.BulkInsert(false, context, dbSet.GetDbContext().GetTableInfo<T>(), entities, options, onConflict,
             cancellationToken);
     }
@@ -203,6 +219,22 @@ public static partial class PublicExtensions
         where TOptions : BulkInsertOptions
     {
         var (provider, context, options) = InitProvider(dbSet, configure);
+
+        if (options.IncludeGraph)
+        {
+            if (onConflict != null)
+            {
+                throw new InvalidOperationException(
+                    "OnConflict options cannot be used together with IncludeGraph. " +
+                    "Either disable IncludeGraph or remove the onConflict parameter.");
+            }
+
+            var orchestrator = new GraphBulkInsertOrchestrator(context);
+            orchestrator.InsertGraph(true, entities, options, provider, CancellationToken.None)
+                .GetAwaiter().GetResult();
+
+            return;
+        }
 
         provider.BulkInsert(true, context, dbSet.GetDbContext().GetTableInfo<T>(), entities, options, onConflict)
             .GetAwaiter().GetResult();

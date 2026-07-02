@@ -1,0 +1,133 @@
+using System.Reflection;
+
+using Microsoft.EntityFrameworkCore.Metadata;
+
+namespace PhenX.EntityFrameworkCore.BulkInsert.Metadata;
+
+/// <summary>
+/// Metadata for a navigation property in an entity type.
+/// </summary>
+internal sealed class NavigationMetadata
+{
+    public NavigationMetadata(INavigationBase navigation)
+    {
+        Navigation = navigation;
+        PropertyName = navigation.Name;
+        TargetType = navigation.TargetEntityType.ClrType;
+        IsCollection = navigation.IsCollection;
+
+        // Build optimized getter for the navigation property
+        var propertyInfo = navigation.DeclaringEntityType.ClrType.GetProperty(
+            navigation.Name,
+            BindingFlags.Public | BindingFlags.Instance)
+            ?? throw new InvalidOperationException($"Property '{navigation.Name}' not found on type '{navigation.DeclaringEntityType.ClrType.Name}'");
+
+        _getter = PropertyAccessor.CreateGetter(propertyInfo);
+
+        // Build inverse navigation metadata if available
+        if (navigation is INavigation { Inverse: not null } regularNav)
+        {
+            var inverse = regularNav.Inverse;
+            var inversePropertyInfo = inverse.DeclaringEntityType.ClrType.GetProperty(
+                inverse.Name,
+                BindingFlags.Public | BindingFlags.Instance);
+
+            if (inversePropertyInfo != null && inversePropertyInfo.CanWrite)
+            {
+                _inverseGetter = PropertyAccessor.CreateGetter(inversePropertyInfo);
+                _inverseSetter = PropertyAccessor.CreateSetter(inversePropertyInfo);
+            }
+        }
+
+        if (navigation is ISkipNavigation skipNavigation)
+        {
+            IsManyToMany = true;
+            JoinEntityType = skipNavigation.JoinEntityType;
+            ForeignKey = skipNavigation.ForeignKey;
+            InverseForeignKey = skipNavigation.Inverse?.ForeignKey;
+        }
+        else if (navigation is INavigation regularNavigation)
+        {
+            IsManyToMany = false;
+            ForeignKey = regularNavigation.ForeignKey;
+            IsDependentToPrincipal = regularNavigation.IsOnDependent;
+        }
+    }
+
+    private readonly Func<object, object?> _getter;
+    private readonly Func<object, object?>? _inverseGetter;
+    private readonly Action<object, object?>? _inverseSetter;
+
+    /// <summary>
+    /// The underlying EF Core navigation.
+    /// </summary>
+    public INavigationBase Navigation { get; }
+
+    /// <summary>
+    /// The name of the navigation property.
+    /// </summary>
+    public string PropertyName { get; }
+
+    /// <summary>
+    /// The CLR type of the related entity.
+    /// </summary>
+    public Type TargetType { get; }
+
+    /// <summary>
+    /// True if this is a collection navigation (one-to-many, many-to-many).
+    /// </summary>
+    public bool IsCollection { get; }
+
+    /// <summary>
+    /// True if this is a many-to-many navigation.
+    /// </summary>
+    public bool IsManyToMany { get; }
+
+    /// <summary>
+    /// For many-to-many, the join entity type.
+    /// </summary>
+    public IEntityType? JoinEntityType { get; }
+
+    /// <summary>
+    /// The foreign key associated with this navigation.
+    /// </summary>
+    public IForeignKey? ForeignKey { get; }
+
+    /// <summary>
+    /// For many-to-many, the inverse foreign key.
+    /// </summary>
+    public IForeignKey? InverseForeignKey { get; }
+
+    /// <summary>
+    /// True if this navigation goes from dependent to principal (the entity owns the FK).
+    /// </summary>
+    public bool IsDependentToPrincipal { get; }
+
+    /// <summary>
+    /// Gets the value of the navigation property from the entity using an optimized getter.
+    /// </summary>
+    public object? GetValue(object entity) => _getter.Invoke(entity);
+
+    /// <summary>
+    /// Gets the value of the inverse navigation property from the entity using an optimized getter.
+    /// Returns null if there is no inverse navigation.
+    /// </summary>
+    public object? GetInverseValue(object entity) => _inverseGetter?.Invoke(entity);
+
+    /// <summary>
+    /// Sets the value of the inverse navigation property on the entity using an optimized setter.
+    /// Does nothing if there is no inverse navigation.
+    /// </summary>
+    public void SetInverseValue(object entity, object? value) => _inverseSetter?.Invoke(entity, value);
+
+    /// <summary>
+    /// Returns true if this navigation has an inverse navigation with a setter.
+    /// </summary>
+    public bool HasInverseSetter => _inverseSetter != null;
+
+    public override string ToString()
+    {
+        var relationshipType = IsManyToMany ? "ManyToMany" : (IsCollection ? "OneToMany" : "OneToOne");
+        return $"{PropertyName} -> {TargetType.Name} ({relationshipType})";
+    }
+}

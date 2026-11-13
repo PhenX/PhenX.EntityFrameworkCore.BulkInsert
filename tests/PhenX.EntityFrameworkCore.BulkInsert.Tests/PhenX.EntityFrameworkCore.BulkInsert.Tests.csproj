@@ -52,14 +52,27 @@
       <PackageReference Include="Microting.EntityFrameworkCore.MySql.NetTopologySuite" Version="10.0.7" />
     </ItemGroup>
 
+    <ItemGroup Label="NetTopologySuite net11.0" Condition="'$(TargetFramework)' == 'net11.0'">
+      <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer.NetTopologySuite" Version="11.0.0" />
+      <PackageReference Include="Microting.EntityFrameworkCore.MySql.NetTopologySuite" Version="11.0.0-preview.1" />
+    </ItemGroup>
+
     <ItemGroup Label="Specific dependencies">
       <PackageReference Include="Ardalis.SmartEnum.EFCore" Version="8.2.0" />
     </ItemGroup>
 
+    <ItemGroup Label="Exclude PostgreSql code" Condition="'$(PostgreSqlSupported)' != 'true'">
+      <Compile Remove="**\*PostgreSql*.cs" />
+    </ItemGroup>
+
+    <ItemGroup Label="Exclude Oracle code" Condition="'$(OracleSupported)' != 'true'">
+      <Compile Remove="**\*Oracle*.cs" />
+    </ItemGroup>
+
     <ItemGroup>
       <ProjectReference Include="..\..\src\PhenX.EntityFrameworkCore.BulkInsert.MySql\PhenX.EntityFrameworkCore.BulkInsert.MySql.csproj" />
-      <ProjectReference Include="..\..\src\PhenX.EntityFrameworkCore.BulkInsert.Oracle\PhenX.EntityFrameworkCore.BulkInsert.Oracle.csproj" />
-      <ProjectReference Include="..\..\src\PhenX.EntityFrameworkCore.BulkInsert.PostgreSql\PhenX.EntityFrameworkCore.BulkInsert.PostgreSql.csproj" />
+      <ProjectReference Include="..\..\src\PhenX.EntityFrameworkCore.BulkInsert.Oracle\PhenX.EntityFrameworkCore.BulkInsert.Oracle.csproj" Condition="'$(OracleSupported)' == 'true'" />
+      <ProjectReference Include="..\..\src\PhenX.EntityFrameworkCore.BulkInsert.PostgreSql\PhenX.EntityFrameworkCore.BulkInsert.PostgreSql.csproj" Condition="'$(PostgreSqlSupported)' == 'true'" />
       <ProjectReference Include="..\..\src\PhenX.EntityFrameworkCore.BulkInsert.Sqlite\PhenX.EntityFrameworkCore.BulkInsert.Sqlite.csproj" />
       <ProjectReference Include="..\..\src\PhenX.EntityFrameworkCore.BulkInsert.SqlServer\PhenX.EntityFrameworkCore.BulkInsert.SqlServer.csproj" />
     </ItemGroup>

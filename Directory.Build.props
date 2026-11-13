@@ -1,7 +1,7 @@
 ﻿<Project>
 
     <PropertyGroup>
-        <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+        <TargetFrameworks>net8.0;net9.0;net10.0;net11.0</TargetFrameworks>
         <LanguageVersion>12</LanguageVersion>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
@@ -23,5 +23,13 @@
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageIcon>icon.png</PackageIcon>
         <PackageReleaseNotes>https://github.com/PhenX/PhenX.EntityFrameworkCore.BulkInsert/releases</PackageReleaseNotes>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <!-- Npgsql.EntityFrameworkCore.PostgreSQL and Oracle.EntityFrameworkCore have no stable EF Core 11 release yet -->
+        <PostgreSqlSupported>true</PostgreSqlSupported>
+        <PostgreSqlSupported Condition="'$(TargetFramework)' == 'net11.0'">false</PostgreSqlSupported>
+        <OracleSupported>true</OracleSupported>
+        <OracleSupported Condition="'$(TargetFramework)' == 'net11.0'">false</OracleSupported>
     </PropertyGroup>
 </Project>

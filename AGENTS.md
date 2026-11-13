@@ -48,7 +48,8 @@ dotnet run --project tests/PhenX.EntityFrameworkCore.BulkInsert.Benchmark -c Rel
 - Tests skipped automatically when Docker is unavailable or DB container can't start
 
 ## Multi-targeting
-All projects target `net8.0;net9.0;net10.0`. C# 12, nullable enabled, implicit usings.
+All projects target `net8.0;net9.0;net10.0;net11.0`. C# 12, nullable enabled, implicit usings.
+The PostgreSql and Oracle projects and the benchmarks skip `net11.0` until their dependencies support EF Core 11 (`PostgreSqlSupported`/`OracleSupported` in `Directory.Build.props`); build and test `net11.0` with `PhenX.EntityFrameworkCore.BulkInsert.Net11.slnf`.
 
 ## Code style
 - No comments inside method bodies describing investigation or reasoning. Comments should explain *what* code does or *why* a design decision was made, not document an ongoing investigation.
@@ -61,5 +62,5 @@ All projects target `net8.0;net9.0;net10.0`. C# 12, nullable enabled, implicit u
 - For every code change, add or update corresponding **tests** (unit/integration/benchmark).
 
 ## CI
-- PRs to `main` → build + test on all 3 TFMs
-- Tags `v*` → build, test on all 3 TFMs, pack, push to NuGet.org
+- PRs to `main` → build + test on all 4 TFMs
+- Tags `v*` → build, test on all 4 TFMs, pack, push to NuGet.org

@@ -8,7 +8,6 @@ using Microsoft.EntityFrameworkCore;
 
 using OpenTelemetry.Trace;
 
-using PhenX.EntityFrameworkCore.BulkInsert.Extensions;
 using PhenX.EntityFrameworkCore.BulkInsert.OpenTelemetry;
 using PhenX.EntityFrameworkCore.BulkInsert.Sqlite;
 using PhenX.EntityFrameworkCore.BulkInsert.Tests.DbContext;
@@ -34,10 +33,15 @@ public class OpenTelemetryTests
         builder.Sources.Should().ContainSingle().Which.Should().Be(Telemetry.ActivitySource.Name);
     }
 
-    [Fact]
-    public async Task BulkInsert_EmitsActivities_FromRegisteredSource()
+    [Theory]
+    [CombinatorialData]
+    public async Task BulkInsert_EmitsActivities_FromRegisteredSource(InsertStrategy strategy)
     {
         // Arrange
+        var expectedOperation = strategy is InsertStrategy.InsertReturn or InsertStrategy.InsertReturnAsync
+            ? "BulkInsertReturnEntities"
+            : "BulkInsert";
+
         var builder = new RecordingTracerProviderBuilder();
         builder.AddPhenXEntityFrameworkCoreBulkInsertInstrumentation();
 
@@ -61,28 +65,28 @@ public class OpenTelemetryTests
         };
         await context.Database.EnsureCreatedAsync();
 
-        var run = Guid.NewGuid();
         var entities = new List<TestEntity>
         {
-            new TestEntity { TestRun = run, Name = "Entity1" },
-            new TestEntity { TestRun = run, Name = "Entity2" },
+            new TestEntity { Name = "Entity1" },
+            new TestEntity { Name = "Entity2" },
         };
 
         // Act
         ActivityTraceId traceId;
+        ActivitySpanId parentSpanId;
         using (var parent = testSource.StartActivity("Test"))
         {
             Assert.NotNull(parent);
             traceId = parent.TraceId;
+            parentSpanId = parent.SpanId;
 
-            await context.ExecuteBulkInsertAsync(entities);
+            await context.InsertWithStrategyAsync(strategy, entities);
         }
 
         // Assert
         stoppedActivities
             .Where(a => a.TraceId == traceId && a.Source.Name == Telemetry.ActivitySource.Name)
-            .Select(a => a.OperationName)
-            .Should().Contain("BulkInsert");
+            .Should().Contain(a => a.OperationName == expectedOperation && a.ParentSpanId == parentSpanId);
     }
 
     private sealed class RecordingTracerProviderBuilder : TracerProviderBuilder

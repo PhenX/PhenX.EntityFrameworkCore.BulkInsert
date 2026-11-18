@@ -17,14 +17,16 @@ Install the instrumentation NuGet package:
 Install-Package PhenX.EntityFrameworkCore.BulkInsert.OpenTelemetry
 ```
 
-The package depends on a pinned minimum version of `OpenTelemetry.Api` that is chosen per target framework so that its `System.Diagnostics.DiagnosticSource` dependency supports that framework:
+The package depends on `OpenTelemetry.Api` 1.15.3 or later, which brings in a `System.Diagnostics.DiagnosticSource` version that supports each target framework:
 
 | Target framework     | `OpenTelemetry.Api` | `System.Diagnostics.DiagnosticSource` |
 |----------------------|---------------------|---------------------------------------|
-| `net8.0`, `net9.0`   | 1.20.1              | 10.0.0                                |
-| `net10.0`            | 1.21.0              | 11.0.0                                |
+| `net8.0`, `net9.0`   | 1.15.3 or later     | 10.0.0 package                        |
+| `net10.0` and later  | 1.15.3 or later     | Included in .NET                      |
 
-Your application can reference a newer OpenTelemetry version. On `net8.0` and `net9.0`, note that OpenTelemetry 1.21.0 and later no longer ship assets for these frameworks and bring in `System.Diagnostics.DiagnosticSource` 11.0.0, which does not support them.
+Your application can use any newer OpenTelemetry version. If it references `OpenTelemetry.Api` directly, use 1.15.3 or later; a lower version is reported as a package downgrade (NU1605).
+
+On `net8.0` and `net9.0`, stay on OpenTelemetry 1.20.x: the 1.21.0 packages no longer ship assets for these frameworks and bring in .NET 11 packages, such as `System.Diagnostics.DiagnosticSource` 11.0.0, that do not support them.
 
 ## Configuration
 

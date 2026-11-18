@@ -12,6 +12,7 @@
     <PackageReference Include="Testcontainers.MsSql" Version="4.10.0" />
     <PackageReference Include="Testcontainers.MySql" Version="4.10.0" />
     <PackageReference Include="Testcontainers.Oracle" Version="4.10.0" />
+    <PackageReference Include="SSH.NET" Version="2026.0.*" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
@@ -24,6 +25,7 @@
     <PackageReference Include="EFCore.BulkExtensions" Version="9.0.2" />
     <PackageReference Include="Z.EntityFramework.Extensions.EFCore" Version="9.105.2" />
     <PackageReference Include="linq2db.EntityFrameworkCore" Version="9.2.0" />
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="9.0.*" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">

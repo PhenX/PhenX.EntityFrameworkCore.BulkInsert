@@ -32,6 +32,7 @@
         <PackageReference Include="Testcontainers.MySql" Version="4.10.0" />
         <PackageReference Include="Testcontainers.Oracle" Version="4.10.0" />
         <PackageReference Include="Testcontainers.Xunit" Version="4.10.0" />
+        <PackageReference Include="SSH.NET" Version="2026.0.*" />
     </ItemGroup>
 
     <ItemGroup Label="NetTopologySuite net8.0" Condition="'$(TargetFramework)' == 'net8.0'">

@@ -58,6 +58,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\..\src\PhenX.EntityFrameworkCore.BulkInsert.MySql\PhenX.EntityFrameworkCore.BulkInsert.MySql.csproj" />
+      <ProjectReference Include="..\..\src\PhenX.EntityFrameworkCore.BulkInsert.OpenTelemetry\PhenX.EntityFrameworkCore.BulkInsert.OpenTelemetry.csproj" />
       <ProjectReference Include="..\..\src\PhenX.EntityFrameworkCore.BulkInsert.Oracle\PhenX.EntityFrameworkCore.BulkInsert.Oracle.csproj" />
       <ProjectReference Include="..\..\src\PhenX.EntityFrameworkCore.BulkInsert.PostgreSql\PhenX.EntityFrameworkCore.BulkInsert.PostgreSql.csproj" />
       <ProjectReference Include="..\..\src\PhenX.EntityFrameworkCore.BulkInsert.Sqlite\PhenX.EntityFrameworkCore.BulkInsert.Sqlite.csproj" />

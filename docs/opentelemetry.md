@@ -17,6 +17,15 @@ Install the instrumentation NuGet package:
 Install-Package PhenX.EntityFrameworkCore.BulkInsert.OpenTelemetry
 ```
 
+The package depends on a pinned minimum version of `OpenTelemetry.Api` that is chosen per target framework so that its `System.Diagnostics.DiagnosticSource` dependency supports that framework:
+
+| Target framework     | `OpenTelemetry.Api` | `System.Diagnostics.DiagnosticSource` |
+|----------------------|---------------------|---------------------------------------|
+| `net8.0`, `net9.0`   | 1.20.1              | 10.0.0                                |
+| `net10.0`            | 1.21.0              | 11.0.0                                |
+
+Your application can reference a newer OpenTelemetry version. On `net8.0` and `net9.0`, note that OpenTelemetry 1.21.0 and later no longer ship assets for these frameworks and bring in `System.Diagnostics.DiagnosticSource` 11.0.0, which does not support them.
+
 ## Configuration
 
 Register the instrumentation when configuring your OpenTelemetry `TracerProvider` by calling `AddPhenXEntityFrameworkCoreBulkInsertInstrumentation()`:

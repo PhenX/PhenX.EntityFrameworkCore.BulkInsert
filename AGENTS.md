@@ -59,6 +59,21 @@ All projects target `net8.0;net9.0;net10.0`. C# 12, nullable enabled, implicit u
 ## Workflow
 - For every public-facing change (new feature, API change, behavior change), update the **README.md** and any relevant **docs/** files.
 - For every code change, add or update corresponding **tests** (unit/integration/benchmark).
+- Before opening any pull request, run the **adversarial review** below.
+
+## Adversarial review (required before every PR)
+Review the full diff (`git diff origin/main...HEAD`) with the goal of proving the change wrong, not confirming it works.
+
+- **Independent reviewer**: if your tooling can start a separate agent or session, give it the original task and the diff only, not your reasoning or conclusions. Otherwise, re-read the diff from scratch as if someone else wrote it.
+- **Try to break it**, at minimum on these axes:
+  - **Every TFM**: build and test each framework in `Directory.Build.props`. Check that `#if` branches and `Condition="'$(TargetFramework)' == '...'"` items cover all of them, including TFMs added by open PRs.
+  - **Release build**: `dotnet build PhenX.EntityFrameworkCore.BulkInsert.slnx -c Release` must add no warnings, including warnings emitted by package or MSBuild targets (such as "doesn't support net8.0" TFM-support warnings), which `TreatWarningsAsErrors` does not turn into errors. If restore fails on NuGet audit errors (NU1902/NU1903) that your change did not introduce, build with `-p:NuGetAudit=false` and say so in the PR.
+  - **Every provider**: SQL Server, PostgreSQL, SQLite, MySQL, Oracle (SQL dialect, quoting, schema qualification, type mapping).
+  - **Consumers**: inspect the packed `.nuspec` (`dotnet pack -c Release`) for dependency changes per TFM, transitive version bumps, and public API breaks.
+  - **Tests**: where feasible, new tests must fail without the change (revert or mutate it and re-run); when not (docs-only changes, some dependency changes), say why in the PR. Cover edge cases: empty input, nulls, sync and async paths, return-entities paths, on-conflict/merge options.
+  - **Docs and style**: README.md and docs/ updated for public-facing changes; the code style rules above are respected.
+- **Act on every finding**: fix it, or explain in the PR description why it is not a problem. Re-run affected builds and tests after fixing.
+- **Report it**: add an "Adversarial review" section to the PR description listing what was checked, what was found, and what was fixed or deferred. Name any check that could not run (for example, provider tests without Docker) instead of implying it passed.
 
 ## CI
 - PRs to `main` → build + test on all 3 TFMs

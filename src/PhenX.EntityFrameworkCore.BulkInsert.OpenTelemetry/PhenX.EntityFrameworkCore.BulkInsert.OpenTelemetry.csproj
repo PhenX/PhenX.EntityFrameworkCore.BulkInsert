@@ -1,5 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    OpenTelemetry.Api is pinned rather than floating so that the dependency shipped to consumers is predictable.
+    1.15.3 is the lowest version without a known vulnerability (GHSA-g94r-2vxg-569j). It ships net8.0, net9.0
+    and net10.0 assets: on net8.0/net9.0 it depends on System.Diagnostics.DiagnosticSource 10.0.0, which supports
+    net8.0 and later; on net10.0 and later it uses the in-box DiagnosticSource. A low floor avoids lifting the
+    consumer's OpenTelemetry.Api above the OpenTelemetry SDK version they use; only AddSource is needed here.
+    OpenTelemetry.Api 1.21.0 has no net8.0/net9.0 assets and pulls DiagnosticSource 11.0.0 there, which
+    does not support those frameworks.
+  -->
   <ItemGroup>
-    <PackageReference Include="OpenTelemetry.Api" Version="1.*" />
+    <PackageReference Include="OpenTelemetry.Api" Version="1.15.3" />
   </ItemGroup>
 </Project>

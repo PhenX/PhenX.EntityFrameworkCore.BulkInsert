@@ -49,6 +49,7 @@ dotnet run --project tests/PhenX.EntityFrameworkCore.BulkInsert.Benchmark -c Rel
 
 ## Multi-targeting
 All projects target `net8.0;net9.0;net10.0;net11.0`. C# 12, nullable enabled, implicit usings.
+Building requires the .NET 11 SDK, also when building a single older TFM with `--framework`.
 The PostgreSql and Oracle projects and the benchmarks skip `net11.0` until their dependencies support EF Core 11; build and test `net11.0` with `PhenX.EntityFrameworkCore.BulkInsert.Net11.slnf`.
 
 ## Code style

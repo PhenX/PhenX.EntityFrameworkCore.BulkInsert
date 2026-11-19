@@ -24,7 +24,6 @@
     </PropertyGroup>
 
     <ItemGroup Label="Package References">
-        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.404" PrivateAssets="All"/>
         <PackageReference Include="JetBrains.Annotations" Version="2025.2.4" />
     </ItemGroup>
 

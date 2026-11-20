@@ -60,6 +60,8 @@ public class TestDbContext : TestDbContextBase
             // We just reuse the table for the standard TestEntity.
             builder.ToView("test_entity");
         });
+
+        modelBuilder.Entity<TestEntityWithNullableEnums>();
     }
 }
 

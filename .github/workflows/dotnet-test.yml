@@ -19,21 +19,24 @@ jobs:
           { tfm: net8.0, version: 8.0.x },
           { tfm: net9.0, version: 9.0.x },
           { tfm: net10.0, version: 10.0.x },
+          { tfm: net11.0, version: 11.0.x, solution: PhenX.EntityFrameworkCore.BulkInsert.Net11.slnf },
         ]
 
     steps:
     - uses: actions/checkout@v4
 
-    - name: Setup .NET 10.0 # Latest dotnet version supported
+    - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: 10.0.x
+        dotnet-version: |
+          ${{ matrix.dotnet.version }}
+          11.0.x
 
     - name: Display dotnet version
       run: dotnet --version
 
     - name: Build
-      run: dotnet build PhenX.EntityFrameworkCore.BulkInsert.slnx --framework ${{ matrix.dotnet.tfm }}
+      run: dotnet build ${{ matrix.dotnet.solution || 'PhenX.EntityFrameworkCore.BulkInsert.slnx' }} --framework ${{ matrix.dotnet.tfm }}
 
     - name: Test
-      run: dotnet test PhenX.EntityFrameworkCore.BulkInsert.slnx --no-build --verbosity normal --framework ${{ matrix.dotnet.tfm }}
+      run: dotnet test ${{ matrix.dotnet.solution || 'PhenX.EntityFrameworkCore.BulkInsert.slnx' }} --no-build --verbosity normal --framework ${{ matrix.dotnet.tfm }}

@@ -31,7 +31,12 @@ This library depends on the official Entity Framework Core packages provided by 
 
 MySQL is a special case: the [Pomelo MySQL](https://github.com/PomeloFoundation/Pomelo.EntityFrameworkCore.MySql) package is widely preferred for its superior MySQL feature support. However, the package relies heavily on a single maintainer and does not yet support .NET 10. See the relevant [issue](https://github.com/PomeloFoundation/Pomelo.EntityFrameworkCore.MySql).
 
-A community fork is available at https://github.com/microting/Pomelo.EntityFrameworkCore.MySql that addresses this gap. **For .NET 10 only**, this library takes a dependency on that fork.
+A community fork is available at https://github.com/microting/Pomelo.EntityFrameworkCore.MySql that addresses this gap. **For .NET 10 and .NET 11**, this library takes a dependency on that fork.
+
+The PostgreSQL and Oracle packages do not target .NET 11 yet, because Npgsql and Oracle have no stable EF Core 11 provider. They will be added once these are released.
+
+> [!WARNING]
+> On .NET 11, the PostgreSQL and Oracle packages of this version cannot be used: the common package brings in EF Core 11, while the Npgsql and Oracle providers require EF Core 10. For PostgreSQL, NuGet restore fails with a version conflict (NU1107). For Oracle, restore gives warning NU1608 and the app may fail at runtime. On .NET 11, use version 0.5.0 or earlier of this library with these providers until they support EF Core 11.
 
 ## Installation
 

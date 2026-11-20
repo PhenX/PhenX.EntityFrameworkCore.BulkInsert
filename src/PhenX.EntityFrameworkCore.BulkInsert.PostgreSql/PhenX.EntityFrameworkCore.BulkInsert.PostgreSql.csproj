@@ -1,5 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
+    <PropertyGroup>
+      <!-- Npgsql.EntityFrameworkCore.PostgreSQL has no stable EF Core 11 release yet -->
+      <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    </PropertyGroup>
+
     <ItemGroup>
       <ProjectReference Include="..\PhenX.EntityFrameworkCore.BulkInsert\PhenX.EntityFrameworkCore.BulkInsert.csproj" />
     </ItemGroup>

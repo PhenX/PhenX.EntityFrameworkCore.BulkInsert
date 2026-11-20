@@ -40,6 +40,11 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
+      - name: Setup .NET 11.0
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 11.0.x
+
       - name: Test net8.0
         run: dotnet test PhenX.EntityFrameworkCore.BulkInsert.slnx --configuration Release --verbosity normal --framework net8.0
 
@@ -48,6 +53,9 @@ jobs:
 
       - name: Test net10.0
         run: dotnet test PhenX.EntityFrameworkCore.BulkInsert.slnx --configuration Release --verbosity normal --framework net10.0
+
+      - name: Test net11.0
+        run: dotnet test PhenX.EntityFrameworkCore.BulkInsert.Net11.slnf --configuration Release --verbosity normal --framework net11.0
 
       - name: Pack nuget packages
         run: dotnet pack PhenX.EntityFrameworkCore.BulkInsert.slnx --configuration Release --no-build --output nupkgs /p:PackageVersion=$VERSION
